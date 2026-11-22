@@ -100,7 +100,7 @@ en de werkelijk gebruikte provider/model. Mislukken beide vóór tekst, dan blij
 provider/model leeg: er is geen gegenereerd antwoord om toe te schrijven.
 
 Fouten hebben vaste Nederlandse berichten: ontbrekende sleutel, onbereikbare
-Ollama, ontbrekend model, authenticatie, quota, rate limit, timeout, ongeldige
+Ollama, ontbrekend model, authenticatie, quota, rate limit, tijdelijke modeloverbelasting (HTTP 503), timeout, ongeldige
 stream, onderbroken antwoord en outputlimiet. Ruwe providerfouten/headers worden
 niet naar de client of log gekopieerd. Annuleren sluit de lopende HTTP-stream;
 bij afbreken/herstart wordt de beurt als cancelled/interrupted opgeslagen.

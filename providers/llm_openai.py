@@ -598,6 +598,9 @@ class OpenAICompatLLM:
                         raw.extend(piece)
                     try:
                         detail = json.loads(raw)
+                        # Gemini can wrap REST errors in a one-element JSON array.
+                        if isinstance(detail, list):
+                            detail = detail[0] if detail else {}
                     except (ValueError, UnicodeError):
                         detail = {}
                     raise TextStreamError("http_error", r.status_code, detail if isinstance(detail, dict) else {})

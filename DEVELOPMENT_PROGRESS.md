@@ -2,8 +2,12 @@
 
 ## Huidige opdracht
 
-Fase 2 — AI-engine en webchat, expliciet opgedragen; implementatie in uitvoering
-op `feature/ai-chat-engine`, vanaf develop `701b869`.
+Fase 2 — AI-engine en webchat geïmplementeerd en via PR #9 naar develop
+geïntegreerd (`40c2452`). 90 lokale tests geslaagd; oorspronkelijke PR- en merge-CI
+op Windows/Linux/repository geslaagd. Aanvullende live-foutafhandeling en
+configuratiekopiecontrole via fix/phase-two-verification, met dezelfde CI-eisen.
+Live antwoordacceptatie nog open: Gemini geconfigureerd door de eigenaar, maar
+Google geeft HTTP 503 (model overbelast); Ollama is niet geïnstalleerd/bereikbaar.
 Alles op de ontwikkeldesktop; poort 8765 behouden. Main blijft ongewijzigd.
 STOP na fase 2; geen desktop-/Android-app, spraak, koppelingen of automatiseringen.
 De onderstaande fase-0-secties vormen de bewaarde voorgeschiedenis.
@@ -315,3 +319,27 @@ De oorspronkelijke installatie-instructie maakte daardoor een onjuiste aanname.
   negeert; uitsluitend de gecontroleerde documentatiebeelden staan daarom in
   docs/images. Runtime-screenshotuitsluiting blijft behouden. Geen privédata op
   deze twee beelden. Nieuwe commits/index zijn door Gitleaks schoon bevonden.
+
+### Fase 2 — integratie en live Gemini-proef
+
+- PR #9 gemerged naar develop: 40c24522c8b440f4f5aaecae72c9e86ac5a79912.
+  Alle verplichte checks geslaagd op feature/pull request én echte mergecommit.
+  Merge-CI: serverrun 45072747155 (Windows/Linux) en repositoryrun 45072747103.
+  Branchbescherming niet omzeild; geen main-wijziging of force-push.
+- Inhoudelijk beoordeeld: transporthergebruik/desktopdefaults, fallbackgrens,
+  annulering/deadlines, DB/migratie, loopback/Origin/CSP, limieten en geen tools.
+- Eigenaar maakte tijdens de controle zelf lokale .env-configuratie aan.
+  Windows-configuratiekopieën (.env - *) eveneens uitgesloten van Git en als
+  gitignore-probe toegevoegd; gebruikersbestand niet geopend, overschreven of verplaatst.
+- Server opnieuw echt gestart. Health/ready/status goed, SQLite schema 2,
+  logbestand aanwezig en pre-v2-back-up behouden. Profiel desktop-development.
+- Live Gemini-SSE geprobeerd met synthetische tekst: Google HTTP 503 / UNAVAILABLE
+  wegens modeloverbelasting; geen antwoordtekst. Eén latere herhaling eveneens
+  mislukt. Geen sleutels getoond/opgeslagen in Git/chatdatabase. Ollama afwezig.
+- Werkelijk waargenomen Google-foutformaat is soms een JSON-array; strikte
+  foutparser hersteld, quotaherkenning behouden en duidelijke Nederlandse
+  overbelastingsmelding toegevoegd. Regressietests erbij: **90 geslaagd**, 4,58 s.
+- Resterend: later live antwoord/streaming testen wanneer Google beschikbaar is,
+  of door eigenaar bewust Ollama installeren/configureren. Mocks bevestigen de
+  contracten; zij bewijzen geen live providerkwaliteit of 8-GB-hardwareverbruik.
+- Stop na fase 2. Geen mini-pc-deployment, clients, spraak, koppelingen of automatie.

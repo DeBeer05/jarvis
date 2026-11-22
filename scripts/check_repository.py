@@ -28,7 +28,7 @@ DOCUMENTS = (
     "config/jarvis-system-prompt.txt",
 )
 IGNORED_PROBES = (
-    ".env", ".env.local", ".env.production", ".venv/probe", "venv/probe",
+    ".env", ".env.local", ".env.production", ".env - kopie.example", ".venv/probe", "venv/probe",
     "__pycache__/probe.pyc", "nested/probe.pyc", "logs/probe.log",
     "config/api_keys.json", "config/certs/probe.pem", "config/whatsapp_web/session",
     "nested/token.json", "nested/client_secret.json", "credentials.json",
