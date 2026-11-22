@@ -66,14 +66,49 @@ van readme.md, AGENTS.md en .gitignore aantoonbaar behouden.
 
 ## Afrondingscontrole
 
-De lokale controles, commit, push, CI en branch protection worden tijdens afronding
-geverifieerd. Het definitieve resultaat wordt hieronder toegevoegd; bovenstaande
-voorbereidingsbeschrijving claimt nog geen geslaagde remote CI.
+Voorbereidingscommit `8c0c60f42be2f9614a5c6bcfa410abb26463dd4b`:
+`chore: initialize JARVIS development environment`.
+Lokaal gecontroleerd en naar de eigen fork gepusht op zowel `develop` als `main`.
+De initiële synchronisatie naar main was fast-forward, vóór activering van
+branch protection, en bevatte uitsluitend de geteste voorbereiding.
+
+| Eindcontrole | Resultaat |
+| --- | --- |
+| Git / GitHub | Werkend; eigen fork en SSH-push geverifieerd |
+| Remotes | origin eigen fork; upstream oorspronkelijke bron, lokaal geen push |
+| Branches | main en develop lokaal en remote aanwezig; main blijft standaard |
+| Structuur / gitignore | 10 vereiste mappen en alle gevoelige proefpaden gecontroleerd |
+| Agentinstructies / documentatie | Alle vereiste documenten aanwezig; upstreamtekst behouden |
+| Geheimen actuele tree | Geen treffers in gebruikte patronen; geen gevolgde genegeerde paden |
+| Historische geheimcontrole | Eén bekende oude TLS-sleutel; zie aparte sectie hierboven |
+| Python / PowerShell | Controlescript en helpers syntactisch geldig |
+| Branchhelpers | Vuile tree geweigerd; featurebranch correct vanaf develop gemaakt |
+| Commit / push | Voorbereidingscommit remote bevestigd; geen force-push |
+| CI develop | Geslaagd: <https://github.com/DeBeer05/jarvis/actions/runs/45051645564> |
+| CI main | Geslaagd: <https://github.com/DeBeer05/jarvis/actions/runs/45051665939> |
+| Branch protection | Via API ingesteld en teruggelezen voor main en develop |
+
+Branch protection vereist een PR, actuele `Repository checks` van de GitHub
+Actions-app en opgeloste gesprekken. Nul verplichte andere reviewers voor deze
+persoonlijke repository; beheerder is eveneens gebonden, force-push en verwijdering
+zijn uitgeschakeld. De afrondingsdocumentatie doorloopt daarna dezelfde PR/CI-route.
+Geen productie-deployment of applicatietests uitgevoerd.
 
 De eerste HTTPS-push werd geweigerd doordat het bestaande OAuth-token de scope
 `workflow` mist. Bestaande SSH-authenticatie is daarna met een read-only remotecheck
 geverifieerd; origin push wordt via die reeds beschikbare sleutel uitgevoerd.
 Geen extra tokenrechten of browserlogin nodig voor deze route.
+
+## Status en handmatige vervolgstappen
+
+Fase 0 is technisch voorbereid. Geen handmatige login/installatie vereist voor
+deze werkplek. Een eventueel nog gebruikte historische upstream-TLS-sleutel moet
+door de gebruiker van die installatie worden vervangen; deze voorbereiding heeft
+geen installatie gestart of sleutel hergebruikt. Op andere werkplekken gelden de
+authenticatie- en lokale configuratiestappen in GIT_WORKFLOW.md.
+De app zelf is nog niet geïnstalleerd of functioneel gevalideerd. De historische
+geheimblootstelling en latere veiligheidsaudit blijven expliciete aandachtspunten.
+De volgende stap vereist een nieuwe opdracht. **STOP: geen fase 1 gestart.**
 
 ## Nog niet uitgevoerd / pas na nieuwe opdracht
 
