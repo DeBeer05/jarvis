@@ -22,8 +22,10 @@
 - [x] Branch protection op main en develop via API ingesteld en teruggelezen.
 - [x] Historische TLS-sleutel als resterende blootstelling gedocumenteerd.
 
-Exacte resultaten en CI-links staan in `DEVELOPMENT_PROGRESS.md`. De laatste
-afrondingsdocumentatie wordt eveneens via PR en CI verwerkt.
+Exacte resultaten en CI-links staan in `DEVELOPMENT_PROGRESS.md`. De eerste
+afrondingsdocumentatie is via PR #1 en #2 met geslaagde CI verwerkt.
+De latere hercontrole, veilige reparaties en de resterende historische sleutel
+staan per controle in `docs/PHASE_0_AUDIT.md`.
 
 ## Voor eventuele fase 1 — nog niet uitvoeren
 

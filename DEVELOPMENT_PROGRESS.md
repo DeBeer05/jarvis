@@ -91,7 +91,9 @@ branch protection, en bevatte uitsluitend de geteste voorbereiding.
 Branch protection vereist een PR, actuele `Repository checks` van de GitHub
 Actions-app en opgeloste gesprekken. Nul verplichte andere reviewers voor deze
 persoonlijke repository; beheerder is eveneens gebonden, force-push en verwijdering
-zijn uitgeschakeld. De afrondingsdocumentatie doorloopt daarna dezelfde PR/CI-route.
+zijn uitgeschakeld. De afrondingsdocumentatie is via PR #1 en #2 met geslaagde
+checks naar develop en main gemerged; de branchkoppen zijn respectievelijk
+`548665c` en `def53ba` bij aanvang van de onderstaande hercontrole.
 Geen productie-deployment of applicatietests uitgevoerd.
 
 De eerste HTTPS-push werd geweigerd doordat het bestaande OAuth-token de scope
@@ -117,3 +119,27 @@ Geen server, desktop-client of Android-app ontwikkeld. Geen OAuth, Gmail, agenda
 berichten, telefonie, externe toegang of deployment gekoppeld of geactiveerd.
 Hardwareprestaties en bestaande upstreamfunctionaliteit zijn niet getest.
 Voor fase 1: architectuurkeuzes concretiseren en bestaande code/dependencies auditen.
+
+## Hercontrole fase 0 — 22 november 2026
+
+Alle twaalf gevraagde controles zijn apart vastgelegd in
+[docs/PHASE_0_AUDIT.md](docs/PHASE_0_AUDIT.md). Repository, remotes, branches,
+structuur, agentinstructies, Git-publicatie en beschermingsregels zijn bevestigd.
+Geen ongepubliceerde commits op actieve lokale branches bij aanvang.
+De actuele branchkoppen hadden geslaagde CI op main (run `45051885547`) en
+develop (run `45051843093`).
+
+Veilig herstel: geheimpatronen ook op Git-indexblobs controleren; CI-whitespace
+op daadwerkelijke PR-/pushwijzigingen controleren. Gerichte regressiecontroles
+met synthetische fixtures zijn geslaagd. Alleen voorbereidingsbestanden gewijzigd.
+
+Aanvullende lokale Gitleaks 8.30.1-scan: nul bevindingen in de actuele gevolgde
+tree, één reeds bekende privé-TLS-sleutel in de geschiedenis van alle refs.
+Daarom is de volledige historie niet geheimvrij; die is niet herschreven.
+Herstelcommit `b4b151e` is gepubliceerd op origin/fix/phase0-audit in
+[PR #3](https://github.com/DeBeer05/jarvis/pull/3). De vernieuwde CI is geslaagd
+op de featurepush (run `45052725626`) en PR (run `45052729305`).
+Integratie naar develop en main gebruikt de beschermde PR-route, zonder bypass.
+De ontwikkelbasis is gereed met deze expliciete historische uitzondering.
+Geen handmatige setup nodig; een eventueel nog gebruikte oude sleutel vervangen.
+**Geen fase 1 of applicatieontwikkeling gestart.**
