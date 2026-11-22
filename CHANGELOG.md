@@ -4,6 +4,8 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Windows-instructies en Git-branchhelpers gebruiken de ingebouwde PowerShell
+  5.1; geen verplichte pwsh-installatie. Windows-CI test beide PowerShell-edities.
 - Fase 1: lichte localhost-headlessbasis met health/ready/status, .env-config,
   JSON-logrotatie, SQLite, gecontroleerd procesbeheer, Windows-scripts en pytest.
 - Fase 1 via PR #5 geïntegreerd naar develop, met 39 geslaagde tests op Windows

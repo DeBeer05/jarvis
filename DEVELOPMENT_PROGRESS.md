@@ -238,3 +238,23 @@ bijgewerkt naar de officiële checkout v7.0.1- en setup-python v7.1.0-commits,
 waarvan de actionmetadata expliciet Node 24 voorschrijft. Servercode en main zijn
 hierbij niet gewijzigd. Dezelfde verplichte repository-/Windows-/Linuxchecks
 gelden voor deze kleine CI-correctie en de normale PR-route blijft van kracht.
+
+### Herstel Windows PowerShell — pwsh niet gevonden
+
+De gebruiker meldde dat `pwsh` in de gewone Windows-terminal niet bestaat.
+Codex beschikte over een gebundelde PowerShell 7 in zijn eigen runtime; dat was
+geen bewijs dat dit commando ook in de terminal van de gebruiker beschikbaar was.
+De oorspronkelijke installatie-instructie maakte daardoor een onjuiste aanname.
+
+- Windows-handleiding/README gebruiken nu `powershell.exe`, de ingebouwde
+  Windows PowerShell 5.1. Een extra PowerShell-7-installatie is niet vereist.
+- `scripts/configure-git.ps1` kiest op Windows eveneens powershell.exe voor de
+  branchhelpers; de bestaande lokale Git-aliases zijn hiermee bijgewerkt.
+- Alle vijf serverscripts daadwerkelijk met Windows PowerShell
+  **5.1.26100.9818** uitgevoerd: omgeving, dependencies, start, status en stop.
+  Echte health/ready/status-verzoeken geslaagd; testserver daarna gestopt.
+- Geen execution policy veranderd; de bestaande CurrentUser-policy RemoteSigned
+  stond de lokale scripts toe. Geen nieuwe dependency of service geïnstalleerd.
+- Windows-CI voert de controlscripts nu zowel onder Windows PowerShell 5.1 als
+  PowerShell 7 uit. Server-/AI-functionaliteit en main blijven ongewijzigd.
+  Dit is een herstel binnen fase 1, geen start van fase 2.
