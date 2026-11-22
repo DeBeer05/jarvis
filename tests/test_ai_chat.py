@@ -57,6 +57,22 @@ def test_sse_stream_has_metadata_deltas_and_done(settings):
         assert events[-1]["message"] == "Hallo daar." and events[-1]["status"] == "completed"
 
 
+def test_new_message_reaches_model_after_repeated_assistant_answers(settings):
+    repeated = FakeProvider(("Heel goed! Wat wil je doen?",))
+    app, _ = build(settings, ollama=repeated)
+    cid = None
+    with client(app) as http:
+        for index, message in enumerate(("Hallo", "Hoe heet je?", "Met je praten")):
+            payload = {"message": message, "provider": "ollama"}
+            if cid:
+                payload["conversation_id"] = cid
+            result = http.post("/api/v1/chat", json=payload).json()
+            assert result["status"] == "completed"
+            cid = result["conversation_id"]
+            assert repeated.calls[-1][-1] == {"role": "user", "content": message}
+            assert len(repeated.calls[-1]) == 2 + 2 * index
+
+
 @pytest.mark.parametrize("mode,expected", [("auto", "ollama"), ("gemini", None), ("ollama", "ollama")])
 def test_provider_selection_and_fallback(settings, mode, expected):
     app, providers = build(settings, FakeProvider(failure="quota_exceeded"), FakeProvider(("Lokaal",)))

@@ -2,6 +2,11 @@
 
 ## Huidige opdracht
 
+Aanvulling fase 2: op verzoek Groq als derde cloudprovider toegevoegd. Groq
+GPT-OSS 120B live geslaagd; lokale auto-voorkeur Groq → Ollama. Herhaling door
+het kleine lokale model aangepakt met Qwen2.5 3B/temperature=0.2; twee echte
+vierbeurtgesprekken geslaagd. Details onderaan.
+
 Fase 2 — AI-engine en webchat geïmplementeerd en via PR #9 naar develop
 geïntegreerd (`40c2452`). 90 lokale tests geslaagd; oorspronkelijke PR- en merge-CI
 op Windows/Linux/repository geslaagd. Aanvullende live-foutafhandeling en
@@ -373,3 +378,50 @@ De oorspronkelijke installatie-instructie maakte daardoor een onjuiste aanname.
 - Configuratie-/adaptertests: 38 geslaagd; repository-/whitespacecontrole schoon.
   Resterend: later Gemini opnieuw proberen wanneer Google capaciteit heeft.
   Main blijft ongewijzigd; stop na deze configuratieopdracht.
+
+### Groq als derde provider — 22 november 2026
+
+- Gebruiker vraagt gratis cloudoptie naast Gemini en Ollama, omdat Gemini-credits
+  nog ontbreken. Groq Free Plan met GPT-OSS 120B gecontroleerd tegen officiële
+  model-/limiet-/OpenAI-/reasoningdocumentatie. Eigenaar maakte zelf lokale sleutel.
+- Bestaand Mark-LVII-transport hergebruikt; alleen opt-in completion-tokenveld en
+  reasoningweergaveoptie toegevoegd. Desktopdefaults behouden. Geen extra packages.
+- Toegevoegd: groq-modus/voorkeur, modelconfig, API-/status-/webchatkeuze, ontbrekende
+  sleutelmelding, redactie van beide bekende cloudkeys in context/SQLite/logs en
+  herkenbare Groq-keypatronen. Schema 2 behouden, geen migratie vereist.
+- Lokale .env staat op auto/preferred=groq. Auto probeert dan alleen Groq en Ollama;
+  Gemini wordt niet belast. Sleutels en lokale overrides blijven buiten Git.
+- Echte expliciete Groq-SSE-proef completed: openai/gpt-oss-120b, vier delta-events,
+  precies 'Groq werkt.' (11 tekens), opslag via historie bevestigd. Alleen het
+  bekende eigen synthetische testgesprek verwijderd; gebruikersgesprekken behouden.
+- 98 tests geslaagd vóór aanvullende herhalingsregressietest; geen kapotte
+  dependencies, JS-syntax/repository-/whitespacecheck geslaagd.
+- Nieuwe melding: Qwen3 0.6B blijft volgens screenshot een begroeting herhalen.
+  Eigen drievraagtest bevestigt dat nieuwe gebruikersberichten correct doorgaan,
+  maar toont zwakke Nederlandse antwoorden/vraagecho. Extra promptinstructies
+  hielpen niet betrouwbaar en zijn niet opgeslagen. Groter lokaal model wordt
+  op dezelfde desktop getest; geen mini-pc-deployment of nieuwe fase.
+
+- Volledige Groq-/herhalingsregressiesuite: **99 geslaagd**, 4,99 s. Bestaande
+  Starlette-testadapterwaarschuwing blijft niet-blokkerend. Geen nieuwe dependency.
+- Qwen3 4B proef: model gedownload (2,5 GB) op desktop; antwoorden bevatten hier
+  ondanks non-thinkinginstelling veel denk-tekst en een timeout. Niet als
+  geslaagd herstel beschouwd. Een gewone Qwen2.5 3B-instructievariant wordt getest.
+
+### Herstel lokale herhaling — 22 november 2026
+
+- Screenshotcase bevestigd als modelgedrag, niet als bewijs van hergebruik van
+  een oud gebruikersbericht. Regressietest borgt nieuwste bericht na herhaalde
+  assistantteksten. Geen gebruikersgesprekken verwijderd of transcript aangepast.
+- Qwen3 4B voldeed hier niet: denk-tekst ondanks instellingen, timeout en zwak
+  gesprek. Geen succes geclaimd; geen prompttrucs of verborgen denkfilter toegevoegd.
+- Qwen2.5 3B-instructievariant via officiële Ollama-pull gedownload (circa 1,9 GB).
+  Lokale OLLAMA_MODEL omgezet naar qwen2.5:3b; originele 0.6B en onderzochte 4B
+  blijven geïnstalleerd. Alleen deze desktop, niet mini-pc. Secrets behouden.
+- Ollama-temperature verlaagd naar 0.2, clouddefaults intact. Na herstart twee
+  echte vierbeurt-HTTP-gesprekken uitgevoerd met vragen uit de melding en een
+  rekensom: alle acht completed, correcte naam/rekenantwoord en geen identieke
+  begroetingslus. Alleen bekende eigen testgesprekken verwijderd.
+- Volledige suite: 99 tests geslaagd; Groq inclusief echte cloudproef operationeel.
+  Lokale auto blijft Groq → Ollama; Gemini wordt daarbij niet aangeroepen.
+  Begin nieuw gesprek om eerdere slechte modelantwoorden uit de context te houden.

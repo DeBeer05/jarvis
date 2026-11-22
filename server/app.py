@@ -34,7 +34,7 @@ def create_app(
 ) -> FastAPI:
     settings = settings or load_settings()
     database = Database(settings.database_path)
-    store = ChatStore(database, secret=settings.gemini_api_key, max_conversations=settings.max_conversations, max_turns=settings.max_turns)
+    store = ChatStore(database, secret=settings.gemini_api_key, secrets=(settings.groq_api_key,), max_conversations=settings.max_conversations, max_turns=settings.max_turns)
     chat = ChatService(settings, store, ai_router or AIRouter(settings))
     runtime = {
         "ready": False, "database": database, "started_at": time.monotonic(),

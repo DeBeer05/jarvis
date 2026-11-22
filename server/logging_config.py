@@ -35,7 +35,7 @@ class JsonFormatter(logging.Formatter):
 
 def configure_logging(settings: Settings, *, console: bool = True) -> list[logging.Handler]:
     settings.log_path.parent.mkdir(parents=True, exist_ok=True)
-    formatter = JsonFormatter((settings.gemini_api_key,))
+    formatter = JsonFormatter((settings.gemini_api_key, settings.groq_api_key))
     file_handler = RotatingFileHandler(
         settings.log_path, maxBytes=settings.log_max_bytes,
         backupCount=settings.log_backup_count, encoding="utf-8",

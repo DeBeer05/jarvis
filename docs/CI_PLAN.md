@@ -2,7 +2,7 @@
 
 ## Actief in fase 2
 
-De bestaande Windows-/Linuxmatrix voert nu ook de Gemini-/Ollama-transporttests,
+De bestaande Windows-/Linuxmatrix voert nu ook de Gemini-/Groq-/Ollama-transporttests,
 router/fallback, streaming/annulering, chat-API, migratie/geheugen en webchatchecks
 uit. Providers zijn mocks: geen API-sleutels, kosten of modeldownloads in CI.
 JavaScript wordt aanvullend met `node --check` op syntax gecontroleerd; geen npm

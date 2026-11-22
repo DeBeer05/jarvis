@@ -81,6 +81,7 @@ def test_ollama_model_probe_cache_and_stream(settings):
             return httpx.Response(200, json={"models": [{"name": "qwen3:0.6b"}]})
         body = json.loads(request.content)
         assert body["model"] == "qwen3:0.6b" and body["reasoning_effort"] == "none"
+        assert body["temperature"] == 0.2
         assert "think" not in body
         return response_stream("Lokaal antwoord")
     async def check():

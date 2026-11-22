@@ -7,7 +7,7 @@ De engine voert geen tools, shellcommando's, plugins of autonome acties uit.
 ## Hergebruik van Mark-LVII
 
 `providers/llm_openai.py` bevatte al asynchrone OpenAI-compatibele streaming voor
-Gemini en Ollama. Beide headless adapters gebruiken daadwerkelijk deze klasse.
+Gemini, Groq en Ollama. De headless adapters gebruiken daadwerkelijk deze klasse.
 Opt-in `strict_text` voegt begrensde output, streamvalidatie, typed fouten en
 één exacte modelkeuze toe; bestaande desktopdefaults blijven behouden.
 `core/gemini.py` heeft desktopconfig/Live/fallback, `engine_pipeline.py` audio en
@@ -72,7 +72,7 @@ verander `OLLAMA_MODEL` en herstart JARVIS. De ingestelde modelnaam moet in
 `/api/tags` voorkomen. Deze probe heeft een korte timeout en een cache van 15 s.
 Uitsluitend een loopback-Ollama-origin zonder URL-credentials wordt toegestaan.
 JARVIS gebruikt `/v1/chat/completions`, `stream`, `max_tokens` en
-`reasoning_effort=none` voor Ollama; Gemini gebruikt `reasoning_effort=low`.
+`reasoning_effort=none` voor Ollama (niet door elke model/servercombinatie afgedwongen); Gemini gebruikt `reasoning_effort=low`.
 
 Contextgrootte, GPU-gebruik en resident modelgeheugen zijn Ollama-instellingen.
 De OpenAI-compatibele chatroute configureert geen `num_ctx` of `keep_alive`.
@@ -88,6 +88,46 @@ powershell.exe -NoProfile -File scripts/Start-Server.ps1 -Background
 powershell.exe -NoProfile -File scripts/Get-ServerStatus.ps1
 Invoke-RestMethod http://127.0.0.1:8765/api/v1/ai/providers
 ```
+
+## Groq: gratis cloudoptie naast Gemini en Ollama
+
+Groq ondersteunt een Free Plan met gebruikslimieten. Standaardmodel voor JARVIS:
+`openai/gpt-oss-120b`. De officiële limietpagina vermeldt bij implementatie
+30 requests/minuut, 1000/dag en 8000 tokens/minuut; controleer de exacte limieten
+van je eigen organisatie in de Groq Console. Geen onbeperkt gratis gebruik.
+Gebruik het Free Plan; JARVIS wijzigt geen abonnement en koopt geen credits.
+Een betaald account kan voor hetzelfde model wel kosten rekenen.
+
+Maak zelf een sleutel via https://console.groq.com/keys en zet die alleen lokaal:
+
+```dotenv
+GROQ_API_KEY=
+GROQ_MODEL=openai/gpt-oss-120b
+JARVIS_AI_PROVIDER=auto
+JARVIS_AI_PREFERRED_PROVIDER=groq
+```
+
+Vul de lege sleutelregel zelf lokaal in. Herstart met de Windows-scripts en
+herlaad `/chat`. Kies Groq voor uitsluitend die cloudprovider. Auto met voorkeur
+Groq probeert Groq en vervolgens Ollama; Gemini wordt dan niet aangeroepen.
+Auto met voorkeur Gemini behoudt Gemini → Ollama, en voorkeur Ollama behoudt
+Ollama → Gemini. Geen cloudprovider wordt heimelijk als derde poging toegevoegd.
+
+De adapter hergebruikt hetzelfde Mark-LVII-streamingtransport op de officiële
+`https://api.groq.com/openai/v1`-origin. GPT-OSS gebruikt low reasoning,
+include_reasoning=false en max_completion_tokens. Geen tools/code/search
+geactiveerd. Groq-status betekent sleutel ingesteld, geen betaalde proefcall.
+Sleutels van beide cloudproviders worden in opslag/context/logs geredigeerd;
+herkenbare gsk_-sleutels worden aanvullend gemaskeerd. Oude database blijft schema 2.
+
+Op deze desktop is een echte expliciete Groq-SSE-proef geslaagd: vier tekstframes,
+completed en precies 'Groq werkt.'; provider/model en opgeslagen antwoord
+gecontroleerd. Alleen het eigen synthetische testgesprek verwijderd.
+
+Officiële bronnen: [modellen](https://console.groq.com/docs/models),
+[Free Plan-limieten](https://console.groq.com/docs/rate-limits),
+[OpenAI-compatibiliteit](https://console.groq.com/docs/openai) en
+[API/reasoning](https://console.groq.com/docs/api-reference).
 
 ## Nieuwere lokale modelkeuze: Gemini 4 Hydrogen
 
@@ -112,7 +152,7 @@ en [OpenAI-compatibiliteit](https://aistudio.google.com/docs/openai).
 ## Selectie, fallback en fouten
 
 `auto` probeert de voorkeursprovider en maximaal één alternatief bij een
-technische fout vóór de eerste zichtbare tekst. `gemini` en `ollama` gebruiken
+technische fout vóór de eerste zichtbare tekst. `gemini`, `groq` en `ollama` gebruiken
 uitsluitend die provider. Een veiligheidsweigering wordt niet omzeild. Zodra
 tekst is ontvangen, geeft uitval `stream_interrupted`: gedeeltelijke tekst blijft
 bewaard, zonder tweede antwoord van een andere provider. UI/SSE tonen fallback
@@ -124,6 +164,31 @@ Ollama, ontbrekend model, authenticatie, quota, rate limit, tijdelijke modelover
 stream, onderbroken antwoord en outputlimiet. Ruwe providerfouten/headers worden
 niet naar de client of log gekopieerd. Annuleren sluit de lopende HTTP-stream;
 bij afbreken/herstart wordt de beurt als cancelled/interrupted opgeslagen.
+
+## Herhalende antwoorden van het lokale minimodel
+
+De screenshotmelding met steeds dezelfde begroeting is onderzocht. De engine
+stuurt het nieuwste gebruikersbericht correct door, ook na identieke eerdere
+modelantwoorden (regressietest). Qwen3 0.6B gaf in echte proeven echter zwakke
+Nederlandse antwoorden en vraagecho. Extra persona-instructies hielpen niet
+betrouwbaar en zijn niet opgeslagen. Een proef met Qwen3 4B gaf hier denk-tekst
+in content en een timeout; die variant is niet de actieve lokale keuze geworden.
+
+Op deze desktop is daarom `OLLAMA_MODEL=qwen2.5:3b` ingesteld. De officiële
+instructievariant is via de bestaande lokale Ollama gedownload (circa 1,9 GB).
+Alle Ollama-tekstaanroepen gebruiken nu temperature=0.2, zodat kleine lokale
+modellen minder willekeurig antwoorden. Groq/Gemini behouden hun eigen defaults.
+De lichte repository-/mini-pc-defaults zijn niet veranderd; niets is uitgerold
+naar de mini-pc. De onderzochte Qwen3 4B blijft als niet-actief model geïnstalleerd.
+
+Echte HTTP-tests: twee afzonderlijke gesprekken met ieder hallo, hoe heet je,
+met je praten en twee plus drie. Alle acht beurten completed, verschillende
+passende antwoorden, JARVIS als naam en vijf als rekenantwoord; opslag bevestigd.
+Dit is een gerichte regressieproef, geen garantie voor alle modelantwoorden.
+Begin in de webchat een nieuw gesprek en kies Ollama; oude herhalingen blijven
+als bewaarde geschiedenis bestaan. Voor betere cloudkwaliteit kun je Groq kiezen.
+
+Bron: [Qwen2.5 3B](https://ollama.com/library/qwen2.5:3b).
 
 ## Profielen en grenzen
 
@@ -170,7 +235,7 @@ kunnen onvolledig zijn. Back-ups bevatten chatinhoud en blijven lokaal.
 
 Opgeslagen: gesprek/turn-ID's, UTC-tijdstippen, bericht, antwoord, werkelijke
 provider/model, status en veilige foutcode. Configsleutels worden nooit als
-metadata opgeslagen. De ingestelde Gemini-sleutel en herkenbare sleutelpatronen
+metadata opgeslagen. De ingestelde Gemini-/Groq-sleutels en herkenbare sleutelpatronen
 worden vóór opslag/context geredigeerd. Dit is geen universele detectie van elk
 mogelijk geheim: deel geen credentials of andere gevoelige tekst in chat.
 Gesprekken zijn lokale plaintext; er is geen automatische bewaartermijn of

@@ -56,6 +56,7 @@ def status(request: Request):
         "ai_providers": {
             "selected": settings.ai_provider,
             "gemini": {"configured": bool(settings.gemini_api_key), "available": None if settings.gemini_api_key else False},
+            "groq": {"configured": bool(settings.groq_api_key), "available": None if settings.groq_api_key else False},
             "ollama": {"configured": True, "available": snapshot[1]["available"] if snapshot else None},
         },
     }

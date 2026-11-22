@@ -384,6 +384,8 @@ class OpenAICompatLLM:
         self._async_client = cfg.get("async_client_factory") or httpx.AsyncClient
         self._max_output_tokens = cfg.get("max_output_tokens")
         self._think = cfg.get("think")
+        self._use_completion_tokens = bool(cfg.get("use_completion_tokens", False))
+        self._include_reasoning = cfg.get("include_reasoning")
 
         # A budget on a model running on your own hardware, unless the user
         # chose one themselves.
@@ -445,7 +447,9 @@ class OpenAICompatLLM:
         if temperature is not None:
             body["temperature"] = temperature
         if self._strict_text and self._max_output_tokens:
-            body["max_tokens"] = self._max_output_tokens
+            body["max_completion_tokens" if self._use_completion_tokens else "max_tokens"] = self._max_output_tokens
+        if self._strict_text and self._include_reasoning is not None:
+            body["include_reasoning"] = bool(self._include_reasoning)
         if self._strict_text and self._think is not None:
             body["reasoning_effort"] = "none" if self._think is False else "low"
         if "generativelanguage.googleapis.com" in self.base and "flash" in self.model:

@@ -41,6 +41,7 @@ Proxyheaders maken een client niet lokaal. HTTP 200, voorbeeld:
   "ai_providers":{
     "selected":"auto",
     "gemini":{"configured":false,"available":false},
+    "groq":{"configured":false,"available":false},
     "ollama":{"configured":true,"available":null}
   }
 }
@@ -48,7 +49,7 @@ Proxyheaders maken een client niet lokaal. HTTP 200, voorbeeld:
 
 De instance-ID identificeert het proces maar verleent geen rechten. Bij database-
 uitval is status `degraded` en `components.database` false. `configured` is alleen
-een lokale configuratie-indicator. Gemini available is null bij een ingestelde
+een lokale configuratie-indicator. Gemini/Groq available is null bij een ingestelde
 sleutel (ongetest), false wanneer ontbrekend. Ollama available is null vóór een
 providerprobe en daarna de gecachte modelbereikbaarheid. De statusroute doet zelf
 geen providerverzoek. Geen paden, credentials, tokenwaarden of modelcalls.

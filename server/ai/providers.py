@@ -11,10 +11,11 @@ from server.config import Settings
 
 MESSAGES = {
     "not_configured": "Gemini is nog niet ingesteld. Voeg lokaal een geldige GEMINI_API_KEY toe en herstart de server.",
+    "groq_not_configured": "Groq is nog niet ingesteld. Voeg lokaal een GROQ_API_KEY toe en herstart de server.",
     "unavailable": "De AI-provider is niet bereikbaar. Controleer de verbinding of start Ollama.",
     "model_missing": "Het ingestelde model is niet beschikbaar. Controleer de modelnaam of download het Ollama-model.",
     "authentication": "De AI-provider weigert de sleutel of toegang. Controleer de lokale configuratie.",
-    "quota_exceeded": "De Gemini-quota zijn bereikt. Probeer later opnieuw of gebruik Ollama.",
+    "quota_exceeded": "Het quota van de AI-provider is bereikt. Probeer later opnieuw of gebruik Ollama.",
     "rate_limited": "De AI-provider ontvangt te veel verzoeken. Wacht even en probeer opnieuw.",
     "timeout": "De AI-provider antwoordde niet op tijd. Probeer opnieuw of kies een andere provider.",
     "content_filtered": "De provider heeft dit antwoord geweigerd. Pas je bericht aan.",
@@ -35,15 +36,16 @@ class ProviderError(Exception):
 class TextProvider:
     def __init__(self, name: str, settings: Settings, client_factory: Callable | None = None):
         self.name, self.settings = name, settings
-        self.model = settings.gemini_model if name == "gemini" else settings.ollama_model
+        self.model = {"gemini": settings.gemini_model, "groq": settings.groq_model, "ollama": settings.ollama_model}[name]
+        self.key = settings.gemini_api_key if name == "gemini" else settings.groq_api_key if name == "groq" else ""
         self.client_factory = client_factory or httpx.AsyncClient
         self._availability: tuple[float, dict] | None = None
         self._probe_lock = asyncio.Lock()
 
     async def availability(self, *, refresh: bool = False) -> dict:
-        if self.name == "gemini":
-            return {"configured": bool(self.settings.gemini_api_key), "available": None if self.settings.gemini_api_key else False,
-                    "state": "not_verified" if self.settings.gemini_api_key else "not_configured", "model": self.model}
+        if self.name in ("gemini", "groq"):
+            return {"configured": bool(self.key), "available": None if self.key else False,
+                    "state": "not_verified" if self.key else "not_configured", "model": self.model}
         async with self._probe_lock:
             if not refresh and self._availability and time.monotonic() - self._availability[0] < 15:
                 return self._availability[1]
@@ -67,15 +69,15 @@ class TextProvider:
             return result
 
     async def stream(self, messages: list[dict]):
-        if self.name == "gemini" and not self.settings.gemini_api_key:
-            raise ProviderError("not_configured")
+        if self.name in ("gemini", "groq") and not self.key:
+            raise ProviderError("groq_not_configured" if self.name == "groq" else "not_configured")
         if self.name == "ollama":
             status = await self.availability()
             if not status["available"]:
                 raise ProviderError(status["state"])
         config = {
-            "base_url": "https://generativelanguage.googleapis.com/v1beta/openai" if self.name == "gemini" else self.settings.ollama_base_url + "/v1",
-            "api_key": self.settings.gemini_api_key if self.name == "gemini" else "",
+            "base_url": {"gemini": "https://generativelanguage.googleapis.com/v1beta/openai", "groq": "https://api.groq.com/openai/v1", "ollama": self.settings.ollama_base_url + "/v1"}[self.name],
+            "api_key": self.key,
             "model": self.model, "timeout": self.settings.provider_timeout_seconds,
             "tools": False, "vision": False, "strict_text": True,
             "max_output_tokens": self.settings.max_output_tokens,
@@ -83,10 +85,14 @@ class TextProvider:
         }
         if self.name == "ollama":
             config["think"] = False
+        if self.name == "groq":
+            config["use_completion_tokens"] = True
+            if self.model.startswith("openai/gpt-oss-"):
+                config.update(think=True, include_reasoning=False)
         transport = OpenAICompatLLM(config)
         try:
             deadline = time.monotonic() + self.settings.provider_timeout_seconds
-            async with aclosing(transport.chat(messages, tools=None, stream=True)) as source:
+            async with aclosing(transport.chat(messages, tools=None, stream=True, temperature=0.2 if self.name == "ollama" else None)) as source:
                 while True:
                     remaining = deadline - time.monotonic()
                     if remaining <= 0:
