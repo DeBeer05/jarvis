@@ -85,7 +85,7 @@ def _request(record: dict, path: str, *, shutdown: bool = False) -> dict:
     request = Request(
         f"http://127.0.0.1:{record['port']}{path}",
         method="POST" if shutdown else "GET",
-        headers={"Authorization": "Bearer " + record["token"]} if shutdown else {},
+        headers={"Authorization": "Bearer " + record["token"]},
     )
     # Never send local control tokens through environment-configured HTTP proxies.
     with build_opener(ProxyHandler({})).open(request, timeout=1) as response:
@@ -94,7 +94,7 @@ def _request(record: dict, path: str, *, shutdown: bool = False) -> dict:
 
 def inspect_server(settings: Settings) -> tuple[dict, dict]:
     record = read_record(settings.runtime_dir / "server.json")
-    status = _request(record, "/api/v1/status")
+    status = _request(record, "/internal/status")
     if status.get("instance_id") != record["instance_id"] or status.get("service") != "jarvis-server":
         raise ValueError("Server instance does not match runtime record")
     return record, status

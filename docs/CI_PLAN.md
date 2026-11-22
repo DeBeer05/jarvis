@@ -1,5 +1,16 @@
 # CI/CD-plan
 
+## Actief in fase 3
+
+De matrix draait ook 57 nieuwe beveiligings-/procesgevallen (156 tests totaal),
+met tijdelijke accounts/databases, echte authenticatie en een echte TCP-herstartproef.
+Argon2id wordt geïsoleerd geïnstalleerd. De installer wordt eerst met constraints
+naar pip 26.3 bijgewerkt vanwege gevonden advisories. Vier frontend-JavaScript-
+bestanden krijgen syntaxcontrole. De drie verplichte develop-checks blijven staan.
+Pip-audit, Bandit en Gitleaks zijn daarnaast lokaal uitgevoerd/te controleren
+vóór push; ze zijn geen nieuwe verplichte automatische CI-jobs. Zie het
+[fase-3-testverslag](PHASE_3_TEST_REPORT.md) voor scope en reproduceerbare opdrachten.
+
 ## Actief in fase 2
 
 De bestaande Windows-/Linuxmatrix voert nu ook de Gemini-/Groq-/Ollama-transporttests,

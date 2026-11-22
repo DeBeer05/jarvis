@@ -15,11 +15,13 @@
 | `config/` | Bestaande configuratiemodule en icoon; hergebruikt |
 | `requirements.txt`, `setup.py` | Bestaande dependency-/installatieconfig; niet uitgevoerd |
 
-## Aanvullende structuur — fase 2
+## Aanvullende structuur — fase 3
 
 | Pad | Huidige rol of gereserveerde bestemming |
 | --- | --- |
 | `server/` | Geïsoleerde headless serverbasis: config, AI-router/adapters, chat-API/SSE, webchat, SQLite, logging, procesbeheer |
+| `server/security/` | Argon2id, default-deny gate, tokens/sessies, apparaten/pairing, audit en schema 3 |
+| `server/static/` | Webchat plus login- en beveiligingspagina; geen frontendbuild of tokenstorage |
 | `desktop-client/` | Gereserveerd voor packaging/clientgrens; `gui/` blijft bestaande UI |
 | `android-app/` | Toekomstige mobiele app |
 | `integrations/` | Toekomstige adapters, geen actieve koppelingen |

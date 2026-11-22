@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="nl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>Inloggen — JARVIS</title><link rel="stylesheet" href="/chat/assets/chat.css"><script defer src="/chat/assets/auth.js"></script><script defer src="/chat/assets/login.js"></script></head>
+<body class="auth-page"><main class="auth-card">
+  <a class="brand" href="/chat"><span class="orb">J</span><span>JARVIS<small>JOUW PERSOONLIJKE WERKRUIMTE</small></span></a>
+  <h1>Welkom terug.</h1><p>Log in om je gesprekken en apparaten te openen.</p>
+  <div id="login-notice" class="notice" role="status" hidden></div>
+  <div id="setup-help" class="setup-help" hidden><h2>Eerst je eigenaaraccount instellen</h2><p>Open PowerShell in de projectmap. Stop de server en maak lokaal je account aan:</p><pre>powershell.exe -NoProfile -File scripts/Stop-Server.ps1
+.\.venv\Scripts\python.exe -m server setup-owner
+powershell.exe -NoProfile -File scripts/Start-Server.ps1 -Background</pre><p>Je kiest je wachtwoord zelf in de terminal. Herlaad daarna deze pagina.</p></div>
+  <form id="login-form" class="stack-form"><label>Gebruikersnaam<input id="username" name="username" autocomplete="username" maxlength="64" required value="owner"></label><label>Wachtwoord<input id="password" name="password" type="password" autocomplete="current-password" maxlength="128" required></label><button id="login-button" type="submit">Inloggen</button></form>
+  <p class="auth-note">Je geschiedenis blijft lokaal opgeslagen. Dit apparaat wordt na inloggen geregistreerd.</p>
+</main></body></html>

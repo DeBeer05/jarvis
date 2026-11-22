@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from server.api.routes import require_loopback
 from server.chat_store import ChatError
 from server.ai.providers import MESSAGES
+from server.security.types import AuthError
 
 router = APIRouter(dependencies=[Depends(require_loopback)])
 STATIC = Path(__file__).resolve().parents[1] / "static"
@@ -27,11 +28,23 @@ class ChatInput(BaseModel):
 
 
 async def prepare(request: Request, body: ChatInput):
+    if body.conversation_id and "chat:read" not in request.state.principal.permissions:
+        raise AuthError("permission_denied", "Dit apparaat mag geen bestaande gesprekken gebruiken.", 403)
     return await request.app.state.chat.prepare(
         body.message, body.provider,
         str(body.conversation_id) if body.conversation_id else None,
         str(body.request_id) if body.request_id else None,
     )
+
+
+async def watch_authentication(request, run):
+    principal = request.state.principal
+    while True:
+        if not await asyncio.to_thread(request.app.state.security.store.live, principal):
+            run.error = {"code": "authentication_expired", "message": "Je sessie is verlopen of ingetrokken. Log opnieuw in."}
+            run.cancel.set()
+            return
+        await asyncio.sleep(0.5)
 
 
 @router.post("/api/v1/chat")
@@ -45,13 +58,17 @@ async def chat(request: Request, body: ChatInput):
         run.cancel.set()
 
     monitor = asyncio.create_task(watch_disconnect())
+    auth_monitor = asyncio.create_task(watch_authentication(request, run))
     try:
         async for _ in service.events(run):
             pass
     finally:
         monitor.cancel()
+        auth_monitor.cancel()
         with suppress(asyncio.CancelledError):
             await monitor
+        with suppress(asyncio.CancelledError):
+            await auth_monitor
     return JSONResponse(run.public(), status_code=200 if run.status == "completed" else 499 if run.status == "cancelled" else 502)
 
 
@@ -61,9 +78,15 @@ async def stream_chat(request: Request, body: ChatInput):
     run = await prepare(request, body)
 
     async def events():
-        async with aclosing(service.events(run)) as source:
-            async for event in source:
-                yield "event: " + event["type"] + "\ndata: " + json.dumps(event, ensure_ascii=True) + "\n\n"
+        monitor = asyncio.create_task(watch_authentication(request, run))
+        try:
+            async with aclosing(service.events(run)) as source:
+                async for event in source:
+                    yield "event: " + event["type"] + "\ndata: " + json.dumps(event, ensure_ascii=True) + "\n\n"
+        finally:
+            monitor.cancel()
+            with suppress(asyncio.CancelledError):
+                await monitor
 
     return StreamingResponse(events(), media_type="text/event-stream", headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
 
@@ -108,6 +131,6 @@ async def webchat():
 
 @router.get("/chat/assets/{name}", include_in_schema=False)
 async def asset(name: str):
-    if name not in ("chat.css", "chat.js"):
+    if name not in ("chat.css", "chat.js", "auth.js", "login.js", "security.js"):
         raise HTTPException(status_code=404)
     return FileResponse(STATIC / name)

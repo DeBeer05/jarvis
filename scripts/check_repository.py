@@ -26,6 +26,12 @@ DOCUMENTS = (
     "server/chat_store.py", "server/api/chat.py", "server/http_security.py",
     "server/static/chat.html", "server/static/chat.css", "server/static/chat.js",
     "config/jarvis-system-prompt.txt",
+    "server/security/store.py", "server/security/gate.py", "server/security/api.py",
+    "server/security/service.py", "server/security/schema.py", "server/security/types.py",
+    "server/static/auth.js", "server/static/login.html", "server/static/login.js",
+    "server/static/security.html", "server/static/security.js",
+    "docs/AUTHENTICATION.md", "docs/DEVICE_PAIRING.md", "docs/SECURITY.md",
+    "docs/PHASE_3_TEST_REPORT.md",
 )
 IGNORED_PROBES = (
     ".env", ".env.local", ".env.production", ".env - kopie.example", ".venv/probe", "venv/probe",
@@ -149,7 +155,7 @@ def main() -> int:
 
     example = ROOT / ".env.example"
     expected = {
-        "JARVIS_PHASE": "2", "JARVIS_ENV": "development", "JARVIS_HOST": "127.0.0.1",
+        "JARVIS_PHASE": "3", "JARVIS_ENV": "development", "JARVIS_HOST": "127.0.0.1",
         "JARVIS_PORT": "8765", "JARVIS_LOG_LEVEL": "info",
         "JARVIS_LOG_PATH": ".local/logs/server.log", "JARVIS_LOG_MAX_BYTES": "1048576",
         "JARVIS_LOG_BACKUP_COUNT": "3", "JARVIS_DATABASE_PATH": ".local/data/jarvis.sqlite3",
@@ -164,6 +170,22 @@ def main() -> int:
         "JARVIS_AI_MAX_CONTEXT_CHARS": "24000", "JARVIS_AI_MAX_OUTPUT_TOKENS": "1024",
         "JARVIS_CHAT_MAX_RESPONSE_CHARS": "16000", "JARVIS_CHAT_REQUESTS_PER_MINUTE": "30",
         "JARVIS_CHAT_MAX_CONVERSATIONS": "100", "JARVIS_CHAT_MAX_TURNS": "100",
+        'JARVIS_ACCESS_SECONDS': '300',
+        'JARVIS_REFRESH_SECONDS': '604800',
+        'JARVIS_SESSION_SECONDS': '604800',
+        'JARVIS_PAIRING_SECONDS': '300',
+        'JARVIS_PAIRING_POLL_SECONDS': '5',
+        'JARVIS_LOGIN_MAX_ATTEMPTS': '5',
+        'JARVIS_LOGIN_WINDOW_SECONDS': '300',
+        'JARVIS_AUTH_REQUESTS_PER_MINUTE': '60',
+        'JARVIS_AUDIT_RETENTION_DAYS': '30',
+        'JARVIS_AUDIT_MAX_ENTRIES': '10000',
+        'JARVIS_MAX_DEVICES': '20',
+        'JARVIS_MAX_SESSIONS': '20',
+        'JARVIS_PASSWORD_REVOKE_ALL': 'true',
+        'JARVIS_COOKIE_SECURE': 'auto',
+        'JARVIS_TRUSTED_HOSTS': '127.0.0.1,localhost',
+        'JARVIS_ALLOWED_ORIGINS': 'http://127.0.0.1:8765,http://localhost:8765',
     }
     actual = {}
     if example.is_file():
@@ -174,7 +196,7 @@ def main() -> int:
                     errors.append("Invalid or duplicate example configuration entry")
                 actual[key] = value
     if actual != expected:
-        errors.append("Example must contain only the approved local phase-2 defaults and empty secrets")
+        errors.append("Example must contain only the approved local phase-3 defaults and empty secrets")
 
     errors.extend(staged_secret_findings())
     result = git("ls-files", "--cached", "--others", "--exclude-standard", "-z")

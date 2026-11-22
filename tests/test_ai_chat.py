@@ -6,6 +6,7 @@ from dataclasses import replace
 
 import pytest
 from fastapi.testclient import TestClient
+from tests.auth_helpers import AuthenticatedTestClient
 
 from server.ai.router import AIRouter
 from server.app import create_app
@@ -22,7 +23,7 @@ def build(settings, gemini=None, ollama=None):
 
 
 def client(app):
-    return TestClient(app, base_url="http://127.0.0.1:8765", client=("127.0.0.1", 12345))
+    return AuthenticatedTestClient(app, base_url="http://127.0.0.1:8765", client=("127.0.0.1", 12345))
 
 
 def test_nonstream_chat_and_persistent_conversation(settings):
@@ -233,7 +234,7 @@ def test_phase1_database_migration_and_interrupted_recovery(tmp_path):
         db.execute("PRAGMA user_version=1")
     database = Database(path)
     database.initialize()
-    assert list(tmp_path.glob("old.sqlite3.pre-v2-*.bak"))
+    assert list(tmp_path.glob("old.sqlite3.pre-v3-*.bak"))
     with database.connection() as db:
         assert db.execute("SELECT value FROM preserved").fetchone() == ("keep me",)
     store = ChatStore(database)

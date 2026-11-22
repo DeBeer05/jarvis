@@ -13,9 +13,9 @@ def test_initialization_and_idempotent_migration(tmp_path):
     assert database.check()
     with database.connection(readonly=True) as connection:
         assert connection.execute("PRAGMA user_version").fetchone() == (SCHEMA_VERSION,)
-        assert connection.execute("SELECT count(*) FROM schema_migrations").fetchone() == (2,)
+        assert connection.execute("SELECT count(*) FROM schema_migrations").fetchone() == (3,)
         tables = connection.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
-        assert set(tables) == {("schema_migrations",), ("chat_conversations",), ("chat_turns",)}
+        assert set(tables) >= {("schema_migrations",), ("chat_conversations",), ("chat_turns",)}
     database.close()
     assert not database.check()
     # Windows refuses this if a database connection was accidentally left open.

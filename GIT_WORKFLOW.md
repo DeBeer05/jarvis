@@ -89,4 +89,5 @@ Sinds fase 1 zijn op develop ook `Server tests (ubuntu-latest)` en
 GitHub Actions als bron. Windows/Linux- en repositorychecks moeten op de actuele
 basis slagen. Fase 1 mag uitsluitend naar develop; main blijft in deze opdracht
 ongewijzigd. Fase 2 is afzonderlijk opgedragen en gebruikt dezelfde PR-/checkprocedure.
-Main blijft ongewijzigd. Stop na fase 2; geen volgende fase zonder nieuwe opdracht.
+Main blijft ongewijzigd. Fase 3 is nu expliciet opgedragen en gebruikt dezelfde procedure.
+Stop na fase 3; geen volgende fase zonder nieuwe opdracht.

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="dark"><title>JARVIS — jouw denkruimte</title>
-  <link rel="stylesheet" href="/chat/assets/chat.css"><script defer src="/chat/assets/chat.js"></script>
+  <link rel="stylesheet" href="/chat/assets/chat.css"><script defer src="/chat/assets/auth.js"></script><script defer src="/chat/assets/chat.js"></script>
 </head>
 <body>
   <aside class="sidebar" aria-label="Gesprekken">
@@ -14,7 +14,7 @@
     <div class="sidebar-bottom"><span class="local-symbol">⌂</span><div>Jouw lokale werkruimte<small>Geschiedenis op dit apparaat</small></div><span class="mini-dot"></span></div>
   </aside>
   <main>
-    <header><div class="header-title"><span class="mini-dot" id="connection-dot"></span><span id="connection">Verbinding controleren</span><span class="separator">/</span><span class="port">8765</span></div><span class="version">JARVIS <b>02</b></span></header>
+    <header><div class="header-title"><span class="mini-dot" id="connection-dot"></span><span id="connection">Verbinding controleren</span><span class="separator">/</span><span class="port">8765</span></div><nav class="chat-account"><a href="/security">Beveiliging</a><button id="logout" class="subtle">Uitloggen</button></nav><span class="version">JARVIS <b>03</b></span></header>
     <section class="workspace" aria-label="Chat">
       <div class="toolbar"><div><span class="eyebrow">WERKRUIMTE</span><h1 id="chat-title">Een nieuw perspectief begint hier.</h1></div><label class="provider-picker"><span>AI-provider</span><select id="provider" aria-label="AI-provider"><option value="auto">Automatisch</option><option value="gemini">Gemini</option><option value="groq">Groq</option><option value="ollama">Ollama · lokaal</option></select></label></div>
       <div id="feed" class="feed" aria-label="Berichten" tabindex="0">

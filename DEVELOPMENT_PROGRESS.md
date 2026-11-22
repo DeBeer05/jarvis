@@ -2,6 +2,35 @@
 
 ## Huidige opdracht
 
+Fase 3 expliciet opgedragen: authenticatie, apparaatbeheer/pairing en beveiliging.
+Geïmplementeerd op feature/security-device-pairing vanaf develop 5b6960c.
+156 tests geslaagd, inclusief 57 nieuwe security-/procesgevallen, echte tijdelijke
+TCP-pairing en sessie/historiebehoud na herstart. De eigenaar heeft zelf via de
+interactieve CLI het account aangemaakt en in Chrome ingelogd; beveiligde webchat,
+bestaande historie en een Groq-antwoord daadwerkelijk waargenomen.
+
+Argon2id; default-deny; korte opaque access/refresh met rotatie/replay-intrekking;
+HttpOnly/SameSite/CSRF; sessie/wachtwoordbeheer; S256-pairing met expliciete
+codevergelijking en minimale rechten; apart chat:delete; apparaatintrekking én
+verwijdering; begrensd auditlog; schema 3 met pre-v3-back-up en behouden chatdata.
+Installer/CI-pip bijgewerkt naar 26.3 na dependencybevindingen. Nieuwe Nederlandse
+handleidingen/testverslag en schone login-screenshot; persoonlijke credentials en
+chatdata blijven uitsluitend lokaal. Geen echte apparaten ingetrokken of echt
+wachtwoord gewijzigd door de agent.
+
+Lokale tests: 156 passed, 1 bekende Starlette/httpx-deprecatiewaarschuwing, 51,36 s.
+Pip-audit en Bandit opnieuw uitgevoerd: 0 kwetsbaarheden/0 bevindingen; geen
+onderdrukking. JS/pip/repository/whitespace geslaagd. Echte server gecontroleerd
+herstart op 8765: health/ready 200, anonieme private routes/controlstatus 401;
+schema 3, 9 gesprekken/26 beurten/back-up behouden, geen foreign-key-fouten.
+Vóór push: index-/Gitleakscontrole; daarna PR naar develop,
+alle drie verplichte CI-checks en inhoudelijke review vóór veilige merge.
+Werkelijke Git-/CI-afronding volgt onderaan; main blijft ongewijzigd.
+Alleen ontwikkeldesktop, 127.0.0.1:8765. Geen Tailscale/firewall/proxy/clientapps,
+integraties/automatiseringen of mini-pc-deployment. STOP na fase 3.
+Zie docs/PHASE_3_TEST_REPORT.md, AUTHENTICATION.md, DEVICE_PAIRING.md en SECURITY.md.
+De fase-2-/fase-0-secties hieronder zijn bewaarde voorgeschiedenis.
+
 Aanvulling fase 2: op verzoek Groq als derde cloudprovider toegevoegd. Groq
 GPT-OSS 120B live geslaagd; lokale auto-voorkeur Groq → Ollama. Herhaling door
 het kleine lokale model aangepakt met Qwen2.5 3B/temperature=0.2; twee echte
