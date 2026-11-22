@@ -212,7 +212,7 @@ Geen handmatige setup nodig; een eventueel nog gebruikte oude sleutel vervangen.
   `Server tests (ubuntu-latest)` en `Server tests (windows-latest)`, telkens van
   GitHub Actions, actuele basis vereist. PR-/admin-/force-pushbescherming behouden.
 - Main lokaal en remote blijft `c995834127bf447aac653d050b67039a27223933`.
-- Gewijzigde bestanden: nieuwe `server/`-modules, zes `tests/test_server_*.py`-
+- Gewijzigde bestanden: nieuwe `server/`-modules, vijf `tests/test_server_*.py`-
   bestanden plus conftest, zes PowerShell-serverhelpers, geïsoleerde requirements/
   constraints, pytest-config en serverworkflow; .env.example, .gitignore,
   repositorycheck, AGENTS, voortgang/changelog, README/architectuur/structuur/CI-plan
