@@ -11,7 +11,9 @@ inbegrepen en bijgewerkt voor versie 0.2/schema 2. Eén bekende niet-blokkerende
 Starlette/httpx-testadapter-deprecatiewaarschuwing. De structuurcheck is aanvullend,
 geen vervanging voor applicatietests.
 
-**Er is nog geen succesvol live Gemini- of Ollama-antwoord gegenereerd.**
+**Tijdens de oorspronkelijke fase-2-controle was nog geen succesvol live
+Gemini- of Ollama-antwoord gegenereerd.** De latere modelupdate hieronder heeft
+inmiddels een echte succesvolle Ollama/fallbackproef toegevoegd.
 Aanvankelijk ontbraken beide providers. De eigenaar heeft tijdens het werk zelf
 lokaal een Gemini-sleutel ingesteld. Daarna is Gemini echt aangeroepen via de
 chat-SSE-route. Google retourneerde HTTP 503 / UNAVAILABLE met een melding over
@@ -22,9 +24,9 @@ Een aanvullende directe REST-diagnose bevestigde de HTTP-status; geen ruwe
 providerdiagnose opgeslagen. Het echte arrayformaat van Google's foutresponse
 is verwerkt en met extra regressietests gecontroleerd (quota/overbelasting).
 
-Ollama-commando/server op 127.0.0.1:11434 blijft afwezig. Geen model,
-provideraccount, GPU-package of Ollama geïnstalleerd. Live antwoordacceptatie
-blijft open door Gemini-overbelasting en ontbrekende lokale fallback. Herhaal
+Tijdens die oorspronkelijke controle was Ollama op 127.0.0.1:11434 afwezig. Geen model,
+provideraccount, GPU-package of Ollama geïnstalleerd. Toen bleef live antwoordacceptatie
+open door Gemini-overbelasting en ontbrekende lokale fallback. Herhaal
 later de stappen uit [CHAT_API.md](CHAT_API.md), of configureer bewust Ollama.
 Er wordt geen live succes geclaimd op basis van mocks.
 
@@ -98,5 +100,20 @@ bruikbare providers. Providerkwaliteit, echte quota, netwerkvertraging, langduri
 belasting en model-RAM/GPU-gebruik zijn hier niet live gemeten. Het mini-pc-profiel
 is geen bewijs dat elk gekozen model binnen 8 GB past.
 
-Fase 2 is technisch geïmplementeerd; volledige live provideracceptatie staat open.
+## Aanvullende modelupdate na de eerste fase-2-oplevering
+
+Op 22 november is op verzoek lokaal gemini-4-hydrogen ingesteld. Officiële
+Google-documentatie en de echte modelcatalogus voor de ingestelde sleutel
+bevestigen dit stabiele model. Server herstart en modelstatus gecontroleerd.
+Een expliciete Gemini-SSE-proef gaf wederom modeloverbelasting, zonder tekst.
+
+Ollama qwen3:0.6b was inmiddels door de eigenaar beschikbaar gemaakt. Echte
+HTTP/SSE-proef met auto leverde technische Gemini-fout vóór tekst, fallback naar
+Ollama en een succesvol antwoord op: vijf delta-events, completed en 17 tekens.
+Het opgeslagen antwoord is via de historie teruggelezen; daarna uitsluitend
+het bekende synthetische testgesprek verwijderd. Geen mocks voor deze proef.
+38 relevante configuratie-/adaptertests slagen; geen applicatiecode gewijzigd.
+
+Fase 2 is technisch geïmplementeerd en live Ollama/fallback werkt. Een succesvol
+live Gemini-antwoord blijft nog open wegens providerfouten.
 STOP na fase 2. Geen clientapps, spraak, agenda/berichten, bellen of automatisering.

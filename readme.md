@@ -18,9 +18,10 @@ Start-Process http://127.0.0.1:8765/chat
 Voor AI-antwoorden: vul je eigen Gemini-sleutel uitsluitend in de lokale `.env`
 in, of configureer een eigen lokale Ollama met een geïnstalleerd model. Zie
 [AI_ENGINE.md](docs/AI_ENGINE.md). Zonder provider toont de webchat een duidelijke
-fout en blijft de server bruikbaar. De live Gemini-proef bereikt Google maar krijgt tijdelijk HTTP 503 (model
-overbelast); een succesvol live antwoord is nog niet bevestigd. Ollama is hier
-nog niet geïnstalleerd/bereikbaar.
+fout en blijft de server bruikbaar. Lokaal is op verzoek inmiddels Gemini 4 Hydrogen ingesteld. Google gaf bij de
+live proef modeloverbelasting/een technische fout; een succesvol Gemini-antwoord
+is nog niet bevestigd. Ollama qwen3:0.6b is inmiddels beschikbaar: echte
+automatische fallback met een volledig gestreamd en opgeslagen antwoord geslaagd.
 
 Herstart na configuratie- of codewijzigingen:
 
@@ -37,7 +38,7 @@ powershell.exe -NoProfile -File scripts/Get-ServerStatus.ps1
 [Voortgang](DEVELOPMENT_PROGRESS.md).
 
 90 automatische tests geslaagd; echte lokale HTTP/browser-/procesherstartcontrole
-uitgevoerd. De live provideracceptatie blijft open. SQLite staat standaard in
+uitgevoerd. Live Ollama/fallback werkt; een succesvol Gemini-antwoord blijft open. SQLite staat standaard in
 `.local/data/jarvis.sqlite3`; geen sleutels of gebruikersdata in Git.
 Main blijft ongewijzigd; integratie gaat uitsluitend naar develop via geteste PR's.
 **STOP na fase 2.** Geen clientapps, spraak, koppelingen of mini-pc-deployment.

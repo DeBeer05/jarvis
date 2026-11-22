@@ -6,8 +6,11 @@ Fase 2 — AI-engine en webchat geïmplementeerd en via PR #9 naar develop
 geïntegreerd (`40c2452`). 90 lokale tests geslaagd; oorspronkelijke PR- en merge-CI
 op Windows/Linux/repository geslaagd. Aanvullende live-foutafhandeling en
 configuratiekopiecontrole via fix/phase-two-verification, met dezelfde CI-eisen.
+Lokale modelkeuze op verzoek bijgewerkt naar Gemini 4 Hydrogen (zie onderaan).
 Live antwoordacceptatie nog open: Gemini geconfigureerd door de eigenaar, maar
-Google geeft HTTP 503 (model overbelast); Ollama is niet geïnstalleerd/bereikbaar.
+Google gaf bij Hydrogen modeloverbelasting/een technische fout. Ollama qwen3:0.6b
+is inmiddels door de eigenaar beschikbaar gemaakt; echte auto-fallback naar
+Ollama leverde een volledig gestreamd antwoord en opgeslagen beurt op.
 Alles op de ontwikkeldesktop; poort 8765 behouden. Main blijft ongewijzigd.
 STOP na fase 2; geen desktop-/Android-app, spraak, koppelingen of automatiseringen.
 De onderstaande fase-0-secties vormen de bewaarde voorgeschiedenis.
@@ -343,3 +346,30 @@ De oorspronkelijke installatie-instructie maakte daardoor een onjuiste aanname.
   of door eigenaar bewust Ollama installeren/configureren. Mocks bevestigen de
   contracten; zij bewijzen geen live providerkwaliteit of 8-GB-hardwareverbruik.
 - Stop na fase 2. Geen mini-pc-deployment, clients, spraak, koppelingen of automatie.
+
+### Modelupdate op verzoek — 22 november 2026
+
+- Opdracht: Gemini naar een nieuwere versie zetten; uitsluitend modelconfiguratie
+  binnen de bestaande fase-2-server. Geen nieuwe fase of functionaliteit.
+- Officiële documentatie en echte models-list-API gecontroleerd: Gemini 4 Hydrogen
+  (gemini-4-hydrogen) is stabiel, november 2026, geschikt voor snelle dagelijkse
+  tekstchat. Het model staat in de catalogus voor de lokaal ingestelde sleutel.
+- Alleen GEMINI_MODEL in de bestaande lokale .env bijgewerkt van gemini-3.8-flash
+  naar gemini-4-hydrogen; overige instellingen en sleutel behouden. Geen .env,
+  sleutel, lokale database of runtime-token in Git. Repositorydefaults blijven
+  reproduceerbaar zoals in fase 2; dit is een expliciete lokale modeloverride.
+- Eigen server gecontroleerd gestopt/herstart, poort 8765 en desktop-development
+  behouden. De providerstatus bevestigt de nieuwe modelnaam.
+- Echte SSE-chatproef met synthetische tekst: Google geeft ook voor Hydrogen
+  HTTP 503/modeloverbelasting; nog geen antwoordtekst. Alleen het eigen testgesprek
+  verwijderd. Geen succesvol live antwoord geclaimd of sleutel opnieuw gevraagd.
+- Bron: https://aistudio.google.com/docs/models/gemini-4-hydrogen en
+  https://aistudio.google.com/docs/openai. Bestaande low-reasoning/streamingroute
+  is volgens deze documentatie compatibel; geen dependency-/codewijziging nodig.
+- Aanvullend werd Ollama inmiddels beschikbaar aangetroffen met qwen3:0.6b.
+  Echte auto-SSE-proef geslaagd: technische Gemini-fout vóór tekst, fallback naar
+  Ollama, vijf delta-events, completed, 17 antwoordtekens, opgeslagen antwoord
+  teruggelezen. Alleen het bekende eigen testgesprek daarna verwijderd.
+- Configuratie-/adaptertests: 38 geslaagd; repository-/whitespacecontrole schoon.
+  Resterend: later Gemini opnieuw proberen wanneer Google capaciteit heeft.
+  Main blijft ongewijzigd; stop na deze configuratieopdracht.
