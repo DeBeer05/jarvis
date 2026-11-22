@@ -350,6 +350,15 @@ class _ToolCallBuffer:
 # ─────────────────────────────────────────────────────────────────────────────
 #  The provider
 # ─────────────────────────────────────────────────────────────────────────────
+class TextStreamError(RuntimeError):
+    """Bounded, typed transport failure for strict text clients; no raw error text."""
+    def __init__(self, kind: str, status_code: int = 0, body: dict | None = None):
+        super().__init__(kind)
+        self.kind = kind
+        self.status_code = status_code
+        self.body = body or {}
+
+
 class OpenAICompatLLM:
     """Speaks to anything that serves /v1/chat/completions."""
 
@@ -370,6 +379,11 @@ class OpenAICompatLLM:
             except Exception:
                 pass
         self.timeout = float(cfg.get("timeout") or 60.0)
+        # Opt-in headless contract. Desktop callers retain their existing behavior.
+        self._strict_text = bool(cfg.get("strict_text", False))
+        self._async_client = cfg.get("async_client_factory") or httpx.AsyncClient
+        self._max_output_tokens = cfg.get("max_output_tokens")
+        self._think = cfg.get("think")
 
         # A budget on a model running on your own hardware, unless the user
         # chose one themselves.
@@ -430,6 +444,10 @@ class OpenAICompatLLM:
             body["tool_choice"] = "auto"
         if temperature is not None:
             body["temperature"] = temperature
+        if self._strict_text and self._max_output_tokens:
+            body["max_tokens"] = self._max_output_tokens
+        if self._strict_text and self._think is not None:
+            body["reasoning_effort"] = "none" if self._think is False else "low"
         if "generativelanguage.googleapis.com" in self.base and "flash" in self.model:
             # Gemini 3 Flash models think before every answer unless told not
             # to, which is most of their wait in a spoken turn. Measured
@@ -484,7 +502,7 @@ class OpenAICompatLLM:
         # the pipeline engine, which names the provider and its target itself —
         # see providers/engine_pipeline._report. `complete()` IS wrapped, because
         # its caller is core/gemini.py's ladder, which has no such context.
-        async with self._httpx.AsyncClient(timeout=self.timeout,
+        async with self._async_client(timeout=self.timeout,
                                            trust_env=self._trust_env) as cl:
             if not stream:
                 r = await cl.post(f"{self.base}/chat/completions",
@@ -502,24 +520,41 @@ class OpenAICompatLLM:
                 return
 
             buf = _ToolCallBuffer()
+            terminated = False
             async with self._open_stream(cl, body) as r:
                 async for line in r.aiter_lines():
                     if not line or not line.startswith("data:"):
                         continue
                     payload = line[5:].strip()
                     if payload == "[DONE]":
+                        terminated = True
                         break
                     try:
-                        delta = ((json.loads(payload).get("choices") or [{}])[0]
-                                 .get("delta") or {})
+                        frame = json.loads(payload)
+                        if self._strict_text and frame.get("error"):
+                            raise TextStreamError("provider_error")
+                        choice = (frame.get("choices") or [{}])[0]
+                        if choice.get("finish_reason"):
+                            terminated = True
+                            if self._strict_text and choice["finish_reason"] in ("content_filter", "safety"):
+                                raise TextStreamError("content_filtered")
+                        delta = choice.get("delta") or {}
+                    except TextStreamError:
+                        raise
                     except Exception:
+                        if self._strict_text:
+                            raise TextStreamError("invalid_stream") from None
                         # One malformed frame must not end the answer. Servers
                         # do emit keepalives and comments that are not JSON.
                         continue
                     if delta.get("content"):
+                        if self._strict_text and not isinstance(delta["content"], str):
+                            raise TextStreamError("invalid_stream")
                         yield {"text": delta["content"]}
                     if delta.get("tool_calls"):
                         buf.feed(delta["tool_calls"])
+            if self._strict_text and not terminated:
+                raise TextStreamError("incomplete_stream")
 
             calls = buf.drain()
             if calls:
@@ -532,6 +567,8 @@ class OpenAICompatLLM:
         chosen Flash allows 5 requests a minute, and a spoken conversation
         passes that in one minute. A 429 or 503 on one model says nothing
         about the next, so the turn moves on instead of failing."""
+        if self._strict_text:
+            return [self.model]
         now = time.monotonic()
         order = [self.model] + [m for m in _GEMINI_SPARES if m != self.model]
         awake = [m for m in order if _gemini_rest.get(m, 0) <= now]
@@ -553,6 +590,17 @@ class OpenAICompatLLM:
                 if r.status_code < 400:
                     yield r
                     return
+                if self._strict_text:
+                    raw = bytearray()
+                    async for piece in r.aiter_bytes():
+                        if len(raw) + len(piece) > 65536:
+                            break
+                        raw.extend(piece)
+                    try:
+                        detail = json.loads(raw)
+                    except (ValueError, UnicodeError):
+                        detail = {}
+                    raise TextStreamError("http_error", r.status_code, detail if isinstance(detail, dict) else {})
                 last = f"{r.status_code} {_terse((await r.aread()).decode('utf-8', 'replace'))}"
                 if not gemini or r.status_code not in (429, 503):
                     raise RuntimeError(last)

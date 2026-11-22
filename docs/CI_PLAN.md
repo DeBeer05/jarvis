@@ -1,6 +1,14 @@
 # CI/CD-plan
 
-## Actief in fase 1
+## Actief in fase 2
+
+De bestaande Windows-/Linuxmatrix voert nu ook de Gemini-/Ollama-transporttests,
+router/fallback, streaming/annulering, chat-API, migratie/geheugen en webchatchecks
+uit. Providers zijn mocks: geen API-sleutels, kosten of modeldownloads in CI.
+JavaScript wordt aanvullend met `node --check` op syntax gecontroleerd; geen npm
+of frontendbuild. De drie vereiste develop-checks blijven ongewijzigd.
+
+## Actief sinds fase 1
 
 `server-tests.yml` installeert alleen de minimale vastgelegde server- en
 testdependencies in een venv en voert pytest/pip check uit op Python 3.12,
@@ -8,7 +16,7 @@ Windows en Linux. Windows voert bovendien de start/status/stopscripts uit onder
 zowel Windows PowerShell 5.1 (`powershell`) als PowerShell 7 (`pwsh`).
 Geen productie-deployment, GUI-/audio-/modelinstallaties of externe AI-aanroepen.
 De bestaande repositorycheck blijft actief; `.env.example` bevat nu de veilige
-fase-1-defaults. Beide OS-serverchecks en `Repository checks` zijn via de
+fase-2-defaults. Beide OS-serverchecks en `Repository checks` zijn via de
 develop-branchbescherming verplicht gemaakt en geslaagd vóór de fase-1-merge.
 De Actions zijn op officiële releasecommits gepind: checkout v7.0.1 en
 setup-python v7.1.0, beide met Node 24 in hun actionmetadata. Dit vervangt de
@@ -35,7 +43,7 @@ Branch protection moet exact de checknaam `Repository checks` gebruiken.
 
 | Workflow | Nodig voor activering |
 | --- | --- |
-| Overige Python-tests | Servertests zijn actief; desktop/AI-tests pas bij latere opdracht |
+| Overige Python-tests | Servertests zijn actief; desktoptests pas bij latere opdracht; headless AI-tests nu actief |
 | Android-builds | Toolchainkeuze, SDK/Gradle, tests, signing via secretstore |
 | Desktop-clienttests | Qt-testaanpak, Windows-runner, packaging en UI-smoketests |
 | Security scanning | Dependency-/licentieaudit, secret scanning en passende SAST |

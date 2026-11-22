@@ -1,10 +1,11 @@
 """Short-lived SQLite connections and one small, versioned schema migration."""
 
 import sqlite3
+import uuid
 from contextlib import contextmanager
 from pathlib import Path
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 class Database:
@@ -29,7 +30,15 @@ class Database:
             version = connection.execute("PRAGMA user_version").fetchone()[0]
             if version > SCHEMA_VERSION:
                 raise sqlite3.DatabaseError("Database schema is newer than this server")
+            if version == 1:
+                backup_path = self.path.with_name(self.path.name + ".pre-v2-" + uuid.uuid4().hex[:10] + ".bak")
+                backup = sqlite3.connect(backup_path)
+                try:
+                    connection.backup(backup)
+                finally:
+                    backup.close()
             connection.execute("PRAGMA journal_mode=WAL")
+            connection.execute("BEGIN IMMEDIATE")
             connection.execute(
                 "CREATE TABLE IF NOT EXISTS schema_migrations "
                 "(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"
@@ -37,6 +46,23 @@ class Database:
             if version < 1:
                 connection.execute("INSERT INTO schema_migrations(version) VALUES (?)", (1,))
                 connection.execute("PRAGMA user_version=1")
+            if version < 2:
+                connection.execute(
+                    "CREATE TABLE chat_conversations (id TEXT PRIMARY KEY, title TEXT NOT NULL, "
+                    "created_at TEXT NOT NULL, updated_at TEXT NOT NULL)"
+                )
+                connection.execute(
+                    "CREATE TABLE chat_turns (id TEXT PRIMARY KEY, conversation_id TEXT NOT NULL "
+                    "REFERENCES chat_conversations(id) ON DELETE CASCADE, created_at TEXT NOT NULL, "
+                    "user_text TEXT NOT NULL, assistant_text TEXT NOT NULL DEFAULT '', provider TEXT, "
+                    "model TEXT, status TEXT NOT NULL, error_code TEXT, sequence INTEGER NOT NULL, "
+                    "UNIQUE(conversation_id, sequence))"
+                )
+                connection.execute("CREATE INDEX chat_turns_conversation ON chat_turns(conversation_id, sequence)")
+                connection.execute("INSERT INTO schema_migrations(version) VALUES (?)", (2,))
+                connection.execute("PRAGMA user_version=2")
+            # A process restart must never present an unfinished answer as complete.
+            connection.execute("UPDATE chat_turns SET status='interrupted', error_code='server_restarted' WHERE status='running'")
         self.initialized = True
 
     def check(self) -> bool:

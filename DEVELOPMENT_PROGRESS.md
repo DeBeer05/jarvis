@@ -2,10 +2,10 @@
 
 ## Huidige opdracht
 
-Fase 1 — headless Windows-server, voltooid na de opdracht van 22 november 2026.
-Opleverbranch: `develop`. Implementatiebranch `feature/headless-server` is gepusht
-en via PR #5 gemerged, vanuit develop-basis `f4b0053`.
-Main blijft ongewijzigd. STOP na fase 1; fase 2 is niet toegestaan.
+Fase 2 — AI-engine en webchat, expliciet opgedragen; implementatie in uitvoering
+op `feature/ai-chat-engine`, vanaf develop `701b869`.
+Alles op de ontwikkeldesktop; poort 8765 behouden. Main blijft ongewijzigd.
+STOP na fase 2; geen desktop-/Android-app, spraak, koppelingen of automatiseringen.
 De onderstaande fase-0-secties vormen de bewaarde voorgeschiedenis.
 
 ## Uitgangspunt — 22 november 2026 (Europe/Amsterdam)
@@ -258,3 +258,60 @@ De oorspronkelijke installatie-instructie maakte daardoor een onjuiste aanname.
 - Windows-CI voert de controlscripts nu zowel onder Windows PowerShell 5.1 als
   PowerShell 7 uit. Server-/AI-functionaliteit en main blijven ongewijzigd.
   Dit is een herstel binnen fase 1, geen start van fase 2.
+
+## Fase 2 — voortgang
+
+- Fase 1 live gecontroleerd op 8765: health, ready, status, SQLite en logbestand
+  gereed; 39 bestaande tests geslaagd. De controleserver daarna gestopt.
+- Gemini-sleutel niet aanwezig; lokale Ollama op 11434 niet bereikbaar en geen
+  ollama-commando gevonden. Geen accounts, modellen of Ollama geïnstalleerd.
+- Bestaande Gemini-/Ollama-ondersteuning geanalyseerd: providers/llm_openai bevat
+  het gedeelde asynchrone streamingtransport; core.gemini en engine_pipeline zijn
+  op desktop/Live/tools gericht. De headless adapters hergebruiken dit transport
+  met opt-in strikte streamvalidatie, vaste modelkeuze en tokenlimiet.
+- Toegevoegd: centrale router, technische fallback vóór eerste token, Gemini/
+  Ollama-adapters, quota/timeouts, SQLite-schema 2 met back-up vóór migratie van
+  schema 1, gesprekken, SSE/nonstream-API, annulering, input-/concurrencylimieten,
+  lokale origincontrole en lichte webchat zonder frontenddependencies.
+- Laatste testrun vóór aanvullende randgevallen: **84 geslaagd**, 4,32 s;
+  oorspronkelijke 39 checks inbegrepen. Externe providers zijn in deze tests mocks.
+- Volgende stappen: randgevallen en browser-/herstartcontrole, Nederlandse
+  documentatie/testverslag, commits/geheimcontrole, push/PR/CI en veilige develop-merge.
+  Nog niet gemerged; live Gemini/Ollama nog niet getest wegens ontbrekende configuratie.
+
+### Fase 2 — browser en randgevallen
+
+- Engine-/webchatbasis vastgelegd in commit `2f9ac9a`.
+- **88 tests geslaagd**, inclusief daadwerkelijk onderbroken HTTPX-stream na
+  de eerste tekst, deadline/cleanup, annuleerbaarheid, verweesde reserveringen,
+  bescherming tegen verwijderen tijdens generatie en oudere transportdefaults.
+- Echte webchat in de browser gecontroleerd: providerkeuze, bericht versturen,
+  ontbrekende-Gemini-sleutelmelding, nieuw gesprek, opgeslagen gesprek heropenen,
+  gespreksverwijdering en vormgeving. Geen JavaScript-consolefouten waargenomen.
+- Responsieve weergave op 390x844 gecontroleerd; overbodige buitenste scrollbar
+  hersteld. Pagina-afmetingen 390x844 bevestigd; screenshotbestanden in docs/images.
+- Echte HTTP-chatfout met ontbrekende sleutel opgeslagen, eigen server via
+  Windows PowerShell gestopt/herstart en hetzelfde gesprek met foutstatus opnieuw
+  opgehaald. Alleen het eigen synthetische testgesprek daarna via API verwijderd.
+- Lokale database naar schema 2 gemigreerd; bestaande gegevens behouden en een
+  pre-v2-back-up aangemaakt. Geen API-sleutels of testprovider in productieconfig.
+- Ollama gebruikt het gedocumenteerde OpenAI-compatibele reasoning_effort=none
+  voor lichte modellen; lokale contextgrootte blijft een Ollama-modelinstelling.
+
+### Fase 2 — documentatie en eindcontrole vóór publicatie
+
+- README, architectuur, server/API-/structuur-/CI-documentatie bijgewerkt;
+  AI_ENGINE.md, CHAT_API.md en PHASE_2_TEST_REPORT.md toegevoegd met exacte
+  Windows PowerShell 5.1-commando's, configuratie, herstart en live teststappen.
+- Repositorycheck vereist nu ook de nieuwe engine/API/webchat/documentatie.
+  CI controleert bovendien JavaScript-syntax zonder npm/frontendbuild.
+- Eindcontrole: 88 tests geslaagd (4,62 s), pip check zonder fouten,
+  JavaScript-syntax geldig, repositorycheck geslaagd, git diff --check schoon.
+- Implementatie en documentatie gereed voor protected PR naar develop.
+  Live provideracceptatie blijft open: geen Gemini-sleutel/Ollama op deze desktop.
+  Geen main-wijzigingen, modelinstallatie, mini-pc-deployment of volgende fase.
+
+- PR #9 aangemaakt naar develop. Review vond dat upstream alle screenshots/
+  negeert; uitsluitend de gecontroleerde documentatiebeelden staan daarom in
+  docs/images. Runtime-screenshotuitsluiting blijft behouden. Geen privédata op
+  deze twee beelden. Nieuwe commits/index zijn door Gitleaks schoon bevonden.

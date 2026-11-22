@@ -35,7 +35,7 @@ def test_unknown_runtime_record_is_preserved(settings):
 def test_imports_do_not_require_gui_audio_gpu_or_ai():
     script = '''
 import importlib.abc, sys
-blocked = ("PyQt6", "sounddevice", "numpy", "google", "ollama", "torch", "main", "ui", "core", "dashboard", "providers", "plugins")
+blocked = ("PyQt6", "sounddevice", "numpy", "google", "ollama", "torch", "main", "ui", "core", "dashboard", "providers.audio", "providers.engine_pipeline", "plugins", "memory.config_manager")
 class Guard(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path=None, target=None):
         if any(fullname == name or fullname.startswith(name + ".") for name in blocked):

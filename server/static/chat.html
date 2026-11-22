@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark"><title>JARVIS — jouw denkruimte</title>
+  <link rel="stylesheet" href="/chat/assets/chat.css"><script defer src="/chat/assets/chat.js"></script>
+</head>
+<body>
+  <aside class="sidebar" aria-label="Gesprekken">
+    <a class="brand" href="/chat" aria-label="JARVIS start"><span class="orb">J</span><span>JARVIS<small>PERSOONLIJKE ASSISTENT</small></span></a>
+    <button id="new-chat" class="new-chat"><span>＋</span> Nieuw gesprek</button>
+    <p class="section-label">JOUW GESPREKKEN</p><nav id="conversations" aria-label="Gespreksgeschiedenis"></nav>
+    <button id="more-history" class="subtle" hidden>Meer gesprekken</button>
+    <div class="sidebar-bottom"><span class="local-symbol">⌂</span><div>Jouw lokale werkruimte<small>Geschiedenis op dit apparaat</small></div><span class="mini-dot"></span></div>
+  </aside>
+  <main>
+    <header><div class="header-title"><span class="mini-dot" id="connection-dot"></span><span id="connection">Verbinding controleren</span><span class="separator">/</span><span class="port">8765</span></div><span class="version">JARVIS <b>02</b></span></header>
+    <section class="workspace" aria-label="Chat">
+      <div class="toolbar"><div><span class="eyebrow">WERKRUIMTE</span><h1 id="chat-title">Een nieuw perspectief begint hier.</h1></div><label class="provider-picker"><span>AI-provider</span><select id="provider" aria-label="AI-provider"><option value="auto">Automatisch</option><option value="gemini">Gemini</option><option value="ollama">Ollama · lokaal</option></select></label></div>
+      <div id="feed" class="feed" aria-label="Berichten" tabindex="0">
+        <section id="welcome" class="welcome"><div class="welcome-symbol"><span></span><i></i><b>J</b></div><p class="eyebrow">RUIMTE VOOR JOUW IDEEËN</p><h2>Goed om je te zien.<br><em>Waar denken we over na?</em></h2><p class="intro">Van een eerste idee tot een helder antwoord.<br>Ik denk met je mee, in jouw tempo.</p><div class="suggestions"><button data-prompt="Leg een ingewikkeld onderwerp eenvoudig uit. Vraag me eerst welk onderwerp."><span>↗</span> Maak het begrijpelijk<small>Een frisse blik op iets ingewikkelds</small></button><button data-prompt="Help me een idee uit te werken. Vraag me eerst wat mijn idee is."><span>✧</span> Werk een idee uit<small>Van losse gedachte naar een plan</small></button><button data-prompt="Help me een korte duidelijke tekst te schrijven. Vraag me eerst waarover."><span>≡</span> Vind de juiste woorden<small>Kort, natuurlijk en duidelijk</small></button></div></section>
+        <div id="messages" aria-live="polite" aria-relevant="additions text"></div>
+      </div>
+      <div class="composer-area"><div id="notice" class="notice" role="status" hidden></div><div class="model-row"><span id="model-status">Providers controleren…</span><button id="refresh-providers" class="subtle">↻ Vernieuwen</button></div><form id="composer"><label class="sr-only" for="message">Je bericht</label><textarea id="message" placeholder="Vraag maar. We denken samen verder." rows="1" maxlength="8000" required></textarea><button id="send" type="submit" aria-label="Verstuur bericht">↑</button><button id="stop" type="button" aria-label="Stop antwoord" hidden>■</button><div class="composer-foot"><span><i class="mini-dot"></i> Alleen tekst · geen apparaatbediening</span><span>Enter versturen <span class="key-hint">↵</span></span></div></form><p class="footnote">JARVIS kan zich vergissen. Controleer belangrijke informatie. <span>Gesprekken worden lokaal opgeslagen.</span></p></div>
+    </section>
+  </main>
+</body>
+</html>

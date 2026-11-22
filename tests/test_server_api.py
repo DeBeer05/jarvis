@@ -18,10 +18,10 @@ def test_lifespan_health_ready_status_and_shutdown(settings):
         assert http.get("/ready").status_code == 200
         data = http.get("/api/v1/status").json()
         assert data["status"] == "running"
-        assert data["version"] == "0.1.0"
+        assert data["version"] == "0.2.0"
         assert data["uptime_seconds"] >= 0
-        assert data["components"] == {"api": True, "database": True, "ai": False}
-        assert data["ai_providers"]["selected"] == "none"
+        assert data["components"] == {"api": True, "database": True, "ai": True}
+        assert data["ai_providers"]["selected"] == "auto"
         assert not data["ai_providers"]["gemini"]["available"]
         assert http.get("/openapi.json").status_code == 200
     assert not app.state.runtime["ready"]
@@ -46,7 +46,7 @@ def test_status_contains_no_secret_or_local_paths(settings):
         assert canary not in text
         assert str(settings.database_path) not in text
         assert str(settings.log_path) not in text
-        assert json.loads(text)["ai_providers"]["gemini"] == {"configured": True, "available": False}
+        assert json.loads(text)["ai_providers"]["gemini"] == {"configured": True, "available": None}
 
 
 def test_status_refuses_remote_client_and_forwarded_header(settings):

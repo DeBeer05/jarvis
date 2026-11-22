@@ -42,6 +42,8 @@ def ready(request: Request):
 def status(request: Request):
     runtime = request.app.state.runtime
     settings = request.app.state.settings
+    ollama = request.app.state.chat.router.providers.get("ollama")
+    snapshot = getattr(ollama, "_availability", None)
     database_ready = runtime["ready"] and runtime["database"].check()
     return {
         "status": "running" if database_ready else "degraded",
@@ -50,10 +52,10 @@ def status(request: Request):
         "instance_id": runtime["instance_id"],
         "uptime_seconds": round(max(0, time.monotonic() - runtime["started_at"]), 3),
         "environment": settings.environment,
-        "components": {"api": True, "database": bool(database_ready), "ai": False},
+        "components": {"api": True, "database": bool(database_ready), "ai": hasattr(request.app.state, "chat")},
         "ai_providers": {
             "selected": settings.ai_provider,
-            "gemini": {"configured": bool(settings.gemini_api_key), "available": False},
-            "ollama": {"configured": settings.ai_provider == "ollama", "available": False},
+            "gemini": {"configured": bool(settings.gemini_api_key), "available": None if settings.gemini_api_key else False},
+            "ollama": {"configured": True, "available": snapshot[1]["available"] if snapshot else None},
         },
     }

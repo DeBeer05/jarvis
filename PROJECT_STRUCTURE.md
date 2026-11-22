@@ -1,6 +1,6 @@
 # Projectstructuur
 
-## Bestaande Mark-LVII-code — ongewijzigd
+## Bestaande Mark-LVII-code — behouden
 
 | Pad | Bestaande rol |
 | --- | --- |
@@ -10,23 +10,23 @@
 | `agents/` | Bestaande runtime-agentdefinities, geen Codex-subagents |
 | `gui/` | Bestaande Windows/cross-platform desktopinterface; hergebruiken |
 | `dashboard/` | Bestaand webdashboard/server; eerst onderzoeken voor hergebruik |
-| `providers/` | Bestaande AI-providerabstracties; eerst onderzoeken |
+| `providers/` | AI-providerabstracties; llm_openai hergebruikt met opt-in strikte tekstmodus |
 | `memory/` | Geheugenbeheer; lokale gebruikersdata blijven buiten Git |
 | `config/` | Bestaande configuratiemodule en icoon; hergebruikt |
 | `requirements.txt`, `setup.py` | Bestaande dependency-/installatieconfig; niet uitgevoerd |
 
-## Aanvullende structuur — fase 1
+## Aanvullende structuur — fase 2
 
-| Pad | Toekomstige bestemming; nu alleen voorbereiding |
+| Pad | Huidige rol of gereserveerde bestemming |
 | --- | --- |
-| `server/` | Geïsoleerde headless serverbasis: config, app/API, SQLite, logging, procesbeheer |
+| `server/` | Geïsoleerde headless serverbasis: config, AI-router/adapters, chat-API/SSE, webchat, SQLite, logging, procesbeheer |
 | `desktop-client/` | Gereserveerd voor packaging/clientgrens; `gui/` blijft bestaande UI |
 | `android-app/` | Toekomstige mobiele app |
 | `integrations/` | Toekomstige adapters, geen actieve koppelingen |
-| `tests/` | Pytest voor serverbasis; upstreamchecks blijven op hun oorspronkelijke plaats |
+| `tests/` | Pytest voor serverbasis, AI-adapters/router, chat/API/SQLite/security; upstreamchecks blijven op hun oorspronkelijke plaats |
 | `scripts/` | Git-/repositoryhelpers en Windows-omgeving/start/status/stop |
 | `infrastructure/` | Gereserveerd; geen productieconfiguratie |
-| `docs/` | CI-plan en bron-/licentieverantwoording |
+| `docs/` | CI-plan, AI-/API-handleidingen, testverslagen, screenshots en bron-/licentieverantwoording |
 | `.github/workflows/` | Repositorycheck en geïsoleerde servertests op Windows/Linux |
 
 De nog lege gereserveerde mappen bevatten `.gitkeep`. Buiten server/tests/scripts

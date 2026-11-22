@@ -88,4 +88,5 @@ Sinds fase 1 zijn op develop ook `Server tests (ubuntu-latest)` en
 `Server tests (windows-latest)` verplicht, naast `Repository checks`, met
 GitHub Actions als bron. Windows/Linux- en repositorychecks moeten op de actuele
 basis slagen. Fase 1 mag uitsluitend naar develop; main blijft in deze opdracht
-ongewijzigd. De oplevering van fase 1 is geen toestemming voor fase 2.
+ongewijzigd. Fase 2 is afzonderlijk opgedragen en gebruikt dezelfde PR-/checkprocedure.
+Main blijft ongewijzigd. Stop na fase 2; geen volgende fase zonder nieuwe opdracht.
