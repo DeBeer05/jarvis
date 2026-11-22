@@ -2,8 +2,10 @@
 
 ## Huidige opdracht
 
-Fase 0 — uitsluitend projectvoorbereiding. STOP na deze fase. Fase 1 vereist een
-nieuwe opdracht van de eigenaar; een technisch gereed project is geen toestemming.
+Fase 1 — headless Windows-server, expliciet opgedragen op 22 november 2026.
+Actieve ontwikkelbranch: `feature/headless-server`, basis develop `f4b0053`.
+Main blijft ongewijzigd. STOP na fase 1; fase 2 is niet toegestaan.
+De onderstaande fase-0-secties vormen de bewaarde voorgeschiedenis.
 
 ## Uitgangspunt — 22 november 2026 (Europe/Amsterdam)
 
@@ -143,3 +145,22 @@ Integratie naar develop en main gebruikt de beschermde PR-route, zonder bypass.
 De ontwikkelbasis is gereed met deze expliciete historische uitzondering.
 Geen handmatige setup nodig; een eventueel nog gebruikte oude sleutel vervangen.
 **Geen fase 1 of applicatieontwikkeling gestart.**
+
+## Fase 1 — implementatie en lokale validatie
+
+- Fase 0 opnieuw gecontroleerd: schone Git-status, correcte remotes, volledige
+  upstreambasis en geslaagde CI op develop. Bekende historische TLS-sleutel blijft
+  gedocumenteerd en wordt niet gebruikt.
+- Python 3.12.10 per gebruiker geïnstalleerd; geïsoleerde `.venv` voorbereid met
+  alleen server-/testdependencies. Geen desktop-/audio-/modelstack geïnstalleerd.
+- Nieuwe `server/`-module: FastAPI-factory/lifespan, localhost-entrypoint,
+  health/ready/status, centrale .env-config, begrensde JSON-logs, SQLite met
+  migratieversie en korte verbindingen, lokaal procesbeheer en gecontroleerde stop.
+- PowerShell-scripts voor omgeving, dependencies, start, status en stop toegevoegd.
+- Bestaande Mark-LVII-applicatiebestanden blijven ongewijzigd; cloud/dashboard
+  worden niet geïmporteerd omdat zij netwerkbediening/AI/taken activeren.
+- Eerste testrun: **37 geslaagd**, 3,19 s; één deprecatiewaarschuwing vanuit de
+  huidige Starlette-httpx-testadapter, geen testfouten.
+- Voor commit: relevante tests, repositorychecks, whitespace en geheimscan.
+  Volgende stappen: verdere foutpaden, echte Windows-script-/prestatiemeting,
+  Nederlandse documentatie, server-CI en PR naar develop. Nog niet gemerged.

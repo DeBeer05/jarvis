@@ -133,3 +133,6 @@ memory/*.json
 memory/tasks/
 reports/
 recordings/
+
+# Headless phase 1: database, bounded logs and private process-control token.
+.local/
