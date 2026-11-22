@@ -1,6 +1,6 @@
 # JARVIS — AI-engine en webchat, fase 2
 
-Lichte lokale FastAPI-server met Gemini/Ollama, streaming, annuleerbare antwoorden
+Lichte lokale FastAPI-server met Gemini/Groq/Ollama, streaming, annuleerbare antwoorden
 opgeslagen in SQLite en een donkere webchat. Gebaseerd op Mark-LVII; het gedeelde
 AI-transport wordt hergebruikt. Geen GUI/audio/model nodig om de server te starten.
 Alles blijft op deze ontwikkeldesktop; standaard localhost en **poort 8765**.
@@ -16,12 +16,14 @@ Start-Process http://127.0.0.1:8765/chat
 ```
 
 Voor AI-antwoorden: vul je eigen Gemini-sleutel uitsluitend in de lokale `.env`
-in, of configureer een eigen lokale Ollama met een geïnstalleerd model. Zie
+in, gebruik het Groq Free Plan of configureer een eigen lokale Ollama met een geïnstalleerd model. Zie
 [AI_ENGINE.md](docs/AI_ENGINE.md). Zonder provider toont de webchat een duidelijke
 fout en blijft de server bruikbaar. Lokaal is op verzoek inmiddels Gemini 4 Hydrogen ingesteld. Google gaf bij de
 live proef modeloverbelasting/een technische fout; een succesvol Gemini-antwoord
 is nog niet bevestigd. Ollama qwen3:0.6b is inmiddels beschikbaar: echte
 automatische fallback met een volledig gestreamd en opgeslagen antwoord geslaagd.
+Groq GPT-OSS 120B is toegevoegd en live getest. De lokale auto-voorkeur is nu
+Groq → Ollama; bij deze voorkeur wordt Gemini niet aangeroepen.
 
 Herstart na configuratie- of codewijzigingen:
 
@@ -37,8 +39,8 @@ powershell.exe -NoProfile -File scripts/Get-ServerStatus.ps1
 [Testverslag: mocks versus echte controles](docs/PHASE_2_TEST_REPORT.md) ·
 [Voortgang](DEVELOPMENT_PROGRESS.md).
 
-90 automatische tests geslaagd; echte lokale HTTP/browser-/procesherstartcontrole
-uitgevoerd. Live Ollama/fallback werkt; een succesvol Gemini-antwoord blijft open. SQLite staat standaard in
+99 automatische tests geslaagd; echte lokale HTTP/browser-/procesherstartcontrole
+uitgevoerd. Live Groq en Ollama/fallback werken; een succesvol Gemini-antwoord blijft open. SQLite staat standaard in
 `.local/data/jarvis.sqlite3`; geen sleutels of gebruikersdata in Git.
 Main blijft ongewijzigd; integratie gaat uitsluitend naar develop via geteste PR's.
 **STOP na fase 2.** Geen clientapps, spraak, koppelingen of mini-pc-deployment.

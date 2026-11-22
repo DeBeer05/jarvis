@@ -18,12 +18,15 @@ def now() -> str:
 
 
 class ChatStore:
-    def __init__(self, database: Database, *, secret: str = "", max_conversations: int = 100, max_turns: int = 100):
+    def __init__(self, database: Database, *, secret: str = "", secrets: tuple[str, ...] = (), max_conversations: int = 100, max_turns: int = 100):
         self.database, self.secret = database, secret
+        self.secrets = (secret, *secrets)
         self.max_conversations, self.max_turns = max_conversations, max_turns
 
     def clean(self, text: str) -> str:
-        return redact(text, self.secret)
+        for secret in self.secrets:
+            text = redact(text, secret)
+        return text
 
     def start(self, request_id: str, conversation_id: str | None, message: str) -> tuple[str, list[dict]]:
         message = self.clean(message)

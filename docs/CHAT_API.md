@@ -12,7 +12,7 @@ niet de alleen-GET-EventSource-constructor. Zie ook [SERVER_API.md](SERVER_API.m
 {"message":"Hallo JARVIS, antwoord kort in het Nederlands.","provider":"auto"}
 ```
 
-`provider` is optioneel (configdefault) of auto/gemini/ollama. Geef bij een vervolg
+`provider` is optioneel (configdefault) of auto/gemini/groq/ollama. Geef bij een vervolg
 `conversation_id` uit de vorige response mee. Optioneel `request_id`: een nieuwe
 UUID per verzoek, ook handig voor annuleren. Hergebruik wordt met 409 geweigerd;
 dit is geen retry die dezelfde modelaanroep herhaalt. Onbekende velden, ongeldige
@@ -61,7 +61,7 @@ Een halve stream zonder eindmarkering geldt als fout, niet als succesvol antwoor
 | `GET /api/v1/ai/providers` | mode, preferred, profile, providers met model/configured/available en reden |
 | `GET /chat` | lokale statische webchat, geen externe frontendassets |
 
-Gemini beschikbaarheid is null/not_verified bij een aanwezige sleutel: geen
+Gemini-/Groq-beschikbaarheid is null/not_verified bij een aanwezige sleutel: geen
 betaalde achtergrondtest. Ontbrekende sleutel is false/not_configured. Ollama
 wordt echt met /api/tags geprobed, inclusief exacte modelnaam.
 

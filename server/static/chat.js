@@ -63,8 +63,8 @@ async function refreshProviders() {
     await api("/ready"); $("connection").textContent = "Lokaal verbonden"; $("connection-dot").classList.remove("offline");
     const data = await api("/api/v1/ai/providers");
     if (!state.modeLoaded) { $("provider").value = data.mode; state.modeLoaded = true; }
-    const gem = data.providers.gemini; const oll = data.providers.ollama;
-    $("model-status").textContent = `${gem.model} · ${gem.configured ? "sleutel ingesteld" : "sleutel ontbreekt"}  /  ${oll.model} · ${oll.available ? "beschikbaar" : oll.state === "model_missing" ? "model ontbreekt" : "Ollama offline"}`;
+    const gem = data.providers.gemini; const oll = data.providers.ollama; const groq = data.providers.groq;
+    $("model-status").textContent = `${gem.model} · ${gem.configured ? "sleutel ingesteld" : "sleutel ontbreekt"}  /  ${groq?.model || "Groq"} · ${groq?.configured ? "sleutel ingesteld" : "sleutel ontbreekt"}  /  ${oll.model} · ${oll.available ? "beschikbaar" : oll.state === "model_missing" ? "model ontbreekt" : "Ollama offline"}`;
   } catch (e) { $("connection").textContent = "Server niet bereikbaar"; $("connection-dot").classList.add("offline"); $("model-status").textContent = "Controleer de lokale server op poort 8765."; }
 }
 async function sendMessage(event) {

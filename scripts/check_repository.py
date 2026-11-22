@@ -40,6 +40,7 @@ IGNORED_PROBES = (
     ".local/run/server.json", ".local/data/jarvis.sqlite3", ".local/logs/server.log",
 )
 PATTERNS = {
+    "Groq API key": re.compile(rb"\bgsk_[A-Za-z0-9]{32,}"),
     "Google API key": re.compile(rb"AIza[0-9A-Za-z_-]{35}"),
     "GitHub token": re.compile(rb"(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,})"),
     "AWS access key": re.compile(rb"(?:AKIA|ASIA)[A-Z0-9]{16}"),
@@ -155,6 +156,7 @@ def main() -> int:
         "JARVIS_RUNTIME_DIR": ".local/run", "JARVIS_ENABLE_EXTERNAL_ACCESS": "false",
         "JARVIS_ENABLE_AUTOMATIONS": "false", "JARVIS_AI_PROVIDER": "auto", "GEMINI_API_KEY": "",
         "JARVIS_PROFILE": "desktop-development", "JARVIS_AI_PREFERRED_PROVIDER": "gemini",
+        "GROQ_API_KEY": "", "GROQ_MODEL": "openai/gpt-oss-120b",
         "GEMINI_MODEL": "gemini-3.8-flash", "OLLAMA_BASE_URL": "http://127.0.0.1:11434",
         "OLLAMA_MODEL": "qwen3:0.6b", "JARVIS_SYSTEM_PROMPT_FILE": "config/jarvis-system-prompt.txt",
         "JARVIS_AI_TIMEOUT_SECONDS": "60", "JARVIS_PROVIDER_TIMEOUT_SECONDS": "25",

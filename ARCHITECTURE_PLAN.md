@@ -4,7 +4,7 @@
 
 `server/ai/` bevat de centrale tekst-router en adapters voor het gedeelde
 Mark-LVII-transport `providers/llm_openai.py`. De opt-in headlessmodus gebruikt
-geen desktopconfig, GUI, audio of tools. Gemini en lokale Ollama ondersteunen
+geen desktopconfig, GUI, audio of tools. Gemini, Groq en lokale Ollama ondersteunen
 SSE-streaming; fallback gebeurt uitsluitend vóór eerste tekst.
 `chat_service.py` begrenst context/concurrency/verzoeken, beheert annulering en
 sluit providerverbindingen. `chat_store.py` bewaart gespreksbeurten in schema 2,

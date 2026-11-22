@@ -31,6 +31,8 @@ class Settings:
     runtime_dir: Path
     ai_provider: str
     gemini_api_key: str = field(repr=False, default="")
+    groq_api_key: str = field(repr=False, default="")
+    groq_model: str = "openai/gpt-oss-120b"
     profile: str = "desktop-development"
     preferred_provider: str = "gemini"
     gemini_model: str = "gemini-3.8-flash"
@@ -106,7 +108,7 @@ def load_settings(
         raise ConfigurationError("Database and log paths must be different")
     profile = choice("JARVIS_PROFILE", "desktop-development", ("desktop-development", "mini-pc-production"))
     mini = profile == "mini-pc-production"
-    provider = choice("JARVIS_AI_PROVIDER", "auto", ("auto", "none", "gemini", "ollama"))
+    provider = choice("JARVIS_AI_PROVIDER", "auto", ("auto", "none", "gemini", "groq", "ollama"))
     base_url = text("OLLAMA_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
     try:
         url = urlsplit(base_url)
@@ -142,8 +144,10 @@ def load_settings(
         runtime_dir=path("JARVIS_RUNTIME_DIR", ".local/run"),
         ai_provider="auto" if provider == "none" else provider,
         gemini_api_key=text("GEMINI_API_KEY", ""),
+        groq_api_key=text("GROQ_API_KEY", ""),
+        groq_model=model("GROQ_MODEL", "openai/gpt-oss-120b"),
         profile=profile,
-        preferred_provider=choice("JARVIS_AI_PREFERRED_PROVIDER", "gemini", ("gemini", "ollama")),
+        preferred_provider=choice("JARVIS_AI_PREFERRED_PROVIDER", "gemini", ("gemini", "groq", "ollama")),
         gemini_model=model("GEMINI_MODEL", "gemini-3.8-flash"),
         ollama_base_url=base_url,
         ollama_model=model("OLLAMA_MODEL", "qwen3:0.6b"),

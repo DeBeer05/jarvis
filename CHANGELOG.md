@@ -4,6 +4,10 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Groq met GPT-OSS 120B toegevoegd als derde provider, met streaming, veilige
+  sleutels, webchatkeuze en auto-voorkeur Groq → Ollama. Echte Groq-proef geslaagd;
+  geen nieuwe dependency of database-migratie. 99 automatische tests.
+
 - Lokale Gemini-modelkeuze op verzoek bijgewerkt naar stabiele Gemini 4 Hydrogen;
   server herstart en echt getest. Google gaf ook hier tijdelijk 503-overbelasting.
   Echte auto-fallback naar inmiddels beschikbare Ollama qwen3:0.6b geslaagd.

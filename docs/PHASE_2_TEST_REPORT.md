@@ -5,8 +5,8 @@ Datum: 22 november 2026, Europe/Amsterdam. Windows-ontwikkeldesktop, Python
 
 ## Resultaat en acceptatiegrens
 
-De AI-engine, API, SQLite-migratie en webchat zijn geïmplementeerd. **90 tests
-geslaagd** (laatste implementatierun 4,58 s); oorspronkelijke 39 fase-1-tests
+De AI-engine, API, SQLite-migratie en webchat zijn geïmplementeerd. **99 tests
+geslaagd** (laatste implementatierun 4,99 s); oorspronkelijke 39 fase-1-tests
 inbegrepen en bijgewerkt voor versie 0.2/schema 2. Eén bekende niet-blokkerende
 Starlette/httpx-testadapter-deprecatiewaarschuwing. De structuurcheck is aanvullend,
 geen vervanging voor applicatietests.
@@ -47,7 +47,7 @@ Er wordt geen live succes geclaimd op basis van mocks.
 | Webchat | Statische assets, CSP, geen model-HTML/scriptuitvoering, API-contract |
 | Fase 1 | Health/ready/status, logging, configuratie, lifecycle/controle, geen GUI/audio/heavy imports |
 
-Tests staan in `tests/test_ai_providers.py`, `tests/test_ai_chat.py` en de
+Tests staan in `tests/test_groq.py`, `tests/test_ai_providers.py`, `tests/test_ai_chat.py` en de
 bestaande servertests. Tijdelijke testdatabases bevatten alleen synthetische tekst.
 
 ## Echte lokale server en browser
@@ -117,3 +117,19 @@ het bekende synthetische testgesprek verwijderd. Geen mocks voor deze proef.
 Fase 2 is technisch geïmplementeerd en live Ollama/fallback werkt. Een succesvol
 live Gemini-antwoord blijft nog open wegens providerfouten.
 STOP na fase 2. Geen clientapps, spraak, agenda/berichten, bellen of automatisering.
+
+
+## Groq: echte derde provider en aanvullende regressietests
+
+Op verzoek is Groq Free Plan/GPT-OSS 120B als derde provider toegevoegd. De
+gebruiker heeft zelf lokaal GROQ_API_KEY ingesteld. Echte expliciete Groq-SSE:
+completed, vier deltas en precies 'Groq werkt.' (11 tekens); provider/model en
+SQLite-opslag via historie bevestigd. Alleen eigen testgesprek verwijderd.
+Auto met voorkeur Groq probeert Groq en daarna Ollama, zonder Gemini te belasten.
+
+Extra mocks testen officiële Groq-URL/auth/body/max_completion_tokens/low reasoning,
+ontbrekende sleutel zonder netwerk, expliciete providerselectie, beide sleutels
+uit context/DB/logs houden, Groq-fallback zonder Gemini en geen fallback na tekst,
+configvalidatie en provider-/webchatstatus. Een herhalingsregressietest bewijst
+bovendien dat nieuwe gebruikersberichten ook na identieke modelantwoorden als
+laatste bericht aan de provider worden doorgegeven. Totaal: 99 geslaagde tests.

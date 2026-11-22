@@ -7,11 +7,11 @@ from server.config import Settings
 class AIRouter:
     def __init__(self, settings: Settings, providers: dict | None = None):
         self.settings = settings
-        self.providers = providers if providers is not None else {name: TextProvider(name, settings) for name in ("gemini", "ollama")}
+        self.providers = providers if providers is not None else {name: TextProvider(name, settings) for name in ("gemini", "groq", "ollama")}
 
     async def stream(self, messages: list[dict], mode: str):
         preferred = self.settings.preferred_provider
-        order = [preferred, "ollama" if preferred == "gemini" else "gemini"] if mode == "auto" else [mode]
+        order = [preferred, "gemini" if preferred == "ollama" else "ollama"] if mode == "auto" else [mode]
         for position, name in enumerate(order):
             provider = self.providers[name]
             started = False
@@ -36,6 +36,7 @@ class AIRouter:
 
     async def availability(self) -> dict:
         import asyncio
-        values = await asyncio.gather(*(self.providers[name].availability() for name in ("gemini", "ollama")))
+        names = tuple(self.providers)
+        values = await asyncio.gather(*(self.providers[name].availability() for name in names))
         return {"mode": self.settings.ai_provider, "preferred": self.settings.preferred_provider,
-                "profile": self.settings.profile, "providers": dict(zip(("gemini", "ollama"), values))}
+                "profile": self.settings.profile, "providers": dict(zip(names, values))}
