@@ -1,0 +1,54 @@
+name: Headless server tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  server-tests:
+    name: Server tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: ./.venv/bin/python
+          - os: windows-latest
+            python: ./.venv/Scripts/python.exe
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Isolated environment
+        run: python -m venv .venv
+      - name: Install minimal server and tests
+        run: ${{ matrix.python }} -m pip install -r requirements-server-dev.txt
+      - name: Validate dependencies
+        run: ${{ matrix.python }} -m pip check
+      - name: Run server tests
+        run: ${{ matrix.python }} -m pytest -q
+      - name: Exercise Windows control scripts
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          & ./scripts/Initialize-ServerEnvironment.ps1
+          try {
+            & ./scripts/Start-Server.ps1 -Background
+            & ./scripts/Get-ServerStatus.ps1
+            $health = Invoke-RestMethod http://127.0.0.1:8765/health -NoProxy
+            $ready = Invoke-RestMethod http://127.0.0.1:8765/ready -NoProxy
+            if ($health.status -ne 'ok' -or $ready.status -ne 'ready') { throw 'API not ready' }
+          } finally {
+            & ./scripts/Stop-Server.ps1
+          }

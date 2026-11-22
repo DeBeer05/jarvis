@@ -1,4 +1,27 @@
-# Architectuurplan — uitsluitend ontwerp
+# Architectuurplan — fase 1 en toekomstig ontwerp
+
+## Gerealiseerd in fase 1
+
+De lokale serverbasis in `server/` is nu geïmplementeerd met FastAPI/Uvicorn,
+één worker, uitsluitend 127.0.0.1, lifespan-beheer, centrale .env-config,
+health/ready/status en SQLite-schema versie 1. Er worden geen bestaande GUI,
+cloudhost, pluginworkers, AI-providers of routines geïmporteerd/geactiveerd.
+De bestaande netwerkservers zijn onderzocht: dashboard bindt op alle
+netwerkinterfaces; core/cloud start ook Telegram/taken/routines en deploycode.
+Die behouden hun oorspronkelijke functie en blijven buiten deze lokale basis.
+
+Nieuwe grenzen: `server/config.py` voor configuratie, `database.py` voor korte
+SQLite-verbindingen/migraties, `logging_config.py` voor roterende JSON-logs,
+`app.py`/`api/` voor lifespan en routers, `control.py` voor lokaal procesbeheer.
+Status is tot loopback beperkt; shutdown vereist een apart lokaal controletoken.
+Geen publieke authenticatie/deployment ontwerpen via deze lokale toegang.
+
+Gemeten op de ontwikkelwerkplek: 46,90 MiB working set, 34,70 MiB private memory,
+844,2 ms processtart tot waargenomen gereedmelding en 1141 ms inclusief Windows-
+startscript. Korte idleproef van 3,013 s gaf 0,000% op één-kernschaal; dit is een
+momentopname, geen garantie voor de uiteindelijke 8-GB-mini-pc. Details en grenzen:
+[docs/HEADLESS_SERVER.md](docs/HEADLESS_SERVER.md).
+Onderstaande onderdelen blijven plannen voor latere expliciete opdrachten.
 
 ## Doel en grenzen
 

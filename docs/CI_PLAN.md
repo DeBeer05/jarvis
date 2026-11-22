@@ -1,5 +1,14 @@
 # CI/CD-plan
 
+## Actief in fase 1
+
+`server-tests.yml` installeert alleen de minimale vastgelegde server- en
+testdependencies in een venv en voert pytest/pip check uit op Python 3.12,
+Windows en Linux. Windows voert bovendien de start/status/stopscripts uit.
+Geen productie-deployment, GUI-/audio-/modelinstallaties of externe AI-aanroepen.
+De bestaande repositorycheck blijft actief; `.env.example` bevat nu de veilige
+fase-1-defaults. Serverchecks moeten geslaagd zijn vóór merge naar develop.
+
 ## Actief in fase 0
 
 `Repository checks` in `.github/workflows/repository-check.yml` draait op push
@@ -21,7 +30,7 @@ Branch protection moet exact de checknaam `Repository checks` gebruiken.
 
 | Workflow | Nodig voor activering |
 | --- | --- |
-| Python-tests | Geïsoleerde dependencies, unit-/contracttests en geschikte OS-matrix |
+| Overige Python-tests | Servertests zijn actief; desktop/AI-tests pas bij latere opdracht |
 | Android-builds | Toolchainkeuze, SDK/Gradle, tests, signing via secretstore |
 | Desktop-clienttests | Qt-testaanpak, Windows-runner, packaging en UI-smoketests |
 | Security scanning | Dependency-/licentieaudit, secret scanning en passende SAST |

@@ -17,6 +17,10 @@ DOCUMENTS = (
     "docs/UPSTREAM_REVIEW.md", ".gitignore", ".env.example",
     ".github/workflows/repository-check.yml", "scripts/new-branch.ps1",
     "scripts/configure-git.ps1",
+    "server/__main__.py", "server/app.py", "server/config.py", "server/database.py",
+    "server/control.py", "server/api/routes.py", "requirements-server.txt",
+    "requirements-server-dev.txt", "constraints-server.txt", "pytest.ini",
+    "docs/HEADLESS_SERVER.md", "docs/SERVER_API.md", ".github/workflows/server-tests.yml",
 )
 IGNORED_PROBES = (
     ".env", ".env.local", ".env.production", ".venv/probe", "venv/probe",

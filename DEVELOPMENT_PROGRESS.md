@@ -164,3 +164,31 @@ Geen handmatige setup nodig; een eventueel nog gebruikte oude sleutel vervangen.
 - Voor commit: relevante tests, repositorychecks, whitespace en geheimscan.
   Volgende stappen: verdere foutpaden, echte Windows-script-/prestatiemeting,
   Nederlandse documentatie, server-CI en PR naar develop. Nog niet gemerged.
+
+### Fase 1 — Windows-validatie en CI voorbereiden
+
+- Functionele commit: `d1bfe56`; console-interrupt/ownershipherstel: `9cb37da`.
+  Actieve ontwikkelbranch blijft `feature/headless-server`; main is niet gewijzigd.
+- **39 pytest-tests geslaagd** op Python 3.12.10; meest recente lokale run 2,74 s.
+  Getest: app/lifespan, alle drie endpoints, statusafscherming, Host-/proxybeleid,
+  config/ongeldige .env, SQLite/migraties/corruptie/cleanup, fouten zonder secrets,
+  JSON-logrotatie/redactie, import zonder GUI/audio/AI, instance-lock, echte
+  processtart/stop en interrupt-cleanup. `pip check` geslaagd.
+- Alle vijf Windows-scripts daadwerkelijk uitgevoerd: omgeving voorbereiden,
+  minimale dependencies installeren, start in achtergrond, status en stop.
+  Live health/ready/status geslaagd; precies één luistersocket op 127.0.0.1:8765.
+  Runtimecontrolbestand na shutdown verwijderd. Geen service geïnstalleerd.
+- Gemeten op de 31,95-GiB-ontwikkeldesktop: working set 46,90 MiB, private memory
+  34,70 MiB, processtart tot waargenomen ready 844,2 ms, startscript totaal 1141 ms.
+  Idle-CPU 0,000% in 3,013 s op één-kernschaal; korte momentopname, geen garantie
+  voor het uiteindelijke 8-GB-apparaat.
+- Nieuwe documenten: `docs/HEADLESS_SERVER.md`, `docs/SERVER_API.md`; README,
+  structuur, architectuur en CI-plan bijgewerkt. `server-tests.yml` test Windows
+  en Linux in geïsoleerde Python-3.12-omgevingen, inclusief Windows-controlscripts.
+- Alle oorspronkelijke upstream-Python-bestanden zijn ongewijzigd en statisch
+  op syntax gecontroleerd. Desktop-/cloudfunctionaliteit niet interactief gestart.
+- Bekend: één deprecatiewaarschuwing van Starlette/httpx in tests; geen testfout.
+  Oude TLS-sleutel blijft alleen in de upstreamhistorie; wordt niet hergebruikt.
+- PR/merge: nog te publiceren; echte CI wordt vóór merge gecontroleerd.
+  Volgende stap: feature push/PR naar develop, verplichte CI bevestigen en veilig
+  integreren. **STOP na fase 1; geen fase 2.**

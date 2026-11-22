@@ -15,22 +15,22 @@
 | `config/` | Bestaande configuratiemodule en icoon; hergebruikt |
 | `requirements.txt`, `setup.py` | Bestaande dependency-/installatieconfig; niet uitgevoerd |
 
-## Aanvullende voorbereiding
+## Aanvullende structuur — fase 1
 
 | Pad | Toekomstige bestemming; nu alleen voorbereiding |
 | --- | --- |
-| `server/` | Gereserveerd voor toekomstige servergrens; dashboard eerst beoordelen |
+| `server/` | Geïsoleerde headless serverbasis: config, app/API, SQLite, logging, procesbeheer |
 | `desktop-client/` | Gereserveerd voor packaging/clientgrens; `gui/` blijft bestaande UI |
 | `android-app/` | Toekomstige mobiele app |
 | `integrations/` | Toekomstige adapters, geen actieve koppelingen |
-| `tests/` | Toekomstige tests; upstreamchecks blijven op hun oorspronkelijke plaats |
-| `scripts/` | Alleen fase-0-Git- en repositorycontrolehulpmiddelen |
+| `tests/` | Pytest voor serverbasis; upstreamchecks blijven op hun oorspronkelijke plaats |
+| `scripts/` | Git-/repositoryhelpers en Windows-omgeving/start/status/stop |
 | `infrastructure/` | Gereserveerd; geen productieconfiguratie |
 | `docs/` | CI-plan en bron-/licentieverantwoording |
-| `.github/workflows/` | Minimale repositorycheck |
+| `.github/workflows/` | Repositorycheck en geïsoleerde servertests op Windows/Linux |
 
-De lege gereserveerde mappen bevatten `.gitkeep`. Aanwezigheid betekent geen
-geïmplementeerde component en geen besluit om bestaande modules te dupliceren.
+De nog lege gereserveerde mappen bevatten `.gitkeep`. Buiten server/tests/scripts
+betekent aanwezigheid geen geïmplementeerde component of besluit tot duplicatie.
 Geen bestanden verplaatst en geen tweede `jarvis/`-root gemaakt.
 
 Rootdocumenten: bestaande `readme.md` (op Windows geen tweede `README.md` maken),
