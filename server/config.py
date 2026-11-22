@@ -131,10 +131,10 @@ def load_settings(
     if not prompt or len(prompt) > 12000:
         raise ConfigurationError("Invalid JARVIS_SYSTEM_PROMPT")
     return Settings(
-        environment=choice("JARVIS_ENV", "development", ("development", "production")),
+        environment=choice("JARVIS_ENV", "production" if mini else "development", ("development", "production")),
         host=host,
         port=number("JARVIS_PORT", "8765", 1, 65535),
-        log_level=choice("JARVIS_LOG_LEVEL", "info", ("debug", "info", "warning", "error", "critical")),
+        log_level=choice("JARVIS_LOG_LEVEL", "warning" if mini else "info", ("debug", "info", "warning", "error", "critical")),
         log_path=log_path,
         log_max_bytes=number("JARVIS_LOG_MAX_BYTES", "1048576", 1024, 104857600),
         log_backup_count=number("JARVIS_LOG_BACKUP_COUNT", "3", 1, 10),

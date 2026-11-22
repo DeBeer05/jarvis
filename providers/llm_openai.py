@@ -447,7 +447,7 @@ class OpenAICompatLLM:
         if self._strict_text and self._max_output_tokens:
             body["max_tokens"] = self._max_output_tokens
         if self._strict_text and self._think is not None:
-            body["think"] = self._think
+            body["reasoning_effort"] = "none" if self._think is False else "low"
         if "generativelanguage.googleapis.com" in self.base and "flash" in self.model:
             # Gemini 3 Flash models think before every answer unless told not
             # to, which is most of their wait in a spoken turn. Measured

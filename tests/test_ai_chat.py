@@ -80,6 +80,7 @@ def test_partial_stream_failure_never_starts_second_answer(settings):
         assert not providers["ollama"].calls
         saved = http.get("/api/v1/chat/conversations/" + events[-1]["conversation_id"]).json()
         assert saved["turns"][0]["status"] == "error"
+        assert saved["turns"][0]["error"]["code"] == "stream_interrupted"
 
 
 def test_webchat_static_assets_and_security_headers(settings):
@@ -187,6 +188,8 @@ def test_concurrency_and_conversation_serialization(settings):
         with pytest.raises(ChatError, match="busy"):
             await chat.prepare("Nog een bericht")
         assert chat.busy(run.conversation_id)
+        with pytest.raises(ChatError, match="conversation_busy"):
+            chat.store.delete(run.conversation_id)
         _ = [event async for event in chat.events(run)]
         assert not chat.busy(run.conversation_id)
     asyncio.run(check())
@@ -236,6 +239,37 @@ def test_mini_profile_is_supported_but_not_default(tmp_path):
     assert default.profile == "desktop-development"
     assert mini.max_concurrent_ai == 1 and mini.max_output_tokens == 512
     assert mini.preferred_provider == "gemini" and mini.host == "127.0.0.1"
+    assert mini.environment == "production" and mini.log_level == "warning"
+
+
+def test_adapter_deadline_after_first_chunk_closes_actual_transport(settings):
+    import httpx
+    from server.ai.providers import TextProvider
+
+    class SlowStream(httpx.AsyncByteStream):
+        closed = False
+        async def __aiter__(self):
+            yield b'data: {"choices":[{"delta":{"content":"Eerste deel"}}]}\n\n'
+            await asyncio.Event().wait()
+        async def aclose(self):
+            self.closed = True
+
+    async def check():
+        source = SlowStream()
+        settings_with_timeout = replace(settings, gemini_api_key="canary", provider_timeout_seconds=0.04, ai_timeout_seconds=1)
+        def factory(**kwargs):
+            return httpx.AsyncClient(transport=httpx.MockTransport(lambda request: httpx.Response(200, stream=source)), **kwargs)
+        provider = TextProvider("gemini", settings_with_timeout, factory)
+        fallback = FakeProvider()
+        database = Database(settings.database_path)
+        database.initialize()
+        engine = ChatService(settings_with_timeout, ChatStore(database), AIRouter(settings_with_timeout, {"gemini": provider, "ollama": fallback}))
+        run = await engine.prepare("Hallo")
+        result = [event async for event in engine.events(run)]
+        assert result[-1]["error"]["code"] == "stream_interrupted"
+        assert result[-1]["message"] == "Eerste deel"
+        assert source.closed and not fallback.calls and not engine.active
+    asyncio.run(check())
 
 
 def test_cancel_before_start_does_not_call_provider(settings):

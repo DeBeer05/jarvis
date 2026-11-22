@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from server.api.routes import require_loopback
 from server.chat_store import ChatError
+from server.ai.providers import MESSAGES
 
 router = APIRouter(dependencies=[Depends(require_loopback)])
 STATIC = Path(__file__).resolve().parents[1] / "static"
@@ -80,7 +81,10 @@ async def conversations(request: Request, limit: int = Query(50, ge=1, le=100), 
 
 @router.get("/api/v1/chat/conversations/{conversation_id}")
 async def conversation(request: Request, conversation_id: UUID):
-    return await asyncio.to_thread(request.app.state.chat.store.get, str(conversation_id))
+    result = await asyncio.to_thread(request.app.state.chat.store.get, str(conversation_id))
+    for turn in result["turns"]:
+        turn["error"] = {"code": turn["error_code"], "message": MESSAGES.get(turn["error_code"], "Dit antwoord is niet voltooid. Probeer opnieuw.")} if turn["error_code"] else None
+    return result
 
 
 @router.delete("/api/v1/chat/conversations/{conversation_id}")

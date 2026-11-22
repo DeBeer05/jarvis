@@ -278,3 +278,22 @@ De oorspronkelijke installatie-instructie maakte daardoor een onjuiste aanname.
 - Volgende stappen: randgevallen en browser-/herstartcontrole, Nederlandse
   documentatie/testverslag, commits/geheimcontrole, push/PR/CI en veilige develop-merge.
   Nog niet gemerged; live Gemini/Ollama nog niet getest wegens ontbrekende configuratie.
+
+### Fase 2 — browser en randgevallen
+
+- Engine-/webchatbasis vastgelegd in commit `2f9ac9a`.
+- **88 tests geslaagd**, inclusief daadwerkelijk onderbroken HTTPX-stream na
+  de eerste tekst, deadline/cleanup, annuleerbaarheid, verweesde reserveringen,
+  bescherming tegen verwijderen tijdens generatie en oudere transportdefaults.
+- Echte webchat in de browser gecontroleerd: providerkeuze, bericht versturen,
+  ontbrekende-Gemini-sleutelmelding, nieuw gesprek, opgeslagen gesprek heropenen,
+  gespreksverwijdering en vormgeving. Geen JavaScript-consolefouten waargenomen.
+- Responsieve weergave op 390x844 gecontroleerd; overbodige buitenste scrollbar
+  hersteld. Pagina-afmetingen 390x844 bevestigd; screenshotbestanden in docs/screenshots.
+- Echte HTTP-chatfout met ontbrekende sleutel opgeslagen, eigen server via
+  Windows PowerShell gestopt/herstart en hetzelfde gesprek met foutstatus opnieuw
+  opgehaald. Alleen het eigen synthetische testgesprek daarna via API verwijderd.
+- Lokale database naar schema 2 gemigreerd; bestaande gegevens behouden en een
+  pre-v2-back-up aangemaakt. Geen API-sleutels of testprovider in productieconfig.
+- Ollama gebruikt het gedocumenteerde OpenAI-compatibele reasoning_effort=none
+  voor lichte modellen; lokale contextgrootte blijft een Ollama-modelinstelling.

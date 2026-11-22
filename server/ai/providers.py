@@ -84,11 +84,20 @@ class TextProvider:
             config["think"] = False
         transport = OpenAICompatLLM(config)
         try:
-            async with asyncio.timeout(self.settings.provider_timeout_seconds):
-                async with aclosing(transport.chat(messages, tools=None, stream=True)) as source:
-                    async for chunk in source:
-                        if chunk.get("text"):
-                            yield chunk["text"]
+            deadline = time.monotonic() + self.settings.provider_timeout_seconds
+            async with aclosing(transport.chat(messages, tools=None, stream=True)) as source:
+                while True:
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        raise TimeoutError
+                    try:
+                        # Each __anext__ can run in a different task during cancellation.
+                        # Never leave a task-bound asyncio.timeout context across a yield.
+                        chunk = await asyncio.wait_for(anext(source), remaining)
+                    except StopAsyncIteration:
+                        break
+                    if chunk.get("text"):
+                        yield chunk["text"]
         except (TimeoutError, httpx.TimeoutException):
             raise ProviderError("timeout") from None
         except TextStreamError as error:

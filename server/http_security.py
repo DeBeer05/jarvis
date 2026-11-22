@@ -27,9 +27,10 @@ class RequestGuard:
                 message = await receive()
                 if message["type"] == "http.disconnect":
                     return
-                content.extend(message.get("body", b""))
-                if len(content) > 65536:
+                piece = message.get("body", b"")
+                if len(content) + len(piece) > 65536:
                     return await JSONResponse({"error": {"code": "body_too_large", "message": "Het verzoek is te groot."}}, status_code=413)(scope, receive, send)
+                content.extend(piece)
                 if not message.get("more_body", False):
                     break
             replayed = False

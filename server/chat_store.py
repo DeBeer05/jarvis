@@ -84,6 +84,9 @@ class ChatStore:
 
     def delete(self, conversation_id: str) -> None:
         with self.database.connection() as db:
+            db.execute("BEGIN IMMEDIATE")
+            if db.execute("SELECT 1 FROM chat_turns WHERE conversation_id=? AND status='running' LIMIT 1", (conversation_id,)).fetchone():
+                raise ChatError("conversation_busy", "Stop eerst het lopende antwoord.", 409)
             cursor = db.execute("DELETE FROM chat_conversations WHERE id=?", (conversation_id,))
             if cursor.rowcount == 0:
                 raise ChatError("not_found", "Gesprek niet gevonden.", 404)

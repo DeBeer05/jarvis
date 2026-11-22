@@ -35,7 +35,7 @@ async function loadHistory(append = false) {
     const remove = document.createElement("button"); remove.className = "delete"; remove.textContent = "×"; remove.setAttribute("aria-label", `Verwijder gesprek: ${item.title}`);
     remove.addEventListener("click", async () => {
       if (state.running || !confirm("Dit gesprek definitief verwijderen?")) return;
-      try { await api(`/api/v1/chat/conversations/${item.id}`, {method: "DELETE"}); if (state.conversation === item.id) newChat(); await loadHistory(); }
+      try { await api(`/api/v1/chat/conversations/${item.id}`, {method: "DELETE"}); if (state.conversation === item.id) newChat(); else await loadHistory(); }
       catch (e) { notice(e.message); }
     }); row.append(open, remove); $("conversations").append(row);
   }
@@ -55,7 +55,7 @@ async function openConversation(id) {
   for (const turn of data.turns) {
     addMessage("user", turn.user_text);
     const answer = addMessage("assistant", turn.assistant_text, [turn.provider, turn.model].filter(Boolean).join(" · "));
-    if (turn.status !== "completed") answer.querySelector(".message-state").textContent = turn.status === "cancelled" ? "Antwoord gestopt." : "Dit antwoord is niet voltooid. Je kunt een nieuw bericht sturen.";
+    if (turn.status !== "completed") answer.querySelector(".message-state").textContent = turn.status === "cancelled" ? "Antwoord gestopt." : turn.error?.message || "Dit antwoord is niet voltooid. Je kunt een nieuw bericht sturen.";
   } await loadHistory(); scrollDown();
 }
 async function refreshProviders() {
