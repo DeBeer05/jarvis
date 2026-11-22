@@ -2,8 +2,10 @@
 
 ## Huidige opdracht
 
-Fase 0 — uitsluitend projectvoorbereiding. STOP na deze fase. Fase 1 vereist een
-nieuwe opdracht van de eigenaar; een technisch gereed project is geen toestemming.
+Fase 1 — headless Windows-server, expliciet opgedragen op 22 november 2026.
+Actieve ontwikkelbranch: `feature/headless-server`, basis develop `f4b0053`.
+Main blijft ongewijzigd. STOP na fase 1; fase 2 is niet toegestaan.
+De onderstaande fase-0-secties vormen de bewaarde voorgeschiedenis.
 
 ## Uitgangspunt — 22 november 2026 (Europe/Amsterdam)
 
@@ -143,3 +145,50 @@ Integratie naar develop en main gebruikt de beschermde PR-route, zonder bypass.
 De ontwikkelbasis is gereed met deze expliciete historische uitzondering.
 Geen handmatige setup nodig; een eventueel nog gebruikte oude sleutel vervangen.
 **Geen fase 1 of applicatieontwikkeling gestart.**
+
+## Fase 1 — implementatie en lokale validatie
+
+- Fase 0 opnieuw gecontroleerd: schone Git-status, correcte remotes, volledige
+  upstreambasis en geslaagde CI op develop. Bekende historische TLS-sleutel blijft
+  gedocumenteerd en wordt niet gebruikt.
+- Python 3.12.10 per gebruiker geïnstalleerd; geïsoleerde `.venv` voorbereid met
+  alleen server-/testdependencies. Geen desktop-/audio-/modelstack geïnstalleerd.
+- Nieuwe `server/`-module: FastAPI-factory/lifespan, localhost-entrypoint,
+  health/ready/status, centrale .env-config, begrensde JSON-logs, SQLite met
+  migratieversie en korte verbindingen, lokaal procesbeheer en gecontroleerde stop.
+- PowerShell-scripts voor omgeving, dependencies, start, status en stop toegevoegd.
+- Bestaande Mark-LVII-applicatiebestanden blijven ongewijzigd; cloud/dashboard
+  worden niet geïmporteerd omdat zij netwerkbediening/AI/taken activeren.
+- Eerste testrun: **37 geslaagd**, 3,19 s; één deprecatiewaarschuwing vanuit de
+  huidige Starlette-httpx-testadapter, geen testfouten.
+- Voor commit: relevante tests, repositorychecks, whitespace en geheimscan.
+  Volgende stappen: verdere foutpaden, echte Windows-script-/prestatiemeting,
+  Nederlandse documentatie, server-CI en PR naar develop. Nog niet gemerged.
+
+### Fase 1 — Windows-validatie en CI voorbereiden
+
+- Functionele commit: `d1bfe56`; console-interrupt/ownershipherstel: `9cb37da`.
+  Actieve ontwikkelbranch blijft `feature/headless-server`; main is niet gewijzigd.
+- **39 pytest-tests geslaagd** op Python 3.12.10; meest recente lokale run 2,74 s.
+  Getest: app/lifespan, alle drie endpoints, statusafscherming, Host-/proxybeleid,
+  config/ongeldige .env, SQLite/migraties/corruptie/cleanup, fouten zonder secrets,
+  JSON-logrotatie/redactie, import zonder GUI/audio/AI, instance-lock, echte
+  processtart/stop en interrupt-cleanup. `pip check` geslaagd.
+- Alle vijf Windows-scripts daadwerkelijk uitgevoerd: omgeving voorbereiden,
+  minimale dependencies installeren, start in achtergrond, status en stop.
+  Live health/ready/status geslaagd; precies één luistersocket op 127.0.0.1:8765.
+  Runtimecontrolbestand na shutdown verwijderd. Geen service geïnstalleerd.
+- Gemeten op de 31,95-GiB-ontwikkeldesktop: working set 46,90 MiB, private memory
+  34,70 MiB, processtart tot waargenomen ready 844,2 ms, startscript totaal 1141 ms.
+  Idle-CPU 0,000% in 3,013 s op één-kernschaal; korte momentopname, geen garantie
+  voor het uiteindelijke 8-GB-apparaat.
+- Nieuwe documenten: `docs/HEADLESS_SERVER.md`, `docs/SERVER_API.md`; README,
+  structuur, architectuur en CI-plan bijgewerkt. `server-tests.yml` test Windows
+  en Linux in geïsoleerde Python-3.12-omgevingen, inclusief Windows-controlscripts.
+- Alle oorspronkelijke upstream-Python-bestanden zijn ongewijzigd en statisch
+  op syntax gecontroleerd. Desktop-/cloudfunctionaliteit niet interactief gestart.
+- Bekend: één deprecatiewaarschuwing van Starlette/httpx in tests; geen testfout.
+  Oude TLS-sleutel blijft alleen in de upstreamhistorie; wordt niet hergebruikt.
+- PR/merge: nog te publiceren; echte CI wordt vóór merge gecontroleerd.
+  Volgende stap: feature push/PR naar develop, verplichte CI bevestigen en veilig
+  integreren. **STOP na fase 1; geen fase 2.**

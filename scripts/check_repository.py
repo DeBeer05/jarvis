@@ -17,6 +17,10 @@ DOCUMENTS = (
     "docs/UPSTREAM_REVIEW.md", ".gitignore", ".env.example",
     ".github/workflows/repository-check.yml", "scripts/new-branch.ps1",
     "scripts/configure-git.ps1",
+    "server/__main__.py", "server/app.py", "server/config.py", "server/database.py",
+    "server/control.py", "server/api/routes.py", "requirements-server.txt",
+    "requirements-server-dev.txt", "constraints-server.txt", "pytest.ini",
+    "docs/HEADLESS_SERVER.md", "docs/SERVER_API.md", ".github/workflows/server-tests.yml",
 )
 IGNORED_PROBES = (
     ".env", ".env.local", ".env.production", ".venv/probe", "venv/probe",
@@ -28,6 +32,7 @@ IGNORED_PROBES = (
     "android-app/.gradle/probe", "android-app/app/build/probe", "probe.apk",
     "probe.aab", ".idea/probe", ".vscode/probe", "models/probe.gguf",
     "nested/probe.onnx", "node_modules/probe", ".pytest_cache/probe",
+    ".local/run/server.json", ".local/data/jarvis.sqlite3", ".local/logs/server.log",
 )
 PATTERNS = {
     "Google API key": re.compile(rb"AIza[0-9A-Za-z_-]{35}"),
@@ -138,9 +143,12 @@ def main() -> int:
 
     example = ROOT / ".env.example"
     expected = {
-        "JARVIS_PHASE": "0", "JARVIS_ENABLE_EXTERNAL_ACCESS": "false",
-        "JARVIS_ENABLE_AUTOMATIONS": "false", "JARVIS_AI_MODE": "hybrid",
-        "GEMINI_API_KEY": "", "GOOGLE_CLIENT_ID": "", "GOOGLE_CLIENT_SECRET": "",
+        "JARVIS_PHASE": "1", "JARVIS_ENV": "development", "JARVIS_HOST": "127.0.0.1",
+        "JARVIS_PORT": "8765", "JARVIS_LOG_LEVEL": "info",
+        "JARVIS_LOG_PATH": ".local/logs/server.log", "JARVIS_LOG_MAX_BYTES": "1048576",
+        "JARVIS_LOG_BACKUP_COUNT": "3", "JARVIS_DATABASE_PATH": ".local/data/jarvis.sqlite3",
+        "JARVIS_RUNTIME_DIR": ".local/run", "JARVIS_ENABLE_EXTERNAL_ACCESS": "false",
+        "JARVIS_ENABLE_AUTOMATIONS": "false", "JARVIS_AI_PROVIDER": "none", "GEMINI_API_KEY": "",
     }
     actual = {}
     if example.is_file():
@@ -151,7 +159,7 @@ def main() -> int:
                     errors.append("Invalid or duplicate example configuration entry")
                 actual[key] = value
     if actual != expected:
-        errors.append("Example must contain only the approved inactive phase-0 placeholders")
+        errors.append("Example must contain only the approved local phase-1 defaults and empty secrets")
 
     errors.extend(staged_secret_findings())
     result = git("ls-files", "--cached", "--others", "--exclude-standard", "-z")
@@ -192,7 +200,7 @@ def main() -> int:
             print(f"ERROR: {error}")
         return 1
     print(f"Repository checks passed: {len(DIRECTORIES)} directories, {len(DOCUMENTS)} required files, {len(names)} files scanned.")
-    print("Pattern checks do not prove that all secrets are absent. No application tests executed.")
+    print("Pattern checks do not prove that all secrets are absent. This command runs no application tests.")
     return 0
 
 

@@ -108,11 +108,11 @@ a small built-in fallback — instead of crashing.
 - Keep to the libraries already in `requirements.txt`.
 
 
-## JARVIS fork: blijvende Codex-projectinstructies (fase 0)
+## JARVIS fork: blijvende Codex-projectinstructies (fase 1)
 
 Deze aanvullende regels behouden de upstreamrichtlijnen hierboven. De opdracht
-van de gebruiker blijft leidend. Dit project is nu uitsluitend voorbereid:
-STOP na fase 0; start fase 1 of applicatieontwikkeling pas na een nieuwe opdracht.
+van de gebruiker blijft leidend. Fase 1 is op 22 november 2026 expliciet opgedragen:
+uitsluitend een lichte lokale headless serverbasis. STOP na fase 1; geen fase 2.
 
 Vóór iedere taak:
 1. Controleer `git status --short --branch`, huidige branch en remotes.
@@ -123,8 +123,12 @@ Vóór iedere taak:
 
 Gebruik uitsluitend deze bestaande projectroot. Geen tweede jarvis-map.
 Behoud de Mark-LVII-historie, auteursvermelding en CC BY-NC 4.0-licentie.
-Wijzig in fase 0 geen applicatiecode, installeer geen dependencies/modellen en
-start geen app, integratie, OAuth of productieomgeving.
+Behoud de bestaande desktop-/cloudcode. Fase 1 gebruikt `server/` en geïsoleerde
+`requirements-server*.txt` met constraints; installeer niet de volledige desktopstack.
+Geen AI-router, AI-integratie/model, spraak, clientapp, berichten, OAuth, autonome
+acties, permanente Windows-service of productie-deployment. Alleen localhost.
+De nieuwe serverconfiguratie leeft in `server/config.py` en .env; de upstreamregel
+voor `config/api_keys.json` blijft gelden voor de bestaande desktopapp.
 
 Git mag binnen de actuele opdracht zelfstandig worden beheerd: normale lokale
 branches/commits, pushes naar de eigen fork, PR's, CI-controles en veilige merges
@@ -149,7 +153,9 @@ Geen sleutels/tokens tonen in logs of rapporten. Bewaar credentials via keyring 
 andere geschikte lokale secretstore en behoud relevante gitignore-uitsluitingen.
 
 Verifieer met `python scripts/check_repository.py`, `git diff --check` en passende
-controles voor het gewijzigde onderdeel. De structuurcheck is geen applicatietest.
+controles voor het gewijzigde onderdeel. Voor serverwijzigingen:
+`.venv/Scripts/python.exe -m pytest -q` en `-m pip check` (Linux: .venv/bin/python).
+De structuurcheck is geen applicatietest.
 Voer tests niet uit als ze apps, accounts of installaties activeren buiten de opdracht.
 Controleer push en CI in de remote repository en rapporteer blokkades eerlijk.
 Leg resterende stappen en de fasegrens vast in DEVELOPMENT_PROGRESS.md.

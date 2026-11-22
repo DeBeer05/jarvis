@@ -1,3 +1,30 @@
+# JARVIS — headless serverbasis, fase 1
+
+Deze niet-commerciële Mark-LVII-fork heeft een lichte lokale server zonder GUI,
+audio, GPU of verplichte AI-provider. **Fase 1** bevat health/ready/status, veilige
+.env-configuratie, JSON-logrotatie, SQLite en Windows-start-/stopscripts.
+De oorspronkelijke Mark-LVII-README staat hieronder; de desktop-installatie
+daaruit is niet nodig voor de headless server.
+
+Vanuit de bestaande projectroot, met Python 3.12:
+
+```powershell
+pwsh -NoProfile -File scripts/Initialize-ServerEnvironment.ps1
+pwsh -NoProfile -File scripts/Install-ServerDependencies.ps1 -IncludeTests
+pwsh -NoProfile -File scripts/Start-Server.ps1 -Background
+Invoke-RestMethod http://127.0.0.1:8765/health
+Invoke-RestMethod http://127.0.0.1:8765/ready
+Invoke-RestMethod http://127.0.0.1:8765/api/v1/status
+pwsh -NoProfile -File scripts/Stop-Server.ps1
+```
+
+[Installatie, configuratie, tests en gemeten prestaties](docs/HEADLESS_SERVER.md) ·
+[API](docs/SERVER_API.md) · [Voortgang](DEVELOPMENT_PROGRESS.md).
+Main blijft de fase-0-versie; fase 1 wordt uitsluitend naar develop geïntegreerd.
+Geen AI-integraties, clientapps of productie-deployment. **STOP na fase 1.**
+
+---
+
 # ⚙️ MARK LVII (57)
 ### The Ultimate Cross-Platform Personal AI Assistant — By FatihMakes
 
@@ -1027,7 +1054,10 @@ Engineered by a developer building a real-world JARVIS-style assistant.
 
 ---
 
-## JARVIS-projectfork — fase 0 (22 november 2026)
+## JARVIS-projectfork — historisch verslag fase 0 (22 november 2026)
+
+De onderstaande sectie beschrijft de eerdere projectvoorbereiding. Voor de
+huidige fase-1-server geldt de handleiding bovenaan deze README.
 
 Deze persoonlijke, niet-commerciële fork van
 [FatihMakes/Mark-LVII](https://github.com/FatihMakes/Mark-LVII) bereidt een
@@ -1036,7 +1066,7 @@ Client, een toekomstige Android-app en een hybride AI-architectuur.
 De oorspronkelijke README hierboven beschrijft upstreamfunctionaliteit; die is
 in deze voorbereiding niet geïnstalleerd, gestart of functioneel gevalideerd.
 
-Alleen projectvoorbereiding is uitgevoerd. Geen nieuwe server/client/app of
+Tijdens fase 0 is alleen projectvoorbereiding uitgevoerd. Geen nieuwe server/client/app of
 integratie ontwikkeld en geen productie-deployment geactiveerd. De bestaande
 applicatiecode en geschiedenis blijven behouden. De oorspronkelijke
 [CC BY-NC 4.0-licentie](LICENSE) en auteursvermelding gelden; commercieel gebruik
@@ -1057,7 +1087,7 @@ Veilige voorbereidende controle zonder appinstallatie:
 python scripts/check_repository.py
 ```
 
-Het lege `.env.example` is uitsluitend een toekomstig configuratievoorbeeld;
-de bestaande Mark-LVII-app ondersteunt dit niet automatisch. Vul nooit echte
-credentials in voorbeeldbestanden in. Voer `setup.py` of de installatie-instructies
-hierboven pas uit bij een nieuwe ontwikkelopdracht. **STOP na fase 0.**
+Het oorspronkelijke `.env.example` was in fase 0 uitsluitend een toekomstig
+voorbeeld. In fase 1 leest de nieuwe server nu .env-configuratie; de bestaande
+desktopapp is niet veranderd. Vul nooit echte credentials in voorbeeldbestanden
+in. De huidige scope is uitsluitend de serverbasis. **STOP na fase 1.**
