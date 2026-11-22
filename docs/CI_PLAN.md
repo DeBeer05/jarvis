@@ -9,6 +9,9 @@ Geen productie-deployment, GUI-/audio-/modelinstallaties of externe AI-aanroepen
 De bestaande repositorycheck blijft actief; `.env.example` bevat nu de veilige
 fase-1-defaults. Beide OS-serverchecks en `Repository checks` zijn via de
 develop-branchbescherming verplicht gemaakt en geslaagd vóór de fase-1-merge.
+De Actions zijn op officiële releasecommits gepind: checkout v7.0.1 en
+setup-python v7.1.0, beide met Node 24 in hun actionmetadata. Dit vervangt de
+oudere Node-20-actions die GitHub in de eerste runs via compatibiliteit uitvoerde.
 
 ## Actief in fase 0
 
