@@ -50,7 +50,7 @@ bestaande servertests. Tijdelijke testdatabases bevatten alleen synthetische tek
   Geen JavaScript-consolefouten waargenomen.
 - Responsieve 390x844-weergave visueel en met pagina-afmetingen gecontroleerd;
   overbodige buitenste scrollbar verholpen. Screenshots van echte lokale UI:
-  [desktop](screenshots/chat-desktop.jpg) en [mobiel](screenshots/chat-mobile.jpg).
+  [desktop](images/chat-desktop.jpg) en [mobiel](images/chat-mobile.jpg).
 - Synthetisch chatverzoek via echte HTTP gaf de verwachte missing-key-fout en
   werd opgeslagen. Eigen proces met de Windows-scripts gestopt/herstart;
   hetzelfde gesprek inclusief bericht/foutstatus daarna uit SQLite opgehaald en

@@ -289,7 +289,7 @@ De oorspronkelijke installatie-instructie maakte daardoor een onjuiste aanname.
   ontbrekende-Gemini-sleutelmelding, nieuw gesprek, opgeslagen gesprek heropenen,
   gespreksverwijdering en vormgeving. Geen JavaScript-consolefouten waargenomen.
 - Responsieve weergave op 390x844 gecontroleerd; overbodige buitenste scrollbar
-  hersteld. Pagina-afmetingen 390x844 bevestigd; screenshotbestanden in docs/screenshots.
+  hersteld. Pagina-afmetingen 390x844 bevestigd; screenshotbestanden in docs/images.
 - Echte HTTP-chatfout met ontbrekende sleutel opgeslagen, eigen server via
   Windows PowerShell gestopt/herstart en hetzelfde gesprek met foutstatus opnieuw
   opgehaald. Alleen het eigen synthetische testgesprek daarna via API verwijderd.
@@ -310,3 +310,8 @@ De oorspronkelijke installatie-instructie maakte daardoor een onjuiste aanname.
 - Implementatie en documentatie gereed voor protected PR naar develop.
   Live provideracceptatie blijft open: geen Gemini-sleutel/Ollama op deze desktop.
   Geen main-wijzigingen, modelinstallatie, mini-pc-deployment of volgende fase.
+
+- PR #9 aangemaakt naar develop. Review vond dat upstream alle screenshots/
+  negeert; uitsluitend de gecontroleerde documentatiebeelden staan daarom in
+  docs/images. Runtime-screenshotuitsluiting blijft behouden. Geen privédata op
+  deze twee beelden. Nieuwe commits/index zijn door Gitleaks schoon bevonden.
