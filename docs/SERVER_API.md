@@ -1,9 +1,8 @@
-# Server-API — versie 0.1.0
+# Server-API — versie 0.2.0
 
-Basis: `http://127.0.0.1:8765`. Alleen lokaal; geen AI-chat of commandobesturing.
-FastAPI-factory in `server/app.py`, routers in `server/api/routes.py`.
-Nieuwe toekomstige businessrouters kunnen onder `/api/v1` worden toegevoegd
-zodra een volgende fase expliciet is opgedragen.
+Basis: `http://127.0.0.1:8765`. Alleen lokaal; geen commandobesturing.
+FastAPI-factory in `server/app.py`, basisrouters in `server/api/routes.py`.
+Fase 2 voegt `server/api/chat.py` toe: [Chat-API](CHAT_API.md).
 
 ## GET /health
 
@@ -34,23 +33,25 @@ Proxyheaders maken een client niet lokaal. HTTP 200, voorbeeld:
 {
   "status":"running",
   "service":"jarvis-server",
-  "version":"0.1.0",
+  "version":"0.2.0",
   "instance_id":"example-instance-id",
   "uptime_seconds":12.5,
   "environment":"development",
-  "components":{"api":true,"database":true,"ai":false},
+  "components":{"api":true,"database":true,"ai":true},
   "ai_providers":{
-    "selected":"none",
+    "selected":"auto",
     "gemini":{"configured":false,"available":false},
-    "ollama":{"configured":false,"available":false}
+    "ollama":{"configured":true,"available":null}
   }
 }
 ```
 
 De instance-ID identificeert het proces maar verleent geen rechten. Bij database-
 uitval is status `degraded` en `components.database` false. `configured` is alleen
-een lokale configuratie-indicator; `available` blijft false zolang integraties
-niet geïmplementeerd zijn. Geen paden, credentials, tokenwaarden of modelcalls.
+een lokale configuratie-indicator. Gemini available is null bij een ingestelde
+sleutel (ongetest), false wanneer ontbrekend. Ollama available is null vóór een
+providerprobe en daarna de gecachte modelbereikbaarheid. De statusroute doet zelf
+geen providerverzoek. Geen paden, credentials, tokenwaarden of modelcalls.
 
 ## Overige routes en fouten
 

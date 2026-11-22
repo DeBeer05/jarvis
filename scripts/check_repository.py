@@ -21,6 +21,11 @@ DOCUMENTS = (
     "server/control.py", "server/api/routes.py", "requirements-server.txt",
     "requirements-server-dev.txt", "constraints-server.txt", "pytest.ini",
     "docs/HEADLESS_SERVER.md", "docs/SERVER_API.md", ".github/workflows/server-tests.yml",
+    "docs/AI_ENGINE.md", "docs/CHAT_API.md", "docs/PHASE_2_TEST_REPORT.md",
+    "server/ai/router.py", "server/ai/providers.py", "server/chat_service.py",
+    "server/chat_store.py", "server/api/chat.py", "server/http_security.py",
+    "server/static/chat.html", "server/static/chat.css", "server/static/chat.js",
+    "config/jarvis-system-prompt.txt",
 )
 IGNORED_PROBES = (
     ".env", ".env.local", ".env.production", ".venv/probe", "venv/probe",

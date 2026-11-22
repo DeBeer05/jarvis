@@ -1,4 +1,23 @@
-# Architectuurplan — fase 1 en toekomstig ontwerp
+# Architectuurplan — fase 2 en toekomstig ontwerp
+
+## Gerealiseerd in fase 2
+
+`server/ai/` bevat de centrale tekst-router en adapters voor het gedeelde
+Mark-LVII-transport `providers/llm_openai.py`. De opt-in headlessmodus gebruikt
+geen desktopconfig, GUI, audio of tools. Gemini en lokale Ollama ondersteunen
+SSE-streaming; fallback gebeurt uitsluitend vóór eerste tekst.
+`chat_service.py` begrenst context/concurrency/verzoeken, beheert annulering en
+sluit providerverbindingen. `chat_store.py` bewaart gespreksbeurten in schema 2,
+met back-up vóór migratie. `api/chat.py` ontsluit JSON/SSE, historie en providerstatus;
+`static/` bevat de lichte webchat. Origin-/Host-/loopbackcontrole, CSP en
+plaintext-weergave vormen de lokale browsergrens. Geen AI-acties worden uitgevoerd.
+
+Profielen begrenzen JARVIS-belasting; ze configureren geen Ollama-RAM/GPU/context.
+Alleen desktop-development is lokaal actief. Externe clients/mini-pc zijn toekomstig
+werk. Details: [AI-engine](docs/AI_ENGINE.md), [API](docs/CHAT_API.md),
+[testverslag](docs/PHASE_2_TEST_REPORT.md). Live modelacceptatie is nog open.
+De fase-1-metingen hieronder zijn historische nulmetingen, geen fase-2-benchmark.
+
 
 ## Gerealiseerd in fase 1
 

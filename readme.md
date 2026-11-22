@@ -1,28 +1,49 @@
-# JARVIS — headless serverbasis, fase 1
+# JARVIS — AI-engine en webchat, fase 2
 
-Deze niet-commerciële Mark-LVII-fork heeft een lichte lokale server zonder GUI,
-audio, GPU of verplichte AI-provider. **Fase 1** bevat health/ready/status, veilige
-.env-configuratie, JSON-logrotatie, SQLite en Windows-start-/stopscripts.
-De oorspronkelijke Mark-LVII-README staat hieronder; de desktop-installatie
-daaruit is niet nodig voor de headless server.
+Lichte lokale FastAPI-server met Gemini/Ollama, streaming, annuleerbare antwoorden
+opgeslagen in SQLite en een donkere webchat. Gebaseerd op Mark-LVII; het gedeelde
+AI-transport wordt hergebruikt. Geen GUI/audio/model nodig om de server te starten.
+Alles blijft op deze ontwikkeldesktop; standaard localhost en **poort 8765**.
 
-Vanuit de bestaande projectroot, met Python 3.12 en ingebouwde Windows PowerShell
-5.1 (`powershell.exe`; een aparte PowerShell 7/pwsh-installatie is niet nodig):
+De omgeving is hier al voorbereid. Start vanuit de bestaande projectroot met
+Windows PowerShell 5.1 (`powershell.exe`; geen aparte pwsh-installatie nodig):
 
 ```powershell
-powershell.exe -NoProfile -File scripts/Initialize-ServerEnvironment.ps1
-powershell.exe -NoProfile -File scripts/Install-ServerDependencies.ps1 -IncludeTests
 powershell.exe -NoProfile -File scripts/Start-Server.ps1 -Background
 Invoke-RestMethod http://127.0.0.1:8765/health
 Invoke-RestMethod http://127.0.0.1:8765/ready
-Invoke-RestMethod http://127.0.0.1:8765/api/v1/status
-powershell.exe -NoProfile -File scripts/Stop-Server.ps1
+Start-Process http://127.0.0.1:8765/chat
 ```
 
-[Installatie, configuratie, tests en gemeten prestaties](docs/HEADLESS_SERVER.md) ·
-[API](docs/SERVER_API.md) · [Voortgang](DEVELOPMENT_PROGRESS.md).
-Main blijft de fase-0-versie; fase 1 wordt uitsluitend naar develop geïntegreerd.
-Geen AI-integraties, clientapps of productie-deployment. **STOP na fase 1.**
+Voor AI-antwoorden: vul je eigen Gemini-sleutel uitsluitend in de lokale `.env`
+in, of configureer een eigen lokale Ollama met een geïnstalleerd model. Zie
+[AI_ENGINE.md](docs/AI_ENGINE.md). Zonder provider toont de webchat een duidelijke
+fout en blijft de server bruikbaar. Live antwoorden zijn hier nog niet getest:
+er ontbreekt een sleutel en Ollama is niet geïnstalleerd/bereikbaar.
+
+Herstart na configuratie- of codewijzigingen:
+
+```powershell
+powershell.exe -NoProfile -File scripts/Stop-Server.ps1
+powershell.exe -NoProfile -File scripts/Start-Server.ps1 -Background
+powershell.exe -NoProfile -File scripts/Get-ServerStatus.ps1
+```
+
+[Installatie/serverbeheer](docs/HEADLESS_SERVER.md) ·
+[AI-configuratie en profielen](docs/AI_ENGINE.md) ·
+[Chat-API en exacte teststappen](docs/CHAT_API.md) ·
+[Testverslag: mocks versus echte controles](docs/PHASE_2_TEST_REPORT.md) ·
+[Voortgang](DEVELOPMENT_PROGRESS.md).
+
+88 automatische tests geslaagd; echte lokale HTTP/browser-/procesherstartcontrole
+uitgevoerd. De live provideracceptatie blijft open. SQLite staat standaard in
+`.local/data/jarvis.sqlite3`; geen sleutels of gebruikersdata in Git.
+Main blijft ongewijzigd; integratie gaat uitsluitend naar develop via geteste PR's.
+**STOP na fase 2.** Geen clientapps, spraak, koppelingen of mini-pc-deployment.
+
+De oorspronkelijke Mark-LVII-README staat hieronder met behoud van auteurschap
+en CC BY-NC 4.0-licentie. De desktopinstallatie hieronder is niet nodig voor deze
+headless server.
 
 ---
 

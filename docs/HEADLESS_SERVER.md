@@ -1,13 +1,14 @@
-# Headless Windows-server — fase 1
+# Headless Windows-server — fase 2
 
 De lokale JARVIS-serverbasis draait zelfstandig zonder GUI, audioapparaten, GPU,
-AI-provider, Ollama of externe database. Versie 0.1.0 gebruikt FastAPI/Uvicorn,
-standaardbibliotheek-SQLite en één worker. Er is geen chat of integratie actief.
+AI-provider, Ollama of externe database. Versie 0.2.0 gebruikt FastAPI/Uvicorn,
+httpx, standaardbibliotheek-SQLite en één worker. Chat is optioneel beschikbaar
+op `/chat`; providerconfiguratie en grenzen staan in [AI_ENGINE.md](AI_ENGINE.md).
 De bestaande Mark-LVII-desktopapp en cloudhost blijven ongewijzigd.
 
 ## Installeren op Windows
 
-Open PowerShell in de bestaande projectroot op branch `develop` (fase 1 staat
+Open PowerShell in de bestaande projectroot op branch `develop` (fase 2 staat
 bewust nog niet op main). Gebruik Python 3.12; deze werkplek
 heeft Python 3.12.10 en een geteste `.venv`. Op een andere Windows-machine met
 winget kan Python per gebruiker worden voorbereid:
@@ -90,7 +91,7 @@ een veilige foutmelding; de oorspronkelijke waarde wordt niet gelogd.
 | Variabele | Default / betekenis |
 | --- | --- |
 | `JARVIS_ENV` | `development` of `production`; beide blijven lokaal |
-| `JARVIS_HOST` | `127.0.0.1`; andere waarden zijn in fase 1 verboden |
+| `JARVIS_HOST` | `127.0.0.1`; andere waarden zijn verboden |
 | `JARVIS_PORT` | `8765`, bereik 1–65535 |
 | `JARVIS_LOG_LEVEL` | `info`; debug/info/warning/error/critical |
 | `JARVIS_LOG_PATH` | `.local/logs/server.log` |
@@ -98,8 +99,8 @@ een veilige foutmelding; de oorspronkelijke waarde wordt niet gelogd.
 | `JARVIS_LOG_BACKUP_COUNT` | `3`; bereik 1–10 |
 | `JARVIS_DATABASE_PATH` | `.local/data/jarvis.sqlite3`; lokaal bestand, geen netwerk-URL/UNC |
 | `JARVIS_RUNTIME_DIR` | `.local/run`; eigen directory voor proceslock en controletoken |
-| `JARVIS_AI_PROVIDER` | `none`; ook gemini/ollama als toekomstig label, altijd onbeschikbaar |
-| `GEMINI_API_KEY` | leeg; alleen configuratie-indicator, nooit een API-aanroep |
+| `JARVIS_AI_PROVIDER` | `auto`; auto/gemini/ollama, zie AI_ENGINE.md |
+| `GEMINI_API_KEY` | leeg; lokale sleutel voor de officiële Gemini-API, alleen op chatverzoek |
 | `JARVIS_ENABLE_EXTERNAL_ACCESS` | uitsluitend `false` in deze fase |
 | `JARVIS_ENABLE_AUTOMATIONS` | uitsluitend `false` in deze fase |
 | `JARVIS_PHASE` | documentair fasekenmerk in het voorbeeld, geen runtimefeatureflag |
@@ -112,11 +113,11 @@ De oude desktopconfig `config/api_keys.json` wordt niet gelezen of aangepast.
 
 ## Database, logging en veiligheid
 
-SQLite wordt bij startup aangemaakt met alleen `schema_migrations` en
-`PRAGMA user_version=1`. Migraties zijn transactioneel/herhaalbaar; een nieuwer
+SQLite gebruikt schema 2 met schema_migrations, chat_conversations en chat_turns.
+Schema 1 krijgt eerst een unieke pre-v2-back-up. Migraties zijn transactioneel/herhaalbaar; een nieuwer
 schema wordt geweigerd. Verbindingen zijn kort, met timeout, en worden ook bij
 fouten gesloten. Readiness gebruikt een read-only controle en creëert een
-verdwenen database niet opnieuw. Er is nog geen geheugen-/contactendatabase.
+verdwenen database niet opnieuw. Chatgeheugen is lokaal; geen contacten-/integratiegeheugen.
 
 JSON-logs bevatten tijd, level, vaste events en veilige fouttypen; geen request-
 bodies, querystrings, headers, configdump of rauwe exceptiontekst. Bekende
@@ -131,7 +132,7 @@ het stopendpoint vereist wel het private controletoken. Dit is geen beveiligings
 ontwerp voor publicatie op internet. Geen firewallregel, certificaat, tunnel,
 Windows-service of deployment is geïnstalleerd.
 
-## Werkelijk gemeten op deze Windows-werkplek
+## Historische fase-1-nulmeting op deze Windows-werkplek
 
 22 november 2026, ontwikkeldesktop met 31,95 GiB fysiek RAM, Python 3.12.10,
 localhost, één worker, zonder AI:
@@ -155,7 +156,7 @@ CPU betekent onder de meetresolutie in dat interval, niet nul verbruik voor alti
 | `main.py` / `ui.py` / `gui/` | Main maakt JarvisUI, GUI-thread en audio/AI-loop; niet importeren |
 | `dashboard/server.py` | FastAPI-netwerkdashboard met uploads, pairing, acties en binding op 0.0.0.0; niet starten |
 | `core/cloud.py` | Bestaande headless cloudhost met ThreadingHTTPServer, Telegram, brain, taken/routines en Linux-deploy; run bindt 0.0.0.0; buiten deze fase |
-| `core/gemini.py`, `providers/` | AI-fallback/providerfuncties; pas later beoordelen, nu geen import/initialisatie |
+| `core/gemini.py`, `providers/` | Fase 2 hergebruikt providers.llm_openai; core.gemini blijft desktopgebonden |
 | `memory/config_manager.py` | Desktop-JSON-config/credentials met locks; blijft uitsluitend voor desktop |
 | `memory/memory_manager.py` | Persoonlijk JSON-geheugen; niet nodig voor de nieuwe databasebasis |
 | `core/plugin_loader.py` / acties | Discovery wordt door JarvisLive gestart; plugins kunnen acties activeren; nu niet initialiseren |
@@ -170,7 +171,7 @@ gecontroleerd; bestaande desktopfunctionaliteit is niet interactief getest.
 
 ## Grenzen en bekende punten
 
-Geen AI-router/chat, Gemini/Ollama-aanroepen, spraak, clients, agenda/Gmail,
+Fase 2 bevat AI-router/chat en Gemini/Ollama-adapters. Geen spraak, clients, agenda/Gmail,
 berichten, bellen, automatiseringen of productie-service. De bekende oude
 upstream-TLS-sleutel blijft in de behouden Git-geschiedenis en wordt nooit gebruikt.
 De geteste Starlette/httpx-testadapter meldt één deprecatiewaarschuwing; alle tests
@@ -181,4 +182,5 @@ Bronnen voor gebruikte mechanismen:
 [FastAPI lifespan](https://fastapi.tiangolo.com/advanced/events/),
 [Python SQLite](https://docs.python.org/3.12/library/sqlite3.html),
 [python-dotenv](https://bbc2.github.io/python-dotenv/).
-**STOP na fase 1.**
+Zie [PHASE_2_TEST_REPORT.md](PHASE_2_TEST_REPORT.md) voor actuele controles.
+**STOP na fase 2.**

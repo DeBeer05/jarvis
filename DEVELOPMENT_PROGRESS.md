@@ -297,3 +297,16 @@ De oorspronkelijke installatie-instructie maakte daardoor een onjuiste aanname.
   pre-v2-back-up aangemaakt. Geen API-sleutels of testprovider in productieconfig.
 - Ollama gebruikt het gedocumenteerde OpenAI-compatibele reasoning_effort=none
   voor lichte modellen; lokale contextgrootte blijft een Ollama-modelinstelling.
+
+### Fase 2 — documentatie en eindcontrole vóór publicatie
+
+- README, architectuur, server/API-/structuur-/CI-documentatie bijgewerkt;
+  AI_ENGINE.md, CHAT_API.md en PHASE_2_TEST_REPORT.md toegevoegd met exacte
+  Windows PowerShell 5.1-commando's, configuratie, herstart en live teststappen.
+- Repositorycheck vereist nu ook de nieuwe engine/API/webchat/documentatie.
+  CI controleert bovendien JavaScript-syntax zonder npm/frontendbuild.
+- Eindcontrole: 88 tests geslaagd (4,62 s), pip check zonder fouten,
+  JavaScript-syntax geldig, repositorycheck geslaagd, git diff --check schoon.
+- Implementatie en documentatie gereed voor protected PR naar develop.
+  Live provideracceptatie blijft open: geen Gemini-sleutel/Ollama op deze desktop.
+  Geen main-wijzigingen, modelinstallatie, mini-pc-deployment of volgende fase.
