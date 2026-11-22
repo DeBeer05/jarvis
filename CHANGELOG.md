@@ -4,6 +4,11 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Lokale Gemini-modelkeuze op verzoek bijgewerkt naar stabiele Gemini 4 Hydrogen;
+  server herstart en echt getest. Google gaf ook hier tijdelijk 503-overbelasting.
+  Echte auto-fallback naar inmiddels beschikbare Ollama qwen3:0.6b geslaagd.
+  Geen wijziging van repositorydefaults, sleutels of applicatiecode.
+
 - Fase 2 via PR #9 naar develop; 90 tests, echte browser-/herstartcontrole en
   live Gemini-proef (503-overbelasting, nog geen live antwoord). Google-foutarrays
   ondersteund, duidelijke overbelastingsmelding en veilige Windows-envkopieën.

@@ -89,6 +89,26 @@ powershell.exe -NoProfile -File scripts/Get-ServerStatus.ps1
 Invoke-RestMethod http://127.0.0.1:8765/api/v1/ai/providers
 ```
 
+## Nieuwere lokale modelkeuze: Gemini 4 Hydrogen
+
+Op verzoek is op deze desktop `GEMINI_MODEL=gemini-4-hydrogen` in de lokale .env
+gezet en is de server herstart. Dit is een stabiel Gemini-4-model uit november
+2026 voor snelle dagelijkse taken. De officiële API-modelcatalogus bevestigt de
+modelnaam voor de ingestelde sleutel. De bestaande OpenAI-compatibele route met
+reasoning_effort=low ondersteunt dit model zonder package-update.
+
+De versievaste repositorydefaults/voorbeelden hierboven blijven gemini-3.8-flash;
+voor Hydrogen kun je uitsluitend de lokale modelregel aanpassen. Beide gebruiken
+hetzelfde transport. De echte Hydrogen-streamingproef kreeg HTTP 503 wegens
+modeloverbelasting, dus een succesvol live antwoord is nog niet bevestigd.
+Herlaad /chat om de nieuwe modelnaam te zien en probeer later opnieuw.
+Ollama qwen3:0.6b is inmiddels lokaal beschikbaar. Een echte auto-proef schakelde
+na een Gemini-fout over naar Ollama en eindigde met een volledig gestreamd,
+opgeslagen antwoord. Auto werkt daarmee lokaal, ook als Gemini niet antwoordt.
+
+Bronnen: [Gemini 4 Hydrogen](https://aistudio.google.com/docs/models/gemini-4-hydrogen)
+en [OpenAI-compatibiliteit](https://aistudio.google.com/docs/openai).
+
 ## Selectie, fallback en fouten
 
 `auto` probeert de voorkeursprovider en maximaal één alternatief bij een
