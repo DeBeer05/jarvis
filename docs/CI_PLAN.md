@@ -5,8 +5,11 @@
 `Repository checks` in `.github/workflows/repository-check.yml` draait op push
 en pull requests voor alle branches en op handmatige aanvraag. Alleen checkout
 en een standaardbibliotheek-Pythoncontrole: vereiste structuur/documenten,
-veilige voorbeeldconfiguratie, gitignoregedrag, gevolgde gevoelige bestandsnamen,
-bekende geheimpatronen en `git diff --check`. Geen appimport of installatie van
+veilige voorbeeldconfiguratie, gitignoregedrag, gevolgde gevoelige bestandsnamen
+en bekende geheimpatronen in zowel werkmap als Git-index. De whitespacecheck
+vergelijkt een PR met de basiscommit en een push met de vorige branchcommit;
+bij een nieuwe branch of handmatige run wordt de laatste commit gecontroleerd.
+Daarvoor haalt checkout de volledige geschiedenis op. Geen appimport of installatie van
 `requirements.txt`. Workflow heeft uitsluitend `contents: read`, geen secrets,
 geen artifacts met privédata en geen deployment. Checkout bewaart geen credentials.
 

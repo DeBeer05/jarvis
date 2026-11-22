@@ -4,6 +4,8 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Fase-0-hercontrole: staged bestanden afzonderlijk op geheimpatronen controleren;
+  CI-whitespacecontrole op de daadwerkelijke PR-/pushwijzigingen richten.
 - Fase 0: projectstructuur, ontwikkelplan, blijvende Codex-instructies,
   geheimuitsluitingen, Git-workflowhelpers en minimale repository-CI voorbereid.
 - Geen wijzigingen in de applicatiecode en geen actieve integraties of deployment.
