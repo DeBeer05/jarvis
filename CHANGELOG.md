@@ -4,6 +4,8 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Fase 2: gedeelde Gemini/Ollama-teksttransportlaag, centrale fallbackrouter,
+  begrensde chat-API/SSE, annuleerbare antwoorden, SQLite-gesprekken en lokale webchat.
 - Windows-instructies en Git-branchhelpers gebruiken de ingebouwde PowerShell
   5.1; geen verplichte pwsh-installatie. Windows-CI test beide PowerShell-edities.
 - Fase 1: lichte localhost-headlessbasis met health/ready/status, .env-config,

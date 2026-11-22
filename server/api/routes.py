@@ -50,10 +50,10 @@ def status(request: Request):
         "instance_id": runtime["instance_id"],
         "uptime_seconds": round(max(0, time.monotonic() - runtime["started_at"]), 3),
         "environment": settings.environment,
-        "components": {"api": True, "database": bool(database_ready), "ai": False},
+        "components": {"api": True, "database": bool(database_ready), "ai": hasattr(request.app.state, "chat")},
         "ai_providers": {
             "selected": settings.ai_provider,
-            "gemini": {"configured": bool(settings.gemini_api_key), "available": False},
+            "gemini": {"configured": bool(settings.gemini_api_key), "available": None if settings.gemini_api_key else False},
             "ollama": {"configured": settings.ai_provider == "ollama", "available": False},
         },
     }

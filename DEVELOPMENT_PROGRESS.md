@@ -2,10 +2,10 @@
 
 ## Huidige opdracht
 
-Fase 1 — headless Windows-server, voltooid na de opdracht van 22 november 2026.
-Opleverbranch: `develop`. Implementatiebranch `feature/headless-server` is gepusht
-en via PR #5 gemerged, vanuit develop-basis `f4b0053`.
-Main blijft ongewijzigd. STOP na fase 1; fase 2 is niet toegestaan.
+Fase 2 — AI-engine en webchat, expliciet opgedragen; implementatie in uitvoering
+op `feature/ai-chat-engine`, vanaf develop `701b869`.
+Alles op de ontwikkeldesktop; poort 8765 behouden. Main blijft ongewijzigd.
+STOP na fase 2; geen desktop-/Android-app, spraak, koppelingen of automatiseringen.
 De onderstaande fase-0-secties vormen de bewaarde voorgeschiedenis.
 
 ## Uitgangspunt — 22 november 2026 (Europe/Amsterdam)
@@ -258,3 +258,23 @@ De oorspronkelijke installatie-instructie maakte daardoor een onjuiste aanname.
 - Windows-CI voert de controlscripts nu zowel onder Windows PowerShell 5.1 als
   PowerShell 7 uit. Server-/AI-functionaliteit en main blijven ongewijzigd.
   Dit is een herstel binnen fase 1, geen start van fase 2.
+
+## Fase 2 — voortgang
+
+- Fase 1 live gecontroleerd op 8765: health, ready, status, SQLite en logbestand
+  gereed; 39 bestaande tests geslaagd. De controleserver daarna gestopt.
+- Gemini-sleutel niet aanwezig; lokale Ollama op 11434 niet bereikbaar en geen
+  ollama-commando gevonden. Geen accounts, modellen of Ollama geïnstalleerd.
+- Bestaande Gemini-/Ollama-ondersteuning geanalyseerd: providers/llm_openai bevat
+  het gedeelde asynchrone streamingtransport; core.gemini en engine_pipeline zijn
+  op desktop/Live/tools gericht. De headless adapters hergebruiken dit transport
+  met opt-in strikte streamvalidatie, vaste modelkeuze en tokenlimiet.
+- Toegevoegd: centrale router, technische fallback vóór eerste token, Gemini/
+  Ollama-adapters, quota/timeouts, SQLite-schema 2 met back-up vóór migratie van
+  schema 1, gesprekken, SSE/nonstream-API, annulering, input-/concurrencylimieten,
+  lokale origincontrole en lichte webchat zonder frontenddependencies.
+- Laatste testrun vóór aanvullende randgevallen: **84 geslaagd**, 4,32 s;
+  oorspronkelijke 39 checks inbegrepen. Externe providers zijn in deze tests mocks.
+- Volgende stappen: randgevallen en browser-/herstartcontrole, Nederlandse
+  documentatie/testverslag, commits/geheimcontrole, push/PR/CI en veilige develop-merge.
+  Nog niet gemerged; live Gemini/Ollama nog niet getest wegens ontbrekende configuratie.

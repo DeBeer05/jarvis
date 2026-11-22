@@ -143,12 +143,20 @@ def main() -> int:
 
     example = ROOT / ".env.example"
     expected = {
-        "JARVIS_PHASE": "1", "JARVIS_ENV": "development", "JARVIS_HOST": "127.0.0.1",
+        "JARVIS_PHASE": "2", "JARVIS_ENV": "development", "JARVIS_HOST": "127.0.0.1",
         "JARVIS_PORT": "8765", "JARVIS_LOG_LEVEL": "info",
         "JARVIS_LOG_PATH": ".local/logs/server.log", "JARVIS_LOG_MAX_BYTES": "1048576",
         "JARVIS_LOG_BACKUP_COUNT": "3", "JARVIS_DATABASE_PATH": ".local/data/jarvis.sqlite3",
         "JARVIS_RUNTIME_DIR": ".local/run", "JARVIS_ENABLE_EXTERNAL_ACCESS": "false",
-        "JARVIS_ENABLE_AUTOMATIONS": "false", "JARVIS_AI_PROVIDER": "none", "GEMINI_API_KEY": "",
+        "JARVIS_ENABLE_AUTOMATIONS": "false", "JARVIS_AI_PROVIDER": "auto", "GEMINI_API_KEY": "",
+        "JARVIS_PROFILE": "desktop-development", "JARVIS_AI_PREFERRED_PROVIDER": "gemini",
+        "GEMINI_MODEL": "gemini-3.8-flash", "OLLAMA_BASE_URL": "http://127.0.0.1:11434",
+        "OLLAMA_MODEL": "qwen3:0.6b", "JARVIS_SYSTEM_PROMPT_FILE": "config/jarvis-system-prompt.txt",
+        "JARVIS_AI_TIMEOUT_SECONDS": "60", "JARVIS_PROVIDER_TIMEOUT_SECONDS": "25",
+        "JARVIS_AI_MAX_CONCURRENT": "2", "JARVIS_CHAT_MAX_MESSAGE_CHARS": "8000",
+        "JARVIS_AI_MAX_CONTEXT_CHARS": "24000", "JARVIS_AI_MAX_OUTPUT_TOKENS": "1024",
+        "JARVIS_CHAT_MAX_RESPONSE_CHARS": "16000", "JARVIS_CHAT_REQUESTS_PER_MINUTE": "30",
+        "JARVIS_CHAT_MAX_CONVERSATIONS": "100", "JARVIS_CHAT_MAX_TURNS": "100",
     }
     actual = {}
     if example.is_file():
@@ -159,7 +167,7 @@ def main() -> int:
                     errors.append("Invalid or duplicate example configuration entry")
                 actual[key] = value
     if actual != expected:
-        errors.append("Example must contain only the approved local phase-1 defaults and empty secrets")
+        errors.append("Example must contain only the approved local phase-2 defaults and empty secrets")
 
     errors.extend(staged_secret_findings())
     result = git("ls-files", "--cached", "--others", "--exclude-standard", "-z")
