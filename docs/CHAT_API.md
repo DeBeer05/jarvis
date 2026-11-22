@@ -1,8 +1,18 @@
-# Chat-API — versie 0.2.0
+# Chat-API — versie 0.3.0
 
 Basis `http://127.0.0.1:8765`, echte loopbackclients, geen externe toegang.
 Alle payloads zijn JSON; streaming gebruikt SSE over een POST met fetch/curl,
 niet de alleen-GET-EventSource-constructor. Zie ook [SERVER_API.md](SERVER_API.md).
+
+Fase 3 vereist authenticatie: browsercookies + CSRF-header voor schrijven, of een
+access-token in een Bearer-header van een expliciet gekoppelde client.
+GET-historie vereist chat:read, chat/cancel chat:write, DELETE chat:delete,
+provider-/serverstatus status:read. Vervolgchat met conversation_id vereist naast
+schrijven ook chat:read. De eigenaarbrowser heeft deze rechten; gekoppelde
+apparaten alleen hun goedgekeurde selectie. Zonder sessie 401; zonder recht 403.
+Zie [AUTHENTICATION.md](AUTHENTICATION.md) en [DEVICE_PAIRING.md](DEVICE_PAIRING.md).
+Bij sessie-intrekking/verloop tijdens generatie stopt ook een actief antwoord
+met authentication_expired; de client moet opnieuw inloggen.
 
 ## Berichten
 
@@ -81,54 +91,48 @@ uitkomst, geen bewijs dat AI-antwoorden live werken.
 powershell.exe -NoProfile -File scripts/Start-Server.ps1 -Background
 Invoke-RestMethod http://127.0.0.1:8765/health
 Invoke-RestMethod http://127.0.0.1:8765/ready
-Invoke-RestMethod http://127.0.0.1:8765/api/v1/ai/providers
-Start-Process http://127.0.0.1:8765/chat
+Start-Process http://127.0.0.1:8765/login
 ```
 
+Log in de browser in. Voor de directe API-proef hieronder: koppel eerst een
+synthetische lokale client volgens [DEVICE_PAIRING.md](DEVICE_PAIRING.md).
+Gebruik de daar verkregen `$jarvisHeaders` uitsluitend in shellgeheugen.
 Normaal verzoek en vervolg in hetzelfde gesprek:
 
 ```powershell
-$payload = @{message='Onthoud voor dit testgesprek: mijn testkleur is blauw.';provider='gemini'} | ConvertTo-Json
-$answer = Invoke-RestMethod http://127.0.0.1:8765/api/v1/chat -Method Post -ContentType 'application/json; charset=utf-8' -Body ([Text.Encoding]::UTF8.GetBytes($payload))
+$payload = @{message='Onthoud voor dit testgesprek: mijn testkleur is blauw.';provider='auto'} | ConvertTo-Json
+$answer = Invoke-RestMethod http://127.0.0.1:8765/api/v1/chat -Headers $jarvisHeaders -Method Post -ContentType 'application/json; charset=utf-8' -Body ([Text.Encoding]::UTF8.GetBytes($payload))
 $conversationId = $answer.conversation_id
-$payload = @{message='Wat is mijn testkleur?';conversation_id=$conversationId;provider='gemini'} | ConvertTo-Json
-Invoke-RestMethod http://127.0.0.1:8765/api/v1/chat -Method Post -ContentType 'application/json; charset=utf-8' -Body ([Text.Encoding]::UTF8.GetBytes($payload))
+$payload = @{message='Wat is mijn testkleur?';conversation_id=$conversationId;provider='auto'} | ConvertTo-Json
+Invoke-RestMethod http://127.0.0.1:8765/api/v1/chat -Headers $jarvisHeaders -Method Post -ContentType 'application/json; charset=utf-8' -Body ([Text.Encoding]::UTF8.GetBytes($payload))
 ```
 
 Verander de provider in ollama voor een eigen geïnstalleerd lokaal model. Test
 auto nadat beide providers beschikbaar zijn; een ontbrekende Gemini-sleutel met
 werkende Ollama toont fallback en daarna Ollama als werkelijke provider.
 
-Streaming zonder frontend, met Windows curl.exe en een tijdelijk UTF-8-bestand
-(geen sleutels of persoonsgegevens in deze test):
-
-```powershell
-$requestId = [guid]::NewGuid().ToString()
-$payload = @{message='Noem kort vijf planeten.';provider='auto';request_id=$requestId} | ConvertTo-Json
-$testBodyPath = Join-Path $env:TEMP ('jarvis-chat-' + $requestId + '.json')
-[IO.File]::WriteAllText($testBodyPath, $payload, (New-Object Text.UTF8Encoding($false)))
-try {
-    curl.exe --no-buffer --silent --show-error -H 'Content-Type: application/json' --data-binary "@$testBodyPath" http://127.0.0.1:8765/api/v1/chat/stream
-} finally {
-    Remove-Item -LiteralPath $testBodyPath
-}
-```
+Streaming handmatig testen kan met de ingelogde webchat. De netwerkresponse
+bevat SSE met meta/provider/delta/done en eventuele fallback/error. Kopieer geen
+Bearer-token naar een curl-commandoregel of bestand. Vernieuw de credentials
+vóór verloop volgens de pairinghandleiding.
 
 Bekijk meta/provider/delta/done en eventuele fallback/error. Stop in de webchat
 een langer antwoord met **Stop**. Of voer in een tweede terminal, met de UUID van
 het lopende verzoek, `Invoke-RestMethod -Method Post
-http://127.0.0.1:8765/api/v1/chat/requests/UUID/cancel` uit. Na de definitieve
+http://127.0.0.1:8765/api/v1/chat/requests/UUID/cancel -Headers $jarvisHeaders` uit. Na de definitieve
 status mag een volgend bericht weer starten.
 
 Herstart en controleer dezelfde historie:
 
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:8765/api/v1/chat/conversations/$conversationId"
+Invoke-RestMethod "http://127.0.0.1:8765/api/v1/chat/conversations/$conversationId" -Headers $jarvisHeaders
 powershell.exe -NoProfile -File scripts/Stop-Server.ps1
 powershell.exe -NoProfile -File scripts/Start-Server.ps1 -Background
-Invoke-RestMethod "http://127.0.0.1:8765/api/v1/chat/conversations/$conversationId"
+Invoke-RestMethod "http://127.0.0.1:8765/api/v1/chat/conversations/$conversationId" -Headers $jarvisHeaders
 ```
 
 Open hetzelfde gesprek ook na paginavernieuwing in de webchat. Verwijder alleen
 je eigen testgesprek via de prullenbak of de DELETE-route; controleer dat het uit
-de lijst verdwijnt. De SQLite-bestanden staan standaard in `.local/data/`.
+de lijst verdwijnt. De eigenaarbrowser heeft daarvoor chat:delete; een standaard
+gekoppelde testclient niet. Trek na afloop **Lokale testclient** in via `/security`.
+De SQLite-bestanden staan standaard in `.local/data/`.

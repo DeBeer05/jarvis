@@ -10,6 +10,7 @@ from providers.llm_openai import OpenAICompatLLM, TextStreamError
 from server.config import Settings
 
 MESSAGES = {
+    "authentication_expired": "Je sessie is verlopen of ingetrokken. Log opnieuw in.",
     "not_configured": "Gemini is nog niet ingesteld. Voeg lokaal een geldige GEMINI_API_KEY toe en herstart de server.",
     "groq_not_configured": "Groq is nog niet ingesteld. Voeg lokaal een GROQ_API_KEY toe en herstart de server.",
     "unavailable": "De AI-provider is niet bereikbaar. Controleer de verbinding of start Ollama.",

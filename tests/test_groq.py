@@ -6,6 +6,7 @@ from dataclasses import replace
 import httpx
 import pytest
 from fastapi.testclient import TestClient
+from tests.auth_helpers import AuthenticatedTestClient
 
 from server.ai.providers import ProviderError, TextProvider
 from server.ai.router import AIRouter
@@ -25,7 +26,7 @@ def wire_response(text):
 
 
 def local_client(app):
-    return TestClient(app, base_url="http://127.0.0.1:8765", client=("127.0.0.1", 10000))
+    return AuthenticatedTestClient(app, base_url="http://127.0.0.1:8765", client=("127.0.0.1", 10000))
 
 
 def test_groq_uses_shared_transport_and_official_contract(settings):

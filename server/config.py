@@ -49,6 +49,22 @@ class Settings:
     requests_per_minute: int = 30
     max_conversations: int = 100
     max_turns: int = 100
+    access_seconds: int = 300
+    refresh_seconds: int = 604800
+    session_seconds: int = 604800
+    pairing_seconds: int = 300
+    pairing_poll_seconds: int = 5
+    login_attempts: int = 5
+    login_window_seconds: int = 300
+    auth_requests_per_minute: int = 60
+    audit_days: int = 30
+    audit_max_entries: int = 10000
+    max_devices: int = 20
+    max_sessions: int = 20
+    password_revoke_all: bool = True
+    cookie_secure: str = "auto"
+    trusted_hosts: tuple[str, ...] = ("127.0.0.1", "localhost")
+    allowed_origins: tuple[str, ...] = ("http://127.0.0.1:8765", "http://localhost:8765")
 
 
 def load_settings(
@@ -98,7 +114,7 @@ def load_settings(
         except (OSError, ValueError):
             raise ConfigurationError(f"Invalid {name}") from None
 
-    # Public/network binding stays unavailable in phase 2.
+    # Public/network binding stays unavailable in phase 3.
     host = choice("JARVIS_HOST", "127.0.0.1", ("127.0.0.1",))
     choice("JARVIS_ENABLE_EXTERNAL_ACCESS", "false", ("false",))
     choice("JARVIS_ENABLE_AUTOMATIONS", "false", ("false",))
@@ -132,10 +148,30 @@ def load_settings(
         raise ConfigurationError("Cannot read JARVIS_SYSTEM_PROMPT_FILE") from None
     if not prompt or len(prompt) > 12000:
         raise ConfigurationError("Invalid JARVIS_SYSTEM_PROMPT")
+    port = number("JARVIS_PORT", "8765", 1, 65535)
+    trusted_hosts = tuple(part.strip().lower() for part in text("JARVIS_TRUSTED_HOSTS", "127.0.0.1,localhost").split(","))
+    if not 1 <= len(trusted_hosts) <= 10 or any(not re.fullmatch(r"[a-z0-9][a-z0-9.-]{0,252}", host) or ".." in host for host in trusted_hosts):
+        raise ConfigurationError("Invalid JARVIS_TRUSTED_HOSTS")
+    allowed_origins = tuple(part.strip() for part in text("JARVIS_ALLOWED_ORIGINS", f"http://127.0.0.1:{port},http://localhost:{port}").split(","))
+    try:
+        if not 1 <= len(allowed_origins) <= 10:
+            raise ValueError
+        for origin in allowed_origins:
+            parsed = urlsplit(origin)
+            if parsed.scheme not in ("http", "https") or parsed.hostname not in trusted_hosts or parsed.username or parsed.password or parsed.path or parsed.query or parsed.fragment or not 1 <= (parsed.port or (443 if parsed.scheme == "https" else 80)) <= 65535:
+                raise ValueError
+            if parsed.scheme == "http" and parsed.hostname not in ("127.0.0.1", "localhost"):
+                raise ValueError
+    except ValueError:
+        raise ConfigurationError("Invalid JARVIS_ALLOWED_ORIGINS") from None
+    session_seconds = number("JARVIS_SESSION_SECONDS", "604800", 3600, 2592000)
+    refresh_seconds = number("JARVIS_REFRESH_SECONDS", "604800", 3600, 2592000)
+    if refresh_seconds > session_seconds:
+        raise ConfigurationError("JARVIS_REFRESH_SECONDS exceeds JARVIS_SESSION_SECONDS")
     return Settings(
         environment=choice("JARVIS_ENV", "production" if mini else "development", ("development", "production")),
         host=host,
-        port=number("JARVIS_PORT", "8765", 1, 65535),
+        port=port,
         log_level=choice("JARVIS_LOG_LEVEL", "warning" if mini else "info", ("debug", "info", "warning", "error", "critical")),
         log_path=log_path,
         log_max_bytes=number("JARVIS_LOG_MAX_BYTES", "1048576", 1024, 104857600),
@@ -162,4 +198,19 @@ def load_settings(
         requests_per_minute=number("JARVIS_CHAT_REQUESTS_PER_MINUTE", "30", 1, 120),
         max_conversations=number("JARVIS_CHAT_MAX_CONVERSATIONS", "100", 1, 500),
         max_turns=number("JARVIS_CHAT_MAX_TURNS", "100", 1, 200),
+        access_seconds=number("JARVIS_ACCESS_SECONDS", "300", 60, 900),
+        refresh_seconds=refresh_seconds,
+        session_seconds=session_seconds,
+        pairing_seconds=number("JARVIS_PAIRING_SECONDS", "300", 60, 900),
+        pairing_poll_seconds=number("JARVIS_PAIRING_POLL_SECONDS", "5", 5, 30),
+        login_attempts=number("JARVIS_LOGIN_MAX_ATTEMPTS", "5", 1, 20),
+        login_window_seconds=number("JARVIS_LOGIN_WINDOW_SECONDS", "300", 60, 3600),
+        auth_requests_per_minute=number("JARVIS_AUTH_REQUESTS_PER_MINUTE", "60", 10, 120),
+        audit_days=number("JARVIS_AUDIT_RETENTION_DAYS", "30", 1, 365),
+        audit_max_entries=number("JARVIS_AUDIT_MAX_ENTRIES", "10000", 100, 100000),
+        max_devices=number("JARVIS_MAX_DEVICES", "20", 2, 100),
+        max_sessions=number("JARVIS_MAX_SESSIONS", "20", 2, 100),
+        password_revoke_all=choice("JARVIS_PASSWORD_REVOKE_ALL", "true", ("true", "false")) == "true",
+        cookie_secure=choice("JARVIS_COOKIE_SECURE", "auto", ("auto", "true")),
+        trusted_hosts=trusted_hosts, allowed_origins=allowed_origins,
     )

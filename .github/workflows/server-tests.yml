@@ -32,12 +32,18 @@ jobs:
           python-version: '3.12'
       - name: Isolated environment
         run: python -m venv .venv
+      - name: Update pinned installer
+        run: ${{ matrix.python }} -m pip install --upgrade -c constraints-server.txt pip
       - name: Install minimal server and tests
         run: ${{ matrix.python }} -m pip install -r requirements-server-dev.txt
       - name: Validate dependencies
         run: ${{ matrix.python }} -m pip check
       - name: Validate webchat JavaScript
-        run: node --check server/static/chat.js
+        run: |
+          node --check server/static/chat.js
+          node --check server/static/auth.js
+          node --check server/static/login.js
+          node --check server/static/security.js
       - name: Run server tests
         run: ${{ matrix.python }} -m pytest -q
       - name: Exercise Windows PowerShell 5.1 control scripts

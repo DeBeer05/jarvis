@@ -3,7 +3,7 @@ const $ = (id) => document.getElementById(id);
 const state = {conversation: null, request: null, running: false, offset: 0, modeLoaded: false};
 const notice = (text = "") => { $("notice").textContent = text; $("notice").hidden = !text; };
 async function api(path, options = {}) {
-  const response = await fetch(path, {cache: "no-store", ...options});
+  const response = await JarvisAuth.fetch(path, {cache: "no-store", ...options});
   const data = await response.json();
   if (!response.ok) throw new Error(data.error?.message || data.detail || "Dit verzoek is niet gelukt.");
   return data;
@@ -73,7 +73,7 @@ async function sendMessage(event) {
   addMessage("user", message); const answer = addMessage("assistant"); answer.classList.add("streaming");
   $("message").value = ""; $("message").style.height = "32px"; setRunning(true); notice(); let finalReceived = false;
   try {
-    const response = await fetch("/api/v1/chat/stream", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({message, provider: $("provider").value, conversation_id: state.conversation, request_id: requestId})});
+    const response = await JarvisAuth.fetch("/api/v1/chat/stream", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({message, provider: $("provider").value, conversation_id: state.conversation, request_id: requestId})});
     if (!response.ok) { const data = await response.json(); throw new Error(data.error?.message || data.detail || "Het bericht kon niet worden verstuurd."); }
     const reader = response.body.getReader(); const decoder = new TextDecoder(); let buffer = "";
     while (true) {
@@ -90,6 +90,7 @@ async function sendMessage(event) {
         else if (data.type === "error") { notice(data.message); answer.querySelector(".message-state").textContent = data.message; }
         else if (data.type === "done") {
           finalReceived = true; answer.querySelector(".message-text").textContent = data.message;
+          if (data.error?.code === "authentication_expired") JarvisAuth.expired();
           if (data.status === "cancelled") answer.querySelector(".message-state").textContent = "Antwoord gestopt. Het ontvangen deel is bewaard.";
           if (data.status === "completed") notice();
         }
@@ -107,5 +108,6 @@ $("more-history").addEventListener("click", () => loadHistory(true).catch(e => n
 $("message").addEventListener("input", () => { $("message").style.height = "32px"; $("message").style.height = `${Math.min($("message").scrollHeight,160)}px`; });
 $("message").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); $("composer").requestSubmit(); } });
 document.querySelectorAll("[data-prompt]").forEach(button => button.addEventListener("click", () => { $("message").value = button.dataset.prompt; $("message").focus(); }));
-Promise.all([loadHistory(), refreshProviders()]).catch(e => notice(e.message));
-setInterval(refreshProviders, 30000);
+$("logout").addEventListener("click", () => JarvisAuth.logout().catch(e => notice(e.message)));
+JarvisAuth.initialize().then(() => Promise.all([loadHistory(), refreshProviders()])).catch(e => notice(e.message));
+setInterval(() => { if (document.visibilityState === "visible") refreshProviders(); }, 30000);

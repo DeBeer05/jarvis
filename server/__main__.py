@@ -9,7 +9,7 @@ from server.config import ConfigurationError, load_settings
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Local JARVIS headless server")
-    parser.add_argument("command", nargs="?", choices=("run", "status", "stop"), default="run")
+    parser.add_argument("command", nargs="?", choices=("run", "status", "stop", "setup-owner"), default="run")
     parser.add_argument("--wait", type=float, default=0)
     parser.add_argument("--no-console", action="store_true")
     args = parser.parse_args()
@@ -22,6 +22,38 @@ def main() -> int:
         return 2
 
     from server.control import RuntimeControl, control_command
+    if args.command == "setup-owner":
+        import getpass
+        import sys
+        from server.database import Database
+        from server.security.service import SecurityService
+        from server.security.types import AuthError
+        if not sys.stdin.isatty():
+            print("Gebruik een interactieve PowerShell voor de lokale eigenaarssetup.")
+            return 2
+        try:
+            with RuntimeControl(settings):
+                database = Database(settings.database_path)
+                database.initialize()
+                security = SecurityService(database, settings)
+                if security.store.owner():
+                    print("De eigenaar is al ingesteld; bestaande gegevens zijn niet gewijzigd.")
+                    return 2
+                username = input("Gebruikersnaam [owner]: ").strip() or "owner"
+                password = getpass.getpass("Nieuw wachtwoord (minimaal 12 tekens): ")
+                confirmation = getpass.getpass("Herhaal wachtwoord: ")
+                if password != confirmation:
+                    print("Wachtwoorden komen niet overeen; geen account aangemaakt.")
+                    return 2
+                security.setup_owner(username, password)
+                print("Eigenaar aangemaakt. Start de server en log in op http://127.0.0.1:8765/login.")
+                return 0
+        except AuthError as error:
+            print(error.message)
+            return 2
+        except (RuntimeError, OSError):
+            print("Setup kon niet starten. Stop eerst de eigen JARVIS-server en probeer opnieuw.")
+            return 2
     if args.command != "run":
         return control_command(settings, args.command, args.wait)
 

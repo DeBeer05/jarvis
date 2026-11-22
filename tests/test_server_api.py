@@ -3,12 +3,13 @@ from dataclasses import replace
 
 import pytest
 from fastapi.testclient import TestClient
+from tests.auth_helpers import AuthenticatedTestClient
 
 from server.app import create_app
 
 
 def client(app, **kwargs):
-    return TestClient(app, base_url="http://127.0.0.1", client=("127.0.0.1", 50000), **kwargs)
+    return AuthenticatedTestClient(app, base_url="http://127.0.0.1", client=("127.0.0.1", 50000), **kwargs)
 
 
 def test_lifespan_health_ready_status_and_shutdown(settings):
@@ -18,7 +19,7 @@ def test_lifespan_health_ready_status_and_shutdown(settings):
         assert http.get("/ready").status_code == 200
         data = http.get("/api/v1/status").json()
         assert data["status"] == "running"
-        assert data["version"] == "0.2.0"
+        assert data["version"] == "0.3.0"
         assert data["uptime_seconds"] >= 0
         assert data["components"] == {"api": True, "database": True, "ai": True}
         assert data["ai_providers"]["selected"] == "auto"

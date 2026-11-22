@@ -9,7 +9,7 @@ PATTERNS = (
 )
 
 
-def redact(text: str, secret: str = "") -> str:
+def redact(text: str, secret: str | None = None) -> str:
     if secret:
         text = text.replace(secret, "[GEHEIM VERWIJDERD]")
     for pattern in PATTERNS:

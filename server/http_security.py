@@ -5,23 +5,28 @@ from starlette.responses import JSONResponse
 
 
 class RequestGuard:
-    def __init__(self, app, port: int):
+    def __init__(self, app, port: int, allowed_origins=None):
         self.app, self.port = app, port
+        self.allowed_origins = tuple(allowed_origins or (f"http://127.0.0.1:{port}", f"http://localhost:{port}"))
 
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
         headers = dict(scope.get("headers", []))
         writing = scope["method"] in ("POST", "PUT", "PATCH", "DELETE")
-        if writing and b"origin" in headers:
+        if headers.get(b"sec-fetch-site") == b"cross-site":
+            return await JSONResponse({"error": {"code": "origin_forbidden", "message": "Gebruik de eigen lokale JARVIS-pagina."}}, status_code=403)(scope, receive, send)
+        if (writing or scope["path"] == "/api/v1/auth/csrf") and b"origin" in headers:
             try:
                 origin = urlsplit(headers[b"origin"].decode("ascii"))
-                allowed = origin.scheme == "http" and origin.hostname in ("127.0.0.1", "localhost") and (origin.port or 80) == self.port and not origin.username and not origin.path and not origin.query and not origin.fragment
+                allowed = headers[b"origin"].decode("ascii") in self.allowed_origins and not origin.username and not origin.path and not origin.query and not origin.fragment
             except (ValueError, UnicodeError):
                 allowed = False
             if not allowed:
                 return await JSONResponse({"error": {"code": "origin_forbidden", "message": "Alleen dezelfde lokale webchat mag dit verzoek doen."}}, status_code=403)(scope, receive, send)
         if writing:
+            if scope["path"].startswith("/api/") and scope["method"] != "DELETE" and headers.get(b"content-type", b"").split(b";")[0].strip().lower() not in (b"application/json", b""):
+                return await JSONResponse({"error": {"code": "invalid_content_type", "message": "Gebruik JSON voor dit verzoek."}}, status_code=415)(scope, receive, send)
             content = bytearray()
             while True:
                 message = await receive()

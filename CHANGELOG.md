@@ -4,6 +4,17 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Fase 3 / 0.3.0: lokale eenmalige eigenaarsetup, Argon2id, beveiligde webchat,
+  HttpOnly-sessies/CSRF, korte opaque tokens, refreshrotatie/replay-intrekking,
+  sessie- en wachtwoordbeheer, default-deny en afzonderlijke apparaatrechten.
+- Veilige apparaatpairing met menselijk vergeleken code, expliciete goedkeuring
+  en S256-bewijs; apparaat hernoemen/intrekken/verwijderen, begrensd auditlog.
+- SQLite-schema 3 met pre-migratieback-up en behoud van gesprekken; aparte
+  procescontrolstatus. 156 tests inclusief echte tijdelijke TCP/herstartflow.
+- Serverinstaller/CI werkt pip bij naar vastgelegde 26.3; lokale dependencyaudit
+  en Bandit zonder actuele bevindingen. Nederlandse auth-/pairing-/securitydocs.
+- Alleen ontwikkeldesktop localhost:8765; geen nieuwe clients of externe toegang.
+
 - Lokale herhalingsmelding: nieuwste-berichtregressie toegevoegd, Ollama-temperature
   0.2 en lokale Qwen2.5 3B-keuze. Twee echte gesprekken van vier beurten geslaagd;
   bestaande gebruikersgesprekken en lichte repositorydefaults behouden.

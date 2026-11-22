@@ -1,4 +1,30 @@
-# Architectuurplan — fase 2 en toekomstig ontwerp
+# Architectuurplan — fase 3 en toekomstig ontwerp
+
+## Gerealiseerd in fase 3
+
+`server/security/` scheidt schema, transactionele opslag, Argon2id-service,
+default-deny ASGI-gate en HTTP-routes. Eén eigenaar wordt lokaal interactief
+aangemaakt. Browserauthenticatie gebruikt HttpOnly-cookies plus gebonden CSRF;
+native clients gebruiken opaque access-/refresh-tokens. Refreshrotatie, replay-
+intrekking en absolute sessieduur leven serverzijdig in SQLite-schema 3.
+Bestaande chatdata blijven behouden na voorafgaande pre-v3-back-up.
+
+Apparaten hebben UUID/type/naam/trust/rechten en afzonderlijk intrekbare sessies.
+RFC8628-gebaseerde pairing vereist eigenaarcodevergelijking, expliciete rechten
+en een S256-clientbewijs. Geen beheerscopes voor gekoppelde clients; chat lezen,
+schrijven en verwijderen zijn apart. Audit is begrensd en bevat geen credentials.
+Een actieve generatie controleert sessie-intrekking ook tijdens het antwoorden.
+De webchat, login en beveiligingspagina gebruiken alleen eigen statische assets.
+
+De procescontrolstatus heeft een apart lokaal token; persoonlijke status vereist
+status:read. Publieke health/ready onthullen geen chat of configuratie.
+Argon2id is de enige nieuwe directe runtimeafhankelijkheid. Eén worker/loopback
+en poort 8765 blijven behouden; TLS/Tailscale is uitsluitend gedocumenteerd voor
+een latere opdracht. Geen client- of mini-pc-deployment.
+Zie [authenticatie](docs/AUTHENTICATION.md), [pairing](docs/DEVICE_PAIRING.md),
+[beveiliging](docs/SECURITY.md) en [testverslag](docs/PHASE_3_TEST_REPORT.md).
+**Huidige fasegrens: STOP na fase 3.** De volgende secties zijn voorgeschiedenis
+en ontwerp voor later, geen toestemming om nieuwe onderdelen te activeren.
 
 ## Gerealiseerd in fase 2
 

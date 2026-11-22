@@ -1,14 +1,19 @@
-# Headless Windows-server — fase 2
+# Headless Windows-server — fase 3
 
 De lokale JARVIS-serverbasis draait zelfstandig zonder GUI, audioapparaten, GPU,
-AI-provider, Ollama of externe database. Versie 0.2.0 gebruikt FastAPI/Uvicorn,
-httpx, standaardbibliotheek-SQLite en één worker. Chat is optioneel beschikbaar
+AI-provider, Ollama of externe database. Versie 0.3.0 gebruikt FastAPI/Uvicorn,
+httpx, Argon2id, standaardbibliotheek-SQLite en één worker. Chat is beschikbaar
 op `/chat`; providerconfiguratie en grenzen staan in [AI_ENGINE.md](AI_ENGINE.md).
 De bestaande Mark-LVII-desktopapp en cloudhost blijven ongewijzigd.
+De eigenaar heeft hier zelf een account aangemaakt en ingelogd. Op een nieuwe
+installatie: voer met gestopte server interactief
+`.\.venv\Scripts\python.exe -m server setup-owner` uit. Zie
+[AUTHENTICATION.md](AUTHENTICATION.md) voor login/sessies/configuratie en
+[DEVICE_PAIRING.md](DEVICE_PAIRING.md) voor apparaatbeheer.
 
 ## Installeren op Windows
 
-Open PowerShell in de bestaande projectroot op branch `develop` (fase 2 staat
+Open PowerShell in de bestaande projectroot op branch `develop` (fase 3 staat
 bewust nog niet op main). Gebruik Python 3.12; deze werkplek
 heeft Python 3.12.10 en een geteste `.venv`. Op een andere Windows-machine met
 winget kan Python per gebruiker worden voorbereid:
@@ -26,7 +31,8 @@ powershell.exe -NoProfile -File scripts/Install-ServerDependencies.ps1 -IncludeT
 
 Laat `-IncludeTests` weg voor uitsluitend runtimepackages. De versieconstraints
 in `constraints-server.txt` leggen de geteste versies vast; constraints installeren
-zelf geen extra packages. Voer **niet** upstream `setup.py` of de volledige
+zelf geen extra packages. De installer werkt pip eerst bij naar de vastgelegde
+26.3 vanwege bekende kwetsbaarheden in de oude installer. Voer **niet** upstream `setup.py` of de volledige
 `requirements.txt` uit voor deze server: die installeren GUI, audio en browsertools.
 Windows PowerShell 5.1 is voldoende; `powershell.exe` is standaard in Windows
 aanwezig. `pwsh` is het aparte PowerShell-7-programma en is niet nodig. De eerdere
@@ -67,7 +73,8 @@ worden geweigerd. Bij een bezette poort wordt geen ander proces gestopt.
 ```powershell
 Invoke-RestMethod http://127.0.0.1:8765/health
 Invoke-RestMethod http://127.0.0.1:8765/ready
-Invoke-RestMethod http://127.0.0.1:8765/api/v1/status
+powershell.exe -NoProfile -File scripts/Get-ServerStatus.ps1
+Start-Process http://127.0.0.1:8765/login
 .\.venv\Scripts\python.exe -m pytest -q
 .\.venv\Scripts\python.exe -m pip check
 python scripts/check_repository.py
@@ -113,8 +120,9 @@ De oude desktopconfig `config/api_keys.json` wordt niet gelezen of aangepast.
 
 ## Database, logging en veiligheid
 
-SQLite gebruikt schema 2 met schema_migrations, chat_conversations en chat_turns.
-Schema 1 krijgt eerst een unieke pre-v2-back-up. Migraties zijn transactioneel/herhaalbaar; een nieuwer
+SQLite gebruikt schema 3 met schema_migrations, chat_conversations, chat_turns
+en auth-tabellen voor eigenaar/apparaten/sessies/tokens/pairing/rechten/audit.
+Bestaande schema's 1/2 krijgen eerst een unieke pre-v3-back-up. Migraties zijn transactioneel/herhaalbaar; een nieuwer
 schema wordt geweigerd. Verbindingen zijn kort, met timeout, en worden ook bij
 fouten gesloten. Readiness gebruikt een read-only controle en creëert een
 verdwenen database niet opnieuw. Chatgeheugen is lokaal; geen contacten-/integratiegeheugen.
@@ -127,8 +135,8 @@ rotatie heeft bestands-/recordoverhead. Per-request accesslogging staat uit.
 
 De API bindt alleen aan loopback, controleert statusclients op een echt loopback-
 adres en negeert proxyheaders. Hostheaders zijn begrensd ter bescherming tegen
-DNS-rebinding. Status heeft in deze lokale fase geen gebruikerstoegangstoken;
-het stopendpoint vereist wel het private controletoken. Dit is geen beveiligings-
+DNS-rebinding. Persoonlijke status vereist nu een sessie met status:read;
+interne processtatus en shutdown vereisen het private controletoken. Dit is geen beveiligings-
 ontwerp voor publicatie op internet. Geen firewallregel, certificaat, tunnel,
 Windows-service of deployment is geïnstalleerd.
 
@@ -171,7 +179,7 @@ gecontroleerd; bestaande desktopfunctionaliteit is niet interactief getest.
 
 ## Grenzen en bekende punten
 
-Fase 2 bevat AI-router/chat en Gemini/Ollama-adapters. Geen spraak, clients, agenda/Gmail,
+Fase 3 beveiligt AI-router/chat met eigenaar- en apparaatbeheer. Geen spraak, clients, agenda/Gmail,
 berichten, bellen, automatiseringen of productie-service. De bekende oude
 upstream-TLS-sleutel blijft in de behouden Git-geschiedenis en wordt nooit gebruikt.
 De geteste Starlette/httpx-testadapter meldt één deprecatiewaarschuwing; alle tests
@@ -182,5 +190,6 @@ Bronnen voor gebruikte mechanismen:
 [FastAPI lifespan](https://fastapi.tiangolo.com/advanced/events/),
 [Python SQLite](https://docs.python.org/3.12/library/sqlite3.html),
 [python-dotenv](https://bbc2.github.io/python-dotenv/).
-Zie [PHASE_2_TEST_REPORT.md](PHASE_2_TEST_REPORT.md) voor actuele controles.
-**STOP na fase 2.**
+Zie [PHASE_3_TEST_REPORT.md](PHASE_3_TEST_REPORT.md) voor actuele controles en
+[SECURITY.md](SECURITY.md) voor de beveiligingsgrens en HTTPS/Tailscale-voorbereiding.
+**STOP na fase 3.**

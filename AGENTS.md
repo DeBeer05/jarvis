@@ -108,11 +108,11 @@ a small built-in fallback — instead of crashing.
 - Keep to the libraries already in `requirements.txt`.
 
 
-## JARVIS fork: blijvende Codex-projectinstructies (fase 2)
+## JARVIS fork: blijvende Codex-projectinstructies (fase 3)
 
 Deze aanvullende regels behouden de upstreamrichtlijnen hierboven. De opdracht
-van de gebruiker blijft leidend. Fase 2 is expliciet opgedragen: centrale AI-engine
-en lokale webchat op poort 8765. STOP na fase 2; geen volgende fase starten.
+van de gebruiker blijft leidend. Fase 3 is expliciet opgedragen: authenticatie, beveiligde webchat en
+apparaatkoppeling op poort 8765. STOP na fase 3; geen volgende fase starten.
 
 Vóór iedere taak:
 1. Controleer `git status --short --branch`, huidige branch en remotes.
@@ -125,12 +125,17 @@ Gebruik uitsluitend deze bestaande projectroot. Geen tweede jarvis-map.
 Behoud de Mark-LVII-historie, auteursvermelding en CC BY-NC 4.0-licentie.
 Behoud de bestaande desktop-/cloudcode. De server gebruikt `server/` en geïsoleerde
 `requirements-server*.txt` met constraints; installeer niet de volledige desktopstack.
-Fase 2 hergebruikt `providers/llm_openai.py` voor teksttransport; de headless
+De AI-engine hergebruikt `providers/llm_openai.py` voor teksttransport; de headless
 `server/ai/router.py` is het centrale aanspreekpunt. De upstreamregel om via
 core.gemini te werken blijft voor de desktop gelden; importeer die desktop-/Live-
 stack niet in de headless server. Wijzig transportgedrag alleen opt-in, zodat
 bestaande desktopcallers compatibel blijven. Geen AI-gegenereerde acties uitvoeren.
-Geen spraak, clientapp, berichten, OAuth, autonome acties, permanente Windows-
+Gebruik argon2-cffi voor Argon2id. Alle persoonlijke API-routes vereisen
+standaard authenticatie en expliciete rechten; geen configuratie om dit uit te
+schakelen. Tokens/codes/wachtwoorden nooit loggen of in Git. Alleen digests van
+refresh-, access- en pairinggeheimen bewaren. Eerste eigenaar via lokale
+interactieve setup; kies geen echt eigenaarwachtwoord namens de gebruiker.
+Geen spraak, clientapp, berichten, account-OAuth, autonome acties, permanente Windows-
 service of productie-deployment. Alleen localhost; alles op de ontwikkeldesktop.
 Gebruik voorlopig uitsluitend profiel desktop-development. Verplaats niets naar
 de mini-pc. Modelinstallaties zijn niet nodig om tests met mocks uit te voeren.

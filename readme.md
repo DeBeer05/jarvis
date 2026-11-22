@@ -1,7 +1,8 @@
-# JARVIS — AI-engine en webchat, fase 2
+# JARVIS — beveiligde AI-webchat, fase 3
 
 Lichte lokale FastAPI-server met Gemini/Groq/Ollama, streaming, annuleerbare antwoorden
-opgeslagen in SQLite en een donkere webchat. Gebaseerd op Mark-LVII; het gedeelde
+opgeslagen in SQLite, een donkere webchat en veilig eigenaar-/apparaatbeheer.
+Gebaseerd op Mark-LVII; het gedeelde
 AI-transport wordt hergebruikt. Geen GUI/audio/model nodig om de server te starten.
 Alles blijft op deze ontwikkeldesktop; standaard localhost en **poort 8765**.
 
@@ -12,8 +13,19 @@ Windows PowerShell 5.1 (`powershell.exe`; geen aparte pwsh-installatie nodig):
 powershell.exe -NoProfile -File scripts/Start-Server.ps1 -Background
 Invoke-RestMethod http://127.0.0.1:8765/health
 Invoke-RestMethod http://127.0.0.1:8765/ready
-Start-Process http://127.0.0.1:8765/chat
+Start-Process http://127.0.0.1:8765/login
 ```
+
+**Je eigenaaraccount is al door jou aangemaakt en je login is gecontroleerd.**
+Log in met je eigen gegevens; bestaande gesprekken blijven bewaard. Voor een
+nieuwe installatie: stop de server en voer interactief
+`.\.venv\Scripts\python.exe -m server setup-owner` uit. Geen standaardwachtwoord
+of publieke registratie. Zie [Authenticatie](docs/AUTHENTICATION.md).
+
+Via **Beveiliging** in de chat, of `/security`, beheer je apparaten/sessies,
+wijzig je het wachtwoord, keur je koppelingen goed en bekijk je het beveiligingslog.
+**Uitloggen** trekt de huidige sessie in. Persoonlijke API's vereisen nu
+authenticatie; oude anonieme API-voorbeelden zijn vervangen.
 
 Voor AI-antwoorden: vul je eigen Gemini-sleutel uitsluitend in de lokale `.env`
 in, gebruik het Groq Free Plan of configureer een eigen lokale Ollama met een geïnstalleerd model. Zie
@@ -37,16 +49,20 @@ powershell.exe -NoProfile -File scripts/Get-ServerStatus.ps1
 ```
 
 [Installatie/serverbeheer](docs/HEADLESS_SERVER.md) ·
+[Login en wachtwoord](docs/AUTHENTICATION.md) ·
+[Apparaatkoppeling](docs/DEVICE_PAIRING.md) ·
+[Beveiliging en grenzen](docs/SECURITY.md) ·
 [AI-configuratie en profielen](docs/AI_ENGINE.md) ·
 [Chat-API en exacte teststappen](docs/CHAT_API.md) ·
-[Testverslag: mocks versus echte controles](docs/PHASE_2_TEST_REPORT.md) ·
+[Fase-3-testverslag](docs/PHASE_3_TEST_REPORT.md) ·
 [Voortgang](DEVELOPMENT_PROGRESS.md).
 
-99 automatische tests geslaagd; echte lokale HTTP/browser-/procesherstartcontrole
-uitgevoerd. Live Groq en Ollama/fallback werken; een succesvol Gemini-antwoord blijft open. SQLite staat standaard in
+156 automatische tests geslaagd; tijdelijke TCP-pairing/herstartflow en echte
+eigenaarlogin/browsercontrole uitgevoerd. Live Groq en Ollama/fallback werken;
+een succesvol Gemini-antwoord blijft open. SQLite-schema 3 staat standaard in
 `.local/data/jarvis.sqlite3`; geen sleutels of gebruikersdata in Git.
 Main blijft ongewijzigd; integratie gaat uitsluitend naar develop via geteste PR's.
-**STOP na fase 2.** Geen clientapps, spraak, koppelingen of mini-pc-deployment.
+**STOP na fase 3.** Geen clientapps, spraak, externe toegang, integraties of mini-pc-deployment.
 
 De oorspronkelijke Mark-LVII-README staat hieronder met behoud van auteurschap
 en CC BY-NC 4.0-licentie. De desktopinstallatie hieronder is niet nodig voor deze
