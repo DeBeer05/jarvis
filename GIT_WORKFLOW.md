@@ -80,3 +80,9 @@ Beoogde bescherming voor `main` en `develop`: PR verplicht (nul verplichte ander
 reviewers voor dit eenpersoonsproject), actuele verplichte `Repository checks`,
 gespreksresolutie, bescherming ook voor beheerders, geen force-push of verwijdering.
 De werkelijke API-resultaten staan in `DEVELOPMENT_PROGRESS.md`.
+
+Sinds fase 1 zijn op develop ook `Server tests (ubuntu-latest)` en
+`Server tests (windows-latest)` verplicht, naast `Repository checks`, met
+GitHub Actions als bron. Windows/Linux- en repositorychecks moeten op de actuele
+basis slagen. Fase 1 mag uitsluitend naar develop; main blijft in deze opdracht
+ongewijzigd. De oplevering van fase 1 is geen toestemming voor fase 2.
