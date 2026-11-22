@@ -1,6 +1,9 @@
-# AI-engine — fase 2
+# AI-engine — fase 2, beveiligd in fase 3
 
-De headless server 0.2.0 gebruikt één centrale `server/ai/router.py` voor tekst.
+De headless server 0.3.0 gebruikt één centrale `server/ai/router.py` voor tekst.
+Fase 3 beveiligt de bestaande chat: log eerst in via `/login` of koppel een
+client volgens [AUTHENTICATION.md](AUTHENTICATION.md) en
+[DEVICE_PAIRING.md](DEVICE_PAIRING.md). De providerconfiguratie blijft behouden.
 Alles is ontwikkeld op de desktop, op localhost:8765. Geen mini-pc-deployment.
 De engine voert geen tools, shellcommando's, plugins of autonome acties uit.
 
@@ -118,7 +121,8 @@ De adapter hergebruikt hetzelfde Mark-LVII-streamingtransport op de officiële
 include_reasoning=false en max_completion_tokens. Geen tools/code/search
 geactiveerd. Groq-status betekent sleutel ingesteld, geen betaalde proefcall.
 Sleutels van beide cloudproviders worden in opslag/context/logs geredigeerd;
-herkenbare gsk_-sleutels worden aanvullend gemaskeerd. Oude database blijft schema 2.
+herkenbare gsk_-sleutels worden aanvullend gemaskeerd. De Groq-toevoeging vereiste
+geen eigen migratie; fase 3 gebruikt inmiddels schema 3 voor authenticatie.
 
 Op deze desktop is een echte expliciete Groq-SSE-proef geslaagd: vier tekstframes,
 completed en precies 'Groq werkt.'; provider/model en opgeslagen antwoord
@@ -228,8 +232,8 @@ zonder de inhoud in logs te dumpen. Herstart na aanpassen.
 
 SQLite staat standaard in `.local/data/jarvis.sqlite3`, met eventuele `-wal` en
 `-shm`-bestanden ernaast. Relatieve configuratiepaden zijn vanaf de projectroot.
-Schema 1 krijgt vóór de transactionele schema-2-migratie een unieke
-`jarvis.sqlite3.pre-v2-*.bak`. Stop de server voordat je handmatig een volledige
+Schema 1/2 krijgt vóór de transactionele schema-3-migratie een unieke
+`jarvis.sqlite3.pre-v3-*.bak`. Stop de server voordat je handmatig een volledige
 databasekopie maakt; losse kopieën van alleen een actief WAL-databasebestand
 kunnen onvolledig zijn. Back-ups bevatten chatinhoud en blijven lokaal.
 
@@ -243,9 +247,9 @@ back-upverwijdering. De webchat kan gesprekken expliciet verwijderen.
 
 Loopback, Host-/Origincontrole, geen CORS/proxytrust, CSP en plaintext-weergave
 beperken lokale browseraanvallen. Modeltekst wordt nooit uitgevoerd of als HTML
-ingevoegd. Dit is geen authenticatieontwerp voor andere computers of Android;
-die toekomstige clients kunnen het API-contract hergebruiken nadat toegang apart
-is ontworpen. Geen publieke binding/firewall/tunnel/service geactiveerd.
+ingevoegd. Fase 3 voegt eigenaarlogin, sessies, minimale apparaatrechten en veilige
+pairing toe; zie [SECURITY.md](SECURITY.md). Toegang vanaf andere computers en
+clientapps blijven een latere opdracht. Geen publieke binding/firewall/tunnel/service geactiveerd.
 
 ## Officiële bronnen
 
@@ -255,5 +259,6 @@ is ontworpen. Geen publieke binding/firewall/tunnel/service geactiveerd.
 - [Ollama modellenlijst](https://docs.ollama.com/api/tags)
 
 Voor API-voorbeelden en exacte teststappen: [CHAT_API.md](CHAT_API.md).
-Werkelijk uitgevoerde controles: [PHASE_2_TEST_REPORT.md](PHASE_2_TEST_REPORT.md).
-STOP na fase 2.
+AI-controles: [PHASE_2_TEST_REPORT.md](PHASE_2_TEST_REPORT.md).
+Actuele beveiliging/regressies: [PHASE_3_TEST_REPORT.md](PHASE_3_TEST_REPORT.md).
+STOP na fase 3.

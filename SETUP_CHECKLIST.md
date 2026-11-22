@@ -1,5 +1,19 @@
 # Setupchecklist
 
+## Huidige stand — fase 3
+
+- [x] Fase 1, 2 en 3 afzonderlijk door de eigenaar opgedragen.
+- [x] Headless server en AI-webchat op ontwikkeldesktop localhost:8765.
+- [x] Eigenaar lokaal door gebruiker aangemaakt; login en bestaande historie gecontroleerd.
+- [x] Sessies, refreshrotatie/replay, CSRF, apparaatpairing/rechten en audit getest.
+- [x] Schema 3 met back-up, 156 lokale tests en serversecurityscans geslaagd.
+- [x] PR #13 naar develop; implementatiechecks op repository/Windows/Linux geslaagd.
+  Laatste head-/mergestatus via PR en DEVELOPMENT_PROGRESS.md; merge alleen na groene checks.
+
+De fase-0-checklist hieronder is historische voorbereiding. Onuitgevoerde
+mini-pc-/Android-/integratiestappen zijn geen toestemming om door te ontwikkelen.
+Huidige fasegrens: **STOP na fase 3**.
+
 ## Fase 0
 
 - [x] Bestaande werkmap eerst bekeken en leeg bevonden.

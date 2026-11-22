@@ -62,7 +62,7 @@ lokaal onder `.local/`. Niet de oorspronkelijke desktopdependencyboom installere
 | pip-audit 2.10.1 | 0 bekende kwetsbaarheden in de geïnstalleerde servervenv na update pip naar 26.3 |
 | Bandit 1.9.4 | 0 bevindingen in server/; geen nosec-onderdrukkingen |
 | Repositorysecretcheck | Huidige bestanden en index; geen nieuwe geheimpatroontreffers |
-| Gitleaks 8.30.1 | Nieuwe fase-3-index/commitrange; resultaat bij Git-afronding hieronder |
+| Gitleaks 8.30.1 | 0 treffers in fase-3-index en origin/develop..ee2f687 |
 | JS/pip/whitespace/structuur | Vier node --check, pip check, git diff --check en check_repository.py |
 
 Het oude pip 25.0.1 had bekende advisories. De installer en CI upgraden nu eerst
@@ -97,9 +97,17 @@ node --check server/static/security.js
 6. Uitloggen blokkeert nieuwe private API-verzoeken; log daarna zelf opnieuw in.
    Het echte wachtwoord wijzigen is niet nodig om de automatische testuitslag te bevestigen.
 
-CI draait Repository checks en Server tests op Windows/Linux voor de PR naar
-develop. Werkelijke PR-/merge-uitkomsten worden in DEVELOPMENT_PROGRESS.md en het
-eindrapport vastgelegd; een lokale testuitslag vervangt die checks niet.
+## GitHub-controle
+
+Implementatiecommit ee2f687 is gepusht via
+[PR #13 naar develop](https://github.com/DeBeer05/jarvis/pull/13).
+Werkelijke [repositoryrun](https://github.com/DeBeer05/jarvis/actions/runs/45081773089)
+en [serverrun](https://github.com/DeBeer05/jarvis/actions/runs/45081773091) geslaagd:
+Repository checks, Server tests (ubuntu-latest), Server tests (windows-latest).
+Windows heeft ook beide PowerShell-edities voor start/status/stop uitgevoerd.
+De laatste documentatiecommit wordt opnieuw door dezelfde checks gecontroleerd;
+de PR toont de definitieve head-, merge- en CI-status. Branchbescherming blijft
+actief, ook voor admins; geen bypass of force-push.
 Main blijft buiten deze fase. Geen clientapps, Tailscale, LAN/publicatie, firewall-
 wijzigingen, spraak, integraties, automatiseringen of mini-pc-deployment uitgevoerd.
 **STOP na fase 3.**

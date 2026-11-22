@@ -23,12 +23,24 @@ Pip-audit en Bandit opnieuw uitgevoerd: 0 kwetsbaarheden/0 bevindingen; geen
 onderdrukking. JS/pip/repository/whitespace geslaagd. Echte server gecontroleerd
 herstart op 8765: health/ready 200, anonieme private routes/controlstatus 401;
 schema 3, 9 gesprekken/26 beurten/back-up behouden, geen foreign-key-fouten.
-Vóór push: index-/Gitleakscontrole; daarna PR naar develop,
-alle drie verplichte CI-checks en inhoudelijke review vóór veilige merge.
-Werkelijke Git-/CI-afronding volgt onderaan; main blijft ongewijzigd.
+Index-/Gitleakscontrole en nieuwe commitrange schoon, geen geheimen/data in Git.
+Implementatiecommit ee2f687 is gepusht naar de eigen fork. Integratie via
+[PR #13 naar develop](https://github.com/DeBeer05/jarvis/pull/13).
+Alle drie verplichte checks voor ee2f687 daadwerkelijk geslaagd:
+[repository](https://github.com/DeBeer05/jarvis/actions/runs/45081773089) en
+[Windows/Linux-servermatrix](https://github.com/DeBeer05/jarvis/actions/runs/45081773091).
+Ook Windows PowerShell 5.1 en 7 zijn daarin getest. Inhoudelijke review van gate,
+sessietransacties, pairing/rechten, migratie en frontend uitgevoerd; geen open
+kritieke bevinding. Laatste documentatiecommit krijgt opnieuw dezelfde checks;
+merge uitsluitend als ook die exacte PR-head groen is. Definitieve merge-/CI-
+status staat bij PR #13. Main blijft c995834 en wordt niet gewijzigd.
 Alleen ontwikkeldesktop, 127.0.0.1:8765. Geen Tailscale/firewall/proxy/clientapps,
 integraties/automatiseringen of mini-pc-deployment. STOP na fase 3.
 Zie docs/PHASE_3_TEST_REPORT.md, AUTHENTICATION.md, DEVICE_PAIRING.md en SECURITY.md.
+Functionele fase 3 is afgerond; alleen gecontroleerde Git-integratie wordt hierna
+afgehandeld. Geen verplichte handmatige stap meer voor lokaal eigenaargebruik.
+Optioneel: eigen synthetische pairingproef volgens docs/DEVICE_PAIRING.md.
+Gemini-antwoordacceptatie blijft een eerder providerpunt; Groq/Ollama werken.
 De fase-2-/fase-0-secties hieronder zijn bewaarde voorgeschiedenis.
 
 Aanvulling fase 2: op verzoek Groq als derde cloudprovider toegevoegd. Groq
