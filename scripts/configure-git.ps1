@@ -21,8 +21,10 @@ try {
         git config --local $entry.Key $entry.Value
         if ($LASTEXITCODE -ne 0) { throw "Git-configuratie mislukt: $($entry.Key)" }
     }
+    # Windows already includes PowerShell 5.1; do not require a separate pwsh install.
+    $branchShell = if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) { 'powershell.exe' } else { 'pwsh' }
     foreach ($typeName in @('feature', 'fix', 'hotfix', 'release')) {
-        git config --local "alias.$typeName" "!pwsh -NoProfile -File scripts/new-branch.ps1 -Type $typeName"
+        git config --local "alias.$typeName" "!$branchShell -NoProfile -File scripts/new-branch.ps1 -Type $typeName"
         if ($LASTEXITCODE -ne 0) { throw "Alias mislukt: $typeName" }
     }
     Write-Output 'Repositorylokale Git-instellingen en branchhelpers geconfigureerd.'

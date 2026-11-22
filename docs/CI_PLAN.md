@@ -4,7 +4,8 @@
 
 `server-tests.yml` installeert alleen de minimale vastgelegde server- en
 testdependencies in een venv en voert pytest/pip check uit op Python 3.12,
-Windows en Linux. Windows voert bovendien de start/status/stopscripts uit.
+Windows en Linux. Windows voert bovendien de start/status/stopscripts uit onder
+zowel Windows PowerShell 5.1 (`powershell`) als PowerShell 7 (`pwsh`).
 Geen productie-deployment, GUI-/audio-/modelinstallaties of externe AI-aanroepen.
 De bestaande repositorycheck blijft actief; `.env.example` bevat nu de veilige
 fase-1-defaults. Beide OS-serverchecks en `Repository checks` zijn via de

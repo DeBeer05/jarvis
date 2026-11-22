@@ -19,14 +19,17 @@ winget install --id Python.Python.3.12 --exact --scope user
 Daarna, of om de bestaande omgeving veilig opnieuw te gebruiken:
 
 ```powershell
-pwsh -NoProfile -File scripts/Initialize-ServerEnvironment.ps1
-pwsh -NoProfile -File scripts/Install-ServerDependencies.ps1 -IncludeTests
+powershell.exe -NoProfile -File scripts/Initialize-ServerEnvironment.ps1
+powershell.exe -NoProfile -File scripts/Install-ServerDependencies.ps1 -IncludeTests
 ```
 
 Laat `-IncludeTests` weg voor uitsluitend runtimepackages. De versieconstraints
 in `constraints-server.txt` leggen de geteste versies vast; constraints installeren
 zelf geen extra packages. Voer **niet** upstream `setup.py` of de volledige
 `requirements.txt` uit voor deze server: die installeren GUI, audio en browsertools.
+Windows PowerShell 5.1 is voldoende; `powershell.exe` is standaard in Windows
+aanwezig. `pwsh` is het aparte PowerShell-7-programma en is niet nodig. De eerdere
+instructies veronderstelden ten onrechte dat dit overal beschikbaar was.
 Venv-activatie en blijvende aanpassing van de PowerShell execution policy zijn
 niet nodig. Als een lokale policy scripts blokkeert, gebruik dan rechtstreeks de
 Python-commando's hieronder; verander niet automatisch het organisatiebeleid.
@@ -35,7 +38,7 @@ Python-commando's hieronder; verander niet automatisch het organisatiebeleid.
 
 ```powershell
 # Voorgrond; Ctrl+C sluit correct af.
-pwsh -NoProfile -File scripts/Start-Server.ps1
+powershell.exe -NoProfile -File scripts/Start-Server.ps1
 # Rechtstreeks hetzelfde entrypoint:
 .\.venv\Scripts\python.exe -m server
 ```
@@ -44,9 +47,9 @@ Gebruik slechts één startvariant tegelijk. Voor een verborgen achtergrondproce
 zonder permanente service of automatische systeemstart:
 
 ```powershell
-pwsh -NoProfile -File scripts/Start-Server.ps1 -Background
-pwsh -NoProfile -File scripts/Get-ServerStatus.ps1
-pwsh -NoProfile -File scripts/Stop-Server.ps1
+powershell.exe -NoProfile -File scripts/Start-Server.ps1 -Background
+powershell.exe -NoProfile -File scripts/Get-ServerStatus.ps1
+powershell.exe -NoProfile -File scripts/Stop-Server.ps1
 ```
 
 Rechtstreekse alternatieven: `.\.venv\Scripts\python.exe -m server status` en
@@ -72,7 +75,8 @@ python scripts/check_repository.py
 Deze werkplek is ook met de vijf PowerShell-scripts en echte HTTP-verzoeken getest;
 daarna is het testproces gestopt. Tests gebruiken tijdelijke databases en geen
 echte persoonsgegevens. [SERVER_API.md](SERVER_API.md) beschrijft de responses.
-CI test Python 3.12 op Windows en Linux en voert op Windows ook de controlscripts uit.
+CI test Python 3.12 op Windows en Linux en voert op Windows de controlscripts uit
+onder zowel ingebouwde Windows PowerShell 5.1 als PowerShell 7.
 
 ## Configuratie
 

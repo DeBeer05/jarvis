@@ -17,7 +17,10 @@ Git heeft geen instelling die elk willekeurig `git switch -c` automatisch vanaf
 
 ## Lokale configuratie en nieuwe branches
 
-Na een nieuwe clone: `pwsh -File scripts/configure-git.ps1`.
+Na een nieuwe Windows-clone: `powershell.exe -NoProfile -File scripts/configure-git.ps1`.
+De Windows-branchaliases gebruiken de ingebouwde Windows PowerShell 5.1;
+een afzonderlijke `pwsh`-installatie is niet nodig. Op Linux/macOS blijft pwsh nodig
+voor deze PowerShell-Git-helpers.
 Dit stelt alleen repositorylokale opties in: push naar origin, fast-forward-only
 pulls, pruning en de onderstaande aliases. Authenticatie blijft in de keyring;
 gebruik `gh auth login` alleen als aanmelding ontbreekt. Upstream push is lokaal
@@ -35,7 +38,7 @@ git switch develop
 git pull --ff-only
 git feature korte-naam
 # alternatieven: git fix naam, git hotfix naam, git release versie
-# of: pwsh -File scripts/new-branch.ps1 -Type feature -Name korte-naam
+# of: powershell.exe -NoProfile -File scripts/new-branch.ps1 -Type feature -Name korte-naam
 ```
 
 De helper weigert een vuile werkmap, controleert de branchnaam en gebruikt een

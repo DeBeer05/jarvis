@@ -6,16 +6,17 @@ audio, GPU of verplichte AI-provider. **Fase 1** bevat health/ready/status, veil
 De oorspronkelijke Mark-LVII-README staat hieronder; de desktop-installatie
 daaruit is niet nodig voor de headless server.
 
-Vanuit de bestaande projectroot, met Python 3.12:
+Vanuit de bestaande projectroot, met Python 3.12 en ingebouwde Windows PowerShell
+5.1 (`powershell.exe`; een aparte PowerShell 7/pwsh-installatie is niet nodig):
 
 ```powershell
-pwsh -NoProfile -File scripts/Initialize-ServerEnvironment.ps1
-pwsh -NoProfile -File scripts/Install-ServerDependencies.ps1 -IncludeTests
-pwsh -NoProfile -File scripts/Start-Server.ps1 -Background
+powershell.exe -NoProfile -File scripts/Initialize-ServerEnvironment.ps1
+powershell.exe -NoProfile -File scripts/Install-ServerDependencies.ps1 -IncludeTests
+powershell.exe -NoProfile -File scripts/Start-Server.ps1 -Background
 Invoke-RestMethod http://127.0.0.1:8765/health
 Invoke-RestMethod http://127.0.0.1:8765/ready
 Invoke-RestMethod http://127.0.0.1:8765/api/v1/status
-pwsh -NoProfile -File scripts/Stop-Server.ps1
+powershell.exe -NoProfile -File scripts/Stop-Server.ps1
 ```
 
 [Installatie, configuratie, tests en gemeten prestaties](docs/HEADLESS_SERVER.md) ·

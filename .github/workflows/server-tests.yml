@@ -38,7 +38,21 @@ jobs:
         run: ${{ matrix.python }} -m pip check
       - name: Run server tests
         run: ${{ matrix.python }} -m pytest -q
-      - name: Exercise Windows control scripts
+      - name: Exercise Windows PowerShell 5.1 control scripts
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          & ./scripts/Initialize-ServerEnvironment.ps1
+          try {
+            & ./scripts/Start-Server.ps1 -Background
+            & ./scripts/Get-ServerStatus.ps1
+            $health = Invoke-RestMethod http://127.0.0.1:8765/health
+            $ready = Invoke-RestMethod http://127.0.0.1:8765/ready
+            if ($health.status -ne 'ok' -or $ready.status -ne 'ready') { throw 'API not ready' }
+          } finally {
+            & ./scripts/Stop-Server.ps1
+          }
+      - name: Exercise PowerShell 7 control scripts
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
