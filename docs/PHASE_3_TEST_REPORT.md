@@ -99,14 +99,19 @@ node --check server/static/security.js
 
 ## GitHub-controle
 
-Implementatiecommit ee2f687 is gepusht via
-[PR #13 naar develop](https://github.com/DeBeer05/jarvis/pull/13).
-Werkelijke [repositoryrun](https://github.com/DeBeer05/jarvis/actions/runs/45081773089)
-en [serverrun](https://github.com/DeBeer05/jarvis/actions/runs/45081773091) geslaagd:
+Implementatiecommit ee2f687 en validatiecommit 7422bf9 zijn via
+[PR #13 naar develop](https://github.com/DeBeer05/jarvis/pull/13) gemerged als
+119bcdd, na controle van de exacte PR-head en zonder branchbescherming te omzeilen.
+Werkelijke [repositoryrun](https://github.com/DeBeer05/jarvis/actions/runs/45082049075)
+en [serverrun](https://github.com/DeBeer05/jarvis/actions/runs/45082049033) voor
+de definitieve PR-head geslaagd:
 Repository checks, Server tests (ubuntu-latest), Server tests (windows-latest).
 Windows heeft ook beide PowerShell-edities voor start/status/stop uitgevoerd.
-De laatste documentatiecommit wordt opnieuw door dezelfde checks gecontroleerd;
-de PR toont de definitieve head-, merge- en CI-status. Branchbescherming blijft
+De daaropvolgende merge-CI op develop/119bcdd is eveneens geslaagd:
+[repository](https://github.com/DeBeer05/jarvis/actions/runs/45082287960),
+[Windows/Linux](https://github.com/DeBeer05/jarvis/actions/runs/45082287966).
+Ook de afrondingsdocumentatie doorloopt opnieuw dezelfde checks.
+De PR toont de definitieve head-, merge- en CI-status. Branchbescherming blijft
 actief, ook voor admins; geen bypass of force-push.
 Main blijft buiten deze fase. Geen clientapps, Tailscale, LAN/publicatie, firewall-
 wijzigingen, spraak, integraties, automatiseringen of mini-pc-deployment uitgevoerd.

@@ -3,7 +3,8 @@
 ## Huidige opdracht
 
 Fase 3 expliciet opgedragen: authenticatie, apparaatbeheer/pairing en beveiliging.
-Geïmplementeerd op feature/security-device-pairing vanaf develop 5b6960c.
+Afgerond en via PR #13 geïntegreerd naar develop, mergecommit 119bcdd.
+Ontwikkeld op feature/security-device-pairing vanaf develop 5b6960c.
 156 tests geslaagd, inclusief 57 nieuwe security-/procesgevallen, echte tijdelijke
 TCP-pairing en sessie/historiebehoud na herstart. De eigenaar heeft zelf via de
 interactieve CLI het account aangemaakt en in Chrome ingelogd; beveiligde webchat,
@@ -26,19 +27,22 @@ schema 3, 9 gesprekken/26 beurten/back-up behouden, geen foreign-key-fouten.
 Index-/Gitleakscontrole en nieuwe commitrange schoon, geen geheimen/data in Git.
 Implementatiecommit ee2f687 is gepusht naar de eigen fork. Integratie via
 [PR #13 naar develop](https://github.com/DeBeer05/jarvis/pull/13).
-Alle drie verplichte checks voor ee2f687 daadwerkelijk geslaagd:
-[repository](https://github.com/DeBeer05/jarvis/actions/runs/45081773089) en
-[Windows/Linux-servermatrix](https://github.com/DeBeer05/jarvis/actions/runs/45081773091).
+Alle drie verplichte checks voor de definitieve head 7422bf9 daadwerkelijk geslaagd:
+[repository](https://github.com/DeBeer05/jarvis/actions/runs/45082049075) en
+[Windows/Linux-servermatrix](https://github.com/DeBeer05/jarvis/actions/runs/45082049033).
 Ook Windows PowerShell 5.1 en 7 zijn daarin getest. Inhoudelijke review van gate,
 sessietransacties, pairing/rechten, migratie en frontend uitgevoerd; geen open
-kritieke bevinding. Laatste documentatiecommit krijgt opnieuw dezelfde checks;
-merge uitsluitend als ook die exacte PR-head groen is. Definitieve merge-/CI-
-status staat bij PR #13. Main blijft c995834 en wordt niet gewijzigd.
+kritieke bevinding. PR-head exact gecontroleerd en met --match-head-commit
+gemerged, zonder bypass/force-push. Develop is lokaal fast-forward bijgewerkt,
+alle commits gepusht en werkmap schoon gecontroleerd. Main blijft c995834.
+Ook de echte CI op mergecommit 119bcdd is geslaagd:
+[repository](https://github.com/DeBeer05/jarvis/actions/runs/45082287960) en
+[Windows/Linux](https://github.com/DeBeer05/jarvis/actions/runs/45082287966).
 Alleen ontwikkeldesktop, 127.0.0.1:8765. Geen Tailscale/firewall/proxy/clientapps,
 integraties/automatiseringen of mini-pc-deployment. STOP na fase 3.
 Zie docs/PHASE_3_TEST_REPORT.md, AUTHENTICATION.md, DEVICE_PAIRING.md en SECURITY.md.
-Functionele fase 3 is afgerond; alleen gecontroleerde Git-integratie wordt hierna
-afgehandeld. Geen verplichte handmatige stap meer voor lokaal eigenaargebruik.
+Fase 3 is afgerond. Deze afrondingsnotitie volgt via een eigen documentatie-PR
+met dezelfde verplichte checks. Geen verplichte handmatige stap meer voor lokaal eigenaargebruik.
 Optioneel: eigen synthetische pairingproef volgens docs/DEVICE_PAIRING.md.
 Gemini-antwoordacceptatie blijft een eerder providerpunt; Groq/Ollama werken.
 De fase-2-/fase-0-secties hieronder zijn bewaarde voorgeschiedenis.

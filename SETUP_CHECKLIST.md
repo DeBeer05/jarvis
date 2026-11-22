@@ -7,8 +7,8 @@
 - [x] Eigenaar lokaal door gebruiker aangemaakt; login en bestaande historie gecontroleerd.
 - [x] Sessies, refreshrotatie/replay, CSRF, apparaatpairing/rechten en audit getest.
 - [x] Schema 3 met back-up, 156 lokale tests en serversecurityscans geslaagd.
-- [x] PR #13 naar develop; implementatiechecks op repository/Windows/Linux geslaagd.
-  Laatste head-/mergestatus via PR en DEVELOPMENT_PROGRESS.md; merge alleen na groene checks.
+- [x] PR #13 naar develop gemerged als 119bcdd; definitieve headchecks op
+  repository/Windows/Linux geslaagd, zonder bypass. Main ongewijzigd.
 
 De fase-0-checklist hieronder is historische voorbereiding. Onuitgevoerde
 mini-pc-/Android-/integratiestappen zijn geen toestemming om door te ontwikkelen.

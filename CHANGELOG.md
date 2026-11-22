@@ -4,6 +4,9 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Fase 3 via PR #13 geïntegreerd naar develop (119bcdd); laatste PR-head met
+  geslaagde repository-/Windows-/Linuxchecks, main ongewijzigd.
+
 - Fase 3 / 0.3.0: lokale eenmalige eigenaarsetup, Argon2id, beveiligde webchat,
   HttpOnly-sessies/CSRF, korte opaque tokens, refreshrotatie/replay-intrekking,
   sessie- en wachtwoordbeheer, default-deny en afzonderlijke apparaatrechten.
