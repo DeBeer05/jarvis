@@ -2,8 +2,9 @@
 
 ## Huidige opdracht
 
-Fase 1 — headless Windows-server, expliciet opgedragen op 22 november 2026.
-Actieve ontwikkelbranch: `feature/headless-server`, basis develop `f4b0053`.
+Fase 1 — headless Windows-server, voltooid na de opdracht van 22 november 2026.
+Opleverbranch: `develop`. Implementatiebranch `feature/headless-server` is gepusht
+en via PR #5 gemerged, vanuit develop-basis `f4b0053`.
 Main blijft ongewijzigd. STOP na fase 1; fase 2 is niet toegestaan.
 De onderstaande fase-0-secties vormen de bewaarde voorgeschiedenis.
 
@@ -192,3 +193,39 @@ Geen handmatige setup nodig; een eventueel nog gebruikte oude sleutel vervangen.
 - PR/merge: nog te publiceren; echte CI wordt vóór merge gecontroleerd.
   Volgende stap: feature push/PR naar develop, verplichte CI bevestigen en veilig
   integreren. **STOP na fase 1; geen fase 2.**
+
+### Oplevering fase 1 — voltooid
+
+- Functionele commits: `d1bfe56` (serverbasis/tests), `9cb37da` (console-interrupt),
+  `4fe0dde` (Windows/Linux-CI en handleiding). Laatste bevestigde functionele
+  integratiecommit: `6396534dc8ed78484988b42f2ee5bbe490b375fd`.
+  Voor de meest recente rapportagecommit is `git log -1 --oneline` leidend.
+- [PR #5](https://github.com/DeBeer05/jarvis/pull/5) is **MERGED** naar develop.
+  Featurebranch is gepubliceerd; geen force-push, admin-bypass of main-merge.
+- Echte PR-CI geslaagd:
+  [repository](https://github.com/DeBeer05/jarvis/actions/runs/45055119967),
+  [39 tests op Windows en Linux](https://github.com/DeBeer05/jarvis/actions/runs/45055120044).
+- Ook CI op de daadwerkelijke develop-mergecommit is geslaagd:
+  [repository](https://github.com/DeBeer05/jarvis/actions/runs/45055280413),
+  [Windows/Linux-servertests](https://github.com/DeBeer05/jarvis/actions/runs/45055280439).
+- Develop vereist nu alle drie checks: `Repository checks`,
+  `Server tests (ubuntu-latest)` en `Server tests (windows-latest)`, telkens van
+  GitHub Actions, actuele basis vereist. PR-/admin-/force-pushbescherming behouden.
+- Main lokaal en remote blijft `c995834127bf447aac653d050b67039a27223933`.
+- Gewijzigde bestanden: nieuwe `server/`-modules, vijf `tests/test_server_*.py`-
+  bestanden plus conftest, zes PowerShell-serverhelpers, geïsoleerde requirements/
+  constraints, pytest-config en serverworkflow; .env.example, .gitignore,
+  repositorycheck, AGENTS, voortgang/changelog, README/architectuur/structuur/CI-plan
+  bijgewerkt. Volledige lijst: `git diff --stat f4b0053 6396534`.
+- Acceptatie: headless start zonder GUI/audio/GPU/AI, alle drie endpoints,
+  SQLite-initialisatie/migratie/readiness/cleanup, begrensde logs, Windows-scripts,
+  tests, documentatie, commits, push en toegestane develop-merge: **gehaald**.
+- Geteste server is na validatie gestopt. Geen permanente service of auto-start;
+  `.venv` en de lokale lege schema-database/logs blijven als genegeerde lokale data.
+- Actieve werkbranch bij oplevering is develop; rapportage wordt eveneens met
+  normale commits/PR en verplichte CI geïntegreerd. Geen handmatige actie nodig
+  om deze werkplek voor te bereiden; starten kan met de handleiding.
+- Bekende punten: één Starlette/httpx-deprecatiewaarschuwing in tests; geen
+  functionele testfout. Oude upstream-TLS-sleutel blijft in de behouden historie
+  en wordt niet gebruikt. De 8-GB-doelmachine is nog niet afzonderlijk gemeten.
+- Volgende fase: uitsluitend na een nieuwe opdracht. **STOP; fase 2 niet gestart.**

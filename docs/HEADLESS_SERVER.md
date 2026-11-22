@@ -7,7 +7,8 @@ De bestaande Mark-LVII-desktopapp en cloudhost blijven ongewijzigd.
 
 ## Installeren op Windows
 
-Open PowerShell in de bestaande projectroot. Gebruik Python 3.12; deze werkplek
+Open PowerShell in de bestaande projectroot op branch `develop` (fase 1 staat
+bewust nog niet op main). Gebruik Python 3.12; deze werkplek
 heeft Python 3.12.10 en een geteste `.venv`. Op een andere Windows-machine met
 winget kan Python per gebruiker worden voorbereid:
 

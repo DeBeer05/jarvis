@@ -7,7 +7,8 @@ testdependencies in een venv en voert pytest/pip check uit op Python 3.12,
 Windows en Linux. Windows voert bovendien de start/status/stopscripts uit.
 Geen productie-deployment, GUI-/audio-/modelinstallaties of externe AI-aanroepen.
 De bestaande repositorycheck blijft actief; `.env.example` bevat nu de veilige
-fase-1-defaults. Serverchecks moeten geslaagd zijn vóór merge naar develop.
+fase-1-defaults. Beide OS-serverchecks en `Repository checks` zijn via de
+develop-branchbescherming verplicht gemaakt en geslaagd vóór de fase-1-merge.
 
 ## Actief in fase 0
 
