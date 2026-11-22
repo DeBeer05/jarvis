@@ -89,3 +89,20 @@ def test_invalid_cli_config_does_not_expose_values(tmp_path):
     assert "configuration_error" in result.stdout
     assert "invalid-canary-value" not in result.stdout + result.stderr
     assert not (tmp_path / "server.sqlite3").exists()
+
+
+def test_console_interrupt_releases_process_ownership(settings, monkeypatch):
+    from server import __main__ as entrypoint
+    import uvicorn
+
+    monkeypatch.setattr(entrypoint, "load_settings", lambda: settings)
+    monkeypatch.setattr(sys, "argv", ["server", "--no-console"])
+
+    def interrupt(self):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(uvicorn.Server, "run", interrupt)
+    assert entrypoint.main() == 0
+    assert not (settings.runtime_dir / "server.json").exists()
+    with RuntimeControl(settings):
+        pass

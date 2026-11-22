@@ -52,6 +52,9 @@ def main() -> int:
             server = uvicorn.Server(configuration)
             server.run()
             return 0 if server.started else 1
+    except KeyboardInterrupt:
+        # Uvicorn first completes its lifespan and then restores/re-raises SIGINT.
+        return 0
     except (Exception, SystemExit) as error:
         logging.getLogger("jarvis.server").error("server_failed", extra={"error_type": type(error).__name__})
         if not handlers:
