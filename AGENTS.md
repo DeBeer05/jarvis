@@ -106,3 +106,50 @@ a small built-in fallback — instead of crashing.
 - Settings and keys live in `config/api_keys.json` through
   `memory/config_manager.py`; never write that file directly.
 - Keep to the libraries already in `requirements.txt`.
+
+
+## JARVIS fork: blijvende Codex-projectinstructies (fase 0)
+
+Deze aanvullende regels behouden de upstreamrichtlijnen hierboven. De opdracht
+van de gebruiker blijft leidend. Dit project is nu uitsluitend voorbereid:
+STOP na fase 0; start fase 1 of applicatieontwikkeling pas na een nieuwe opdracht.
+
+Vóór iedere taak:
+1. Controleer `git status --short --branch`, huidige branch en remotes.
+2. Lees `DEVELOPMENT_PROGRESS.md` en relevante bestaande instructies.
+3. Onderzoek onbekende wijzigingen en respecteer hun eigendom; verwijder,
+   overschrijf, reset of stash ze niet automatisch.
+4. Controleer dat de opdracht binnen de geautoriseerde fase valt.
+
+Gebruik uitsluitend deze bestaande projectroot. Geen tweede jarvis-map.
+Behoud de Mark-LVII-historie, auteursvermelding en CC BY-NC 4.0-licentie.
+Wijzig in fase 0 geen applicatiecode, installeer geen dependencies/modellen en
+start geen app, integratie, OAuth of productieomgeving.
+
+Git mag binnen de actuele opdracht zelfstandig worden beheerd: normale lokale
+branches/commits, pushes naar de eigen fork, PR's, CI-controles en veilige merges
+binnen beschikbare rechten. Gebruik de helpers in `scripts/`:
+`feature/*` en `fix/*` vanaf develop, `release/*` vanaf develop, `hotfix/*` vanaf main.
+Controleer de actualiteit van de basisbranch vóór gebruik. Configureer bij een
+nieuwe clone `scripts/configure-git.ps1`. `origin` is DeBeer05/jarvis;
+`upstream` is alleen voor ophalen. Geef bij gh-PR's de eigen repo en basis expliciet op.
+
+Gebruik Conventional Commits en stage specifieke bestanden na diff- en
+geheimcontrole. Werk voortgang en changelog bij. Push featurebranches en maak
+PR's; controleer echte CI-resultaten. Merge naar develop alleen na passende tests,
+geslaagde vereiste checks en inhoudelijke beoordeling. Los mergeconflicten alleen
+op als de bedoeling duidelijk is en test de oplossing. Houd gebruikerswerk intact.
+Releasebranches bereiden versie, changelog en geteste artifacts voor; main krijgt
+alleen geteste, gecontroleerde wijzigingen via het toegestane PR-proces.
+
+Verboden: force-push naar gedeelde branches, onbekende wijzigingen verwijderen,
+geheimen of persoonsgegevens committen, branch protection omzeilen, ongeteste
+functionaliteit naar main mergen, schrijven naar upstream zonder aparte opdracht.
+Geen sleutels/tokens tonen in logs of rapporten. Bewaar credentials via keyring of
+andere geschikte lokale secretstore en behoud relevante gitignore-uitsluitingen.
+
+Verifieer met `python scripts/check_repository.py`, `git diff --check` en passende
+controles voor het gewijzigde onderdeel. De structuurcheck is geen applicatietest.
+Voer tests niet uit als ze apps, accounts of installaties activeren buiten de opdracht.
+Controleer push en CI in de remote repository en rapporteer blokkades eerlijk.
+Leg resterende stappen en de fasegrens vast in DEVELOPMENT_PROGRESS.md.

@@ -1023,3 +1023,41 @@ Engineered by a developer building a real-world JARVIS-style assistant.
 | --- | --- |
 | YouTube | [@FatihMakes](https://www.youtube.com/@FatihMakes) |
 | Instagram | [@fatihmakes](https://www.instagram.com/fatihmakes) |
+
+
+---
+
+## JARVIS-projectfork — fase 0 (22 november 2026)
+
+Deze persoonlijke, niet-commerciële fork van
+[FatihMakes/Mark-LVII](https://github.com/FatihMakes/Mark-LVII) bereidt een
+JARVIS-project voor op een Windows-mini-pc met 8 GB RAM, met een Windows Desktop
+Client, een toekomstige Android-app en een hybride AI-architectuur.
+De oorspronkelijke README hierboven beschrijft upstreamfunctionaliteit; die is
+in deze voorbereiding niet geïnstalleerd, gestart of functioneel gevalideerd.
+
+Alleen projectvoorbereiding is uitgevoerd. Geen nieuwe server/client/app of
+integratie ontwikkeld en geen productie-deployment geactiveerd. De bestaande
+applicatiecode en geschiedenis blijven behouden. De oorspronkelijke
+[CC BY-NC 4.0-licentie](LICENSE) en auteursvermelding gelden; commercieel gebruik
+is niet toegestaan zonder afzonderlijke rechten. Wijzigingen van deze fork
+staan in [CHANGELOG.md](CHANGELOG.md).
+
+Begin bij [DEVELOPMENT_PROGRESS.md](DEVELOPMENT_PROGRESS.md),
+[SETUP_CHECKLIST.md](SETUP_CHECKLIST.md), [GIT_WORKFLOW.md](GIT_WORKFLOW.md),
+[PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) en
+[ARCHITECTURE_PLAN.md](ARCHITECTURE_PLAN.md). Het plan behandelt beveiligde externe
+toegang, agenda/Gmail, berichten, internetbellen en zelfstandige automatiseringen;
+geen van deze koppelingen is tijdens fase 0 geactiveerd.
+[AGENTS.md](AGENTS.md) bevat blijvende instructies voor Codex.
+
+Veilige voorbereidende controle zonder appinstallatie:
+
+```powershell
+python scripts/check_repository.py
+```
+
+Het lege `.env.example` is uitsluitend een toekomstig configuratievoorbeeld;
+de bestaande Mark-LVII-app ondersteunt dit niet automatisch. Vul nooit echte
+credentials in voorbeeldbestanden in. Voer `setup.py` of de installatie-instructies
+hierboven pas uit bij een nieuwe ontwikkelopdracht. **STOP na fase 0.**
