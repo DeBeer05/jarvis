@@ -15,9 +15,15 @@
 
 ## Technische afronding
 
-De definitieve lokale checks, commit, remote push, CI en branch protection staan
-met hun echte uitkomst in `DEVELOPMENT_PROGRESS.md`. Vink deze niet af op basis
-van alleen de aanwezigheid van een workflowbestand.
+- [x] Lokale structuur-, gitignore-, syntaxis- en whitespacechecks geslaagd.
+- [x] Voorbereidingscommit gemaakt met behoud van de oorspronkelijke historie.
+- [x] Push naar eigen main en develop bevestigd.
+- [x] Echte CI op beide branches geslaagd.
+- [x] Branch protection op main en develop via API ingesteld en teruggelezen.
+- [x] Historische TLS-sleutel als resterende blootstelling gedocumenteerd.
+
+Exacte resultaten en CI-links staan in `DEVELOPMENT_PROGRESS.md`. De laatste
+afrondingsdocumentatie wordt eveneens via PR en CI verwerkt.
 
 ## Voor eventuele fase 1 — nog niet uitvoeren
 
