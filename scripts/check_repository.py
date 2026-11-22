@@ -71,6 +71,47 @@ def secret_findings(name: str, data: bytes) -> list[str]:
     return findings
 
 
+def staged_secret_findings() -> list[str]:
+    """Inspect index blobs, even when the working copy has already been cleaned."""
+    index = git("ls-files", "--stage", "-z")
+    if index.returncode:
+        return ["Cannot list staged files"]
+    entries = []
+    for entry in filter(None, index.stdout.split("\0")):
+        metadata, separator, name = entry.partition("\t")
+        if not separator:
+            return ["Invalid Git index entry"]
+        mode, oid, stage = metadata.split()
+        if stage != "0":
+            return ["Unresolved merge conflicts in Git index"]
+        if mode in ("100644", "100755", "120000"):
+            entries.append((oid, name))
+    if not entries:
+        return []
+    result = subprocess.run(
+        ["git", "cat-file", "--batch"], cwd=ROOT,
+        input="".join(oid + "\n" for oid, _ in entries).encode("ascii"),
+        capture_output=True, check=False,
+    )
+    if result.returncode:
+        return ["Cannot read staged file contents"]
+    errors = []
+    offset = 0
+    for oid, name in entries:
+        end = result.stdout.find(b"\n", offset)
+        header = result.stdout[offset:end].split()
+        if end < 0 or len(header) != 3 or header[:2] != [oid.encode("ascii"), b"blob"]:
+            return ["Invalid staged object response"]
+        size = int(header[2])
+        start = end + 1
+        stop = start + size
+        if result.stdout[stop:stop + 1] != b"\n":
+            return ["Incomplete staged object response"]
+        errors.extend(secret_findings(f"index/{name}", result.stdout[start:stop]))
+        offset = stop + 1
+    return errors
+
+
 def main() -> int:
     errors = []
     for name in DIRECTORIES:
@@ -112,6 +153,7 @@ def main() -> int:
     if actual != expected:
         errors.append("Example must contain only the approved inactive phase-0 placeholders")
 
+    errors.extend(staged_secret_findings())
     result = git("ls-files", "--cached", "--others", "--exclude-standard", "-z")
     if result.returncode:
         errors.append("Cannot list repository files")
