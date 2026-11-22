@@ -136,8 +136,10 @@ met synthetische fixtures zijn geslaagd. Alleen voorbereidingsbestanden gewijzig
 Aanvullende lokale Gitleaks 8.30.1-scan: nul bevindingen in de actuele gevolgde
 tree, één reeds bekende privé-TLS-sleutel in de geschiedenis van alle refs.
 Daarom is de volledige historie niet geheimvrij; die is niet herschreven.
-Herstelpublicatie volgt de beschermde PR-route; definitieve runstatus is zichtbaar
-in GitHub Actions en wordt vóór afronding van deze controle geverifieerd.
+Herstelcommit `b4b151e` is gepubliceerd op origin/fix/phase0-audit in
+[PR #3](https://github.com/DeBeer05/jarvis/pull/3). De vernieuwde CI is geslaagd
+op de featurepush (run `45052725626`) en PR (run `45052729305`).
+Integratie naar develop en main gebruikt de beschermde PR-route, zonder bypass.
 De ontwikkelbasis is gereed met deze expliciete historische uitzondering.
 Geen handmatige setup nodig; een eventueel nog gebruikte oude sleutel vervangen.
 **Geen fase 1 of applicatieontwikkeling gestart.**

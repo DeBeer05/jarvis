@@ -102,6 +102,10 @@ een uitsluitend gestaged synthetisch geheim wordt gevonden, veilige/dubbele blob
 worden geaccepteerd, en PR-, push-, handmatige en nieuwe-branchmodus weigeren
 committed whitespacefouten terwijl ze correcte wijzigingen accepteren.
 Geen echte sleutels gebruikt voor tests. Geen applicatiecode geïmporteerd.
+Herstelcommit `b4b151e` is gepusht in
+[PR #3](https://github.com/DeBeer05/jarvis/pull/3); de vernieuwde workflow is zowel
+op [featurepush](https://github.com/DeBeer05/jarvis/actions/runs/45052725626) als
+[PR](https://github.com/DeBeer05/jarvis/actions/runs/45052729305) geslaagd.
 
 ## 12. Gevoelige gegevens
 
