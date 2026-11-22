@@ -3,8 +3,9 @@
 ## Huidige opdracht
 
 Aanvulling fase 2: op verzoek Groq als derde cloudprovider toegevoegd. Groq
-GPT-OSS 120B live geslaagd; lokale auto-voorkeur Groq → Ollama. Onderzoek naar
-herhaling door het kleine Ollama-model loopt; details onderaan.
+GPT-OSS 120B live geslaagd; lokale auto-voorkeur Groq → Ollama. Herhaling door
+het kleine lokale model aangepakt met Qwen2.5 3B/temperature=0.2; twee echte
+vierbeurtgesprekken geslaagd. Details onderaan.
 
 Fase 2 — AI-engine en webchat geïmplementeerd en via PR #9 naar develop
 geïntegreerd (`40c2452`). 90 lokale tests geslaagd; oorspronkelijke PR- en merge-CI
@@ -406,3 +407,21 @@ De oorspronkelijke installatie-instructie maakte daardoor een onjuiste aanname.
 - Qwen3 4B proef: model gedownload (2,5 GB) op desktop; antwoorden bevatten hier
   ondanks non-thinkinginstelling veel denk-tekst en een timeout. Niet als
   geslaagd herstel beschouwd. Een gewone Qwen2.5 3B-instructievariant wordt getest.
+
+### Herstel lokale herhaling — 22 november 2026
+
+- Screenshotcase bevestigd als modelgedrag, niet als bewijs van hergebruik van
+  een oud gebruikersbericht. Regressietest borgt nieuwste bericht na herhaalde
+  assistantteksten. Geen gebruikersgesprekken verwijderd of transcript aangepast.
+- Qwen3 4B voldeed hier niet: denk-tekst ondanks instellingen, timeout en zwak
+  gesprek. Geen succes geclaimd; geen prompttrucs of verborgen denkfilter toegevoegd.
+- Qwen2.5 3B-instructievariant via officiële Ollama-pull gedownload (circa 1,9 GB).
+  Lokale OLLAMA_MODEL omgezet naar qwen2.5:3b; originele 0.6B en onderzochte 4B
+  blijven geïnstalleerd. Alleen deze desktop, niet mini-pc. Secrets behouden.
+- Ollama-temperature verlaagd naar 0.2, clouddefaults intact. Na herstart twee
+  echte vierbeurt-HTTP-gesprekken uitgevoerd met vragen uit de melding en een
+  rekensom: alle acht completed, correcte naam/rekenantwoord en geen identieke
+  begroetingslus. Alleen bekende eigen testgesprekken verwijderd.
+- Volledige suite: 99 tests geslaagd; Groq inclusief echte cloudproef operationeel.
+  Lokale auto blijft Groq → Ollama; Gemini wordt daarbij niet aangeroepen.
+  Begin nieuw gesprek om eerdere slechte modelantwoorden uit de context te houden.

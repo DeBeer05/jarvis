@@ -24,6 +24,9 @@ is nog niet bevestigd. Ollama qwen3:0.6b is inmiddels beschikbaar: echte
 automatische fallback met een volledig gestreamd en opgeslagen antwoord geslaagd.
 Groq GPT-OSS 120B is toegevoegd en live getest. De lokale auto-voorkeur is nu
 Groq → Ollama; bij deze voorkeur wordt Gemini niet aangeroepen.
+Voor betere lokale gesprekken is op deze desktop inmiddels Qwen2.5 3B ingesteld
+met lage temperature; de herhaalde begroetingscase is in twee gesprekken getest.
+Herlaad de webchat en begin een nieuw gesprek om dit te proberen.
 
 Herstart na configuratie- of codewijzigingen:
 

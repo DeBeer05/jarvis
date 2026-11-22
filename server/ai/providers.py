@@ -92,7 +92,7 @@ class TextProvider:
         transport = OpenAICompatLLM(config)
         try:
             deadline = time.monotonic() + self.settings.provider_timeout_seconds
-            async with aclosing(transport.chat(messages, tools=None, stream=True)) as source:
+            async with aclosing(transport.chat(messages, tools=None, stream=True, temperature=0.2 if self.name == "ollama" else None)) as source:
                 while True:
                     remaining = deadline - time.monotonic()
                     if remaining <= 0:

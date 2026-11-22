@@ -72,7 +72,7 @@ verander `OLLAMA_MODEL` en herstart JARVIS. De ingestelde modelnaam moet in
 `/api/tags` voorkomen. Deze probe heeft een korte timeout en een cache van 15 s.
 Uitsluitend een loopback-Ollama-origin zonder URL-credentials wordt toegestaan.
 JARVIS gebruikt `/v1/chat/completions`, `stream`, `max_tokens` en
-`reasoning_effort=none` voor Ollama; Gemini gebruikt `reasoning_effort=low`.
+`reasoning_effort=none` voor Ollama (niet door elke model/servercombinatie afgedwongen); Gemini gebruikt `reasoning_effort=low`.
 
 Contextgrootte, GPU-gebruik en resident modelgeheugen zijn Ollama-instellingen.
 De OpenAI-compatibele chatroute configureert geen `num_ctx` of `keep_alive`.
@@ -164,6 +164,31 @@ Ollama, ontbrekend model, authenticatie, quota, rate limit, tijdelijke modelover
 stream, onderbroken antwoord en outputlimiet. Ruwe providerfouten/headers worden
 niet naar de client of log gekopieerd. Annuleren sluit de lopende HTTP-stream;
 bij afbreken/herstart wordt de beurt als cancelled/interrupted opgeslagen.
+
+## Herhalende antwoorden van het lokale minimodel
+
+De screenshotmelding met steeds dezelfde begroeting is onderzocht. De engine
+stuurt het nieuwste gebruikersbericht correct door, ook na identieke eerdere
+modelantwoorden (regressietest). Qwen3 0.6B gaf in echte proeven echter zwakke
+Nederlandse antwoorden en vraagecho. Extra persona-instructies hielpen niet
+betrouwbaar en zijn niet opgeslagen. Een proef met Qwen3 4B gaf hier denk-tekst
+in content en een timeout; die variant is niet de actieve lokale keuze geworden.
+
+Op deze desktop is daarom `OLLAMA_MODEL=qwen2.5:3b` ingesteld. De officiële
+instructievariant is via de bestaande lokale Ollama gedownload (circa 1,9 GB).
+Alle Ollama-tekstaanroepen gebruiken nu temperature=0.2, zodat kleine lokale
+modellen minder willekeurig antwoorden. Groq/Gemini behouden hun eigen defaults.
+De lichte repository-/mini-pc-defaults zijn niet veranderd; niets is uitgerold
+naar de mini-pc. De onderzochte Qwen3 4B blijft als niet-actief model geïnstalleerd.
+
+Echte HTTP-tests: twee afzonderlijke gesprekken met ieder hallo, hoe heet je,
+met je praten en twee plus drie. Alle acht beurten completed, verschillende
+passende antwoorden, JARVIS als naam en vijf als rekenantwoord; opslag bevestigd.
+Dit is een gerichte regressieproef, geen garantie voor alle modelantwoorden.
+Begin in de webchat een nieuw gesprek en kies Ollama; oude herhalingen blijven
+als bewaarde geschiedenis bestaan. Voor betere cloudkwaliteit kun je Groq kiezen.
+
+Bron: [Qwen2.5 3B](https://ollama.com/library/qwen2.5:3b).
 
 ## Profielen en grenzen
 

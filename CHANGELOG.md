@@ -4,6 +4,10 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Lokale herhalingsmelding: nieuwste-berichtregressie toegevoegd, Ollama-temperature
+  0.2 en lokale Qwen2.5 3B-keuze. Twee echte gesprekken van vier beurten geslaagd;
+  bestaande gebruikersgesprekken en lichte repositorydefaults behouden.
+
 - Groq met GPT-OSS 120B toegevoegd als derde provider, met streaming, veilige
   sleutels, webchatkeuze en auto-voorkeur Groq → Ollama. Echte Groq-proef geslaagd;
   geen nieuwe dependency of database-migratie. 99 automatische tests.

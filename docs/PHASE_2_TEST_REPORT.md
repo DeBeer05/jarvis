@@ -133,3 +133,16 @@ uit context/DB/logs houden, Groq-fallback zonder Gemini en geen fallback na teks
 configvalidatie en provider-/webchatstatus. Een herhalingsregressietest bewijst
 bovendien dat nieuwe gebruikersberichten ook na identieke modelantwoorden als
 laatste bericht aan de provider worden doorgegeven. Totaal: 99 geslaagde tests.
+
+
+## Aanvullend: herhalingsmelding lokaal model
+
+Nieuwste gebruikersberichten worden aantoonbaar correct verstuurd. Qwen3 0.6B
+bleek zwak in Nederlandse dialogen; Qwen3 4B is op deze desktop geprobeerd maar
+gaf ongewenste denk-tekst en een timeout. Die proef geldt niet als geslaagd.
+Qwen2.5 3B is vervolgens gedownload en lokaal gekozen, met Ollama-temperature 0.2.
+Via echte JARVIS-HTTP twee gesprekken van vier beurten gecontroleerd: hallo,
+hoe heet je, met je praten en twee plus drie. Alle acht completed, passende
+verschillende antwoorden, JARVIS en vijf. De opslag is opgehaald en uitsluitend
+bekende testgesprekken zijn verwijderd. Geen garantie voor willekeurige vragen;
+bestaande gebruikersgeschiedenis en de oorspronkelijke persona blijven behouden.
