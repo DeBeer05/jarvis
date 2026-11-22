@@ -5,19 +5,28 @@ Datum: 22 november 2026, Europe/Amsterdam. Windows-ontwikkeldesktop, Python
 
 ## Resultaat en acceptatiegrens
 
-De AI-engine, API, SQLite-migratie en webchat zijn geïmplementeerd. **88 tests
-geslaagd** (laatste implementatierun circa 4,7 s); oorspronkelijke 39 fase-1-tests
+De AI-engine, API, SQLite-migratie en webchat zijn geïmplementeerd. **90 tests
+geslaagd** (laatste implementatierun 4,58 s); oorspronkelijke 39 fase-1-tests
 inbegrepen en bijgewerkt voor versie 0.2/schema 2. Eén bekende niet-blokkerende
 Starlette/httpx-testadapter-deprecatiewaarschuwing. De structuurcheck is aanvullend,
 geen vervanging voor applicatietests.
 
-**Er is geen echt Gemini- of Ollama-antwoord gegenereerd.** Er was geen lokale
-Gemini-sleutel, geen Ollama-commando en geen server op 127.0.0.1:11434. Die
-beperkingen zijn zichtbaar in de echte providerstatus/webchat. Geen model,
-provideraccount, GPU-package of Ollama geïnstalleerd. Live provideracceptatie
-blijft open totdat de eigenaar een provider configureert en de stappen uit
-[CHAT_API.md](CHAT_API.md) uitvoert. Er wordt geen live succes geclaimd op basis
-van mocks.
+**Er is nog geen succesvol live Gemini- of Ollama-antwoord gegenereerd.**
+Aanvankelijk ontbraken beide providers. De eigenaar heeft tijdens het werk zelf
+lokaal een Gemini-sleutel ingesteld. Daarna is Gemini echt aangeroepen via de
+chat-SSE-route. Google retourneerde HTTP 503 / UNAVAILABLE met een melding over
+hoge vraag naar dit model; een latere herhaling gaf dezelfde uitkomst. Geen
+tekst ontvangen. De sleutel is niet getoond of gecommit. De generieke fout is
+verbeterd naar een vaste Nederlandse melding voor tijdelijke overbelasting.
+Een aanvullende directe REST-diagnose bevestigde de HTTP-status; geen ruwe
+providerdiagnose opgeslagen. Het echte arrayformaat van Google's foutresponse
+is verwerkt en met extra regressietests gecontroleerd (quota/overbelasting).
+
+Ollama-commando/server op 127.0.0.1:11434 blijft afwezig. Geen model,
+provideraccount, GPU-package of Ollama geïnstalleerd. Live antwoordacceptatie
+blijft open door Gemini-overbelasting en ontbrekende lokale fallback. Herhaal
+later de stappen uit [CHAT_API.md](CHAT_API.md), of configureer bewust Ollama.
+Er wordt geen live succes geclaimd op basis van mocks.
 
 ## Automatische tests met mocks en tijdelijke SQLite
 
@@ -26,7 +35,7 @@ van mocks.
 | Gemini/Ollama-adapters | Gedeeld echt transport via HTTPX MockTransport; officiële URL, headers, model/body, streamingframes; geen externe netwerkcalls |
 | Detectie | Ollama tags/bereikbaarheid, cache, ontbrekend model; Gemini sleutel ontbreekt zonder desktopconfig te lezen |
 | Selectie/fallback | auto/expliciet, technische fout vóór tekst, geen tweede antwoord na deeltekst, werkelijke provider/model |
-| Fouten | Authenticatie, quota versus rate limit, netwerk-/provider-/totale timeout, ongeldige/onvolledige stream, contentfilter |
+| Fouten | Authenticatie, quota versus rate limit (ook JSON-array), 503-overbelasting, netwerk-/provider-/totale timeout, ongeldige/onvolledige stream, contentfilter |
 | Streams/cleanup | Meta/delta/done, annuleren vóór/tijdens generatie, disconnect, verlopen reservering, gesloten providerverbinding |
 | Deadline na eerste tekst | Echte HTTPX AsyncByteStream met gesimuleerde stalling: gedeeltelijke tekst behouden, stream gesloten, geen fallback, slot vrij |
 | API/veiligheid | JSON/SSE, UUID/invoervalidatie, grote body, externe Origin/client, concurrency/rate-/context-/opslaglimieten, dubbele verzoeken |
@@ -82,7 +91,8 @@ niet gebruikt of opnieuw toegevoegd. Geen chatdatabase/.env/runtime-token in Git
 
 ## Nog handmatig te valideren
 
-Configureer zelf Gemini of een lokaal Ollama-model, herstart de server en test
+Gemini is inmiddels lokaal geconfigureerd maar tijdelijk overbelast. Probeer
+later opnieuw, of configureer zelf een lokaal Ollama-model; herstart en test
 antwoord/streaming/Stop/context volgens CHAT_API.md. Test auto-fallback met twee
 bruikbare providers. Providerkwaliteit, echte quota, netwerkvertraging, langdurige
 belasting en model-RAM/GPU-gebruik zijn hier niet live gemeten. Het mini-pc-profiel

@@ -4,6 +4,10 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Fase 2 via PR #9 naar develop; 90 tests, echte browser-/herstartcontrole en
+  live Gemini-proef (503-overbelasting, nog geen live antwoord). Google-foutarrays
+  ondersteund, duidelijke overbelastingsmelding en veilige Windows-envkopieën.
+
 - Fase 2: gedeelde Gemini/Ollama-teksttransportlaag, centrale fallbackrouter,
   begrensde chat-API/SSE, annuleerbare antwoorden, SQLite-gesprekken en lokale webchat.
 - Windows-instructies en Git-branchhelpers gebruiken de ingebouwde PowerShell

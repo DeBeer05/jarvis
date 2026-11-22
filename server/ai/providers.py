@@ -19,6 +19,7 @@ MESSAGES = {
     "timeout": "De AI-provider antwoordde niet op tijd. Probeer opnieuw of kies een andere provider.",
     "content_filtered": "De provider heeft dit antwoord geweigerd. Pas je bericht aan.",
     "invalid_response": "De provider gaf een onvolledig of ongeldig antwoord.",
+    "overloaded": "Het AI-model is tijdelijk overbelast. Probeer later opnieuw of kies een andere provider.",
     "provider_error": "De AI-provider gaf een technische fout. Probeer opnieuw.",
     "stream_interrupted": "Het antwoord is onderweg onderbroken. Er is geen tweede antwoord gestart.",
     "response_limit": "Het antwoord bereikte de ingestelde maximale grootte.",
@@ -108,6 +109,8 @@ class TextProvider:
                 code = "quota_exceeded" if "quota" in json.dumps(error.body).lower() else "rate_limited"
             elif error.status_code in (401, 403):
                 code = "authentication"
+            elif error.status_code == 503:
+                code = "overloaded"
             elif error.status_code == 404:
                 code = "model_missing"
             elif error.kind in ("invalid_stream", "incomplete_stream"):

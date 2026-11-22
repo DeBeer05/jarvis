@@ -45,8 +45,10 @@ def test_gemini_official_rest_transport_and_limits(settings):
 @pytest.mark.parametrize("status,body,expected", [
     (429, {"error": {"message": "quota exhausted"}}, "quota_exceeded"),
     (429, {"error": {"message": "too many requests"}}, "rate_limited"),
+    (429, [{"error": {"message": "quota exhausted"}}], "quota_exceeded"),
+    (503, [{"error": {"status": "UNAVAILABLE", "message": "high demand"}}], "overloaded"),
     (401, {}, "authentication"), (403, {}, "authentication"),
-    (404, {}, "model_missing"), (500, {}, "provider_error"), (503, {}, "provider_error"),
+    (404, {}, "model_missing"), (500, {}, "provider_error"), (503, {}, "overloaded"),
 ])
 def test_provider_http_failures_sanitized(settings, status, body, expected):
     settings = replace(settings, gemini_api_key="test-canary-" + "do-not-expose")
