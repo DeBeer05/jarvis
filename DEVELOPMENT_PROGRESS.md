@@ -229,3 +229,12 @@ Geen handmatige setup nodig; een eventueel nog gebruikte oude sleutel vervangen.
   functionele testfout. Oude upstream-TLS-sleutel blijft in de behouden historie
   en wordt niet gebruikt. De 8-GB-doelmachine is nog niet afzonderlijk gemeten.
 - Volgende fase: uitsluitend na een nieuwe opdracht. **STOP; fase 2 niet gestart.**
+
+### CI-runtime bij oplevering
+
+De eerste geslaagde runs meldden dat oudere Actions op Node 20 waren gebaseerd
+en door GitHub op Node 24 werden uitgevoerd. Daarom zijn alleen de CI-pins
+bijgewerkt naar de officiële checkout v7.0.1- en setup-python v7.1.0-commits,
+waarvan de actionmetadata expliciet Node 24 voorschrijft. Servercode en main zijn
+hierbij niet gewijzigd. Dezelfde verplichte repository-/Windows-/Linuxchecks
+gelden voor deze kleine CI-correctie en de normale PR-route blijft van kracht.
