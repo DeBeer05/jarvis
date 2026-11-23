@@ -44,7 +44,8 @@ desktop na toestemming geïnstalleerd. De bestaande chat/context wordt hergebrui
 [Spraakhandleiding](docs/VOICE_SETUP.md) · [Modellen](docs/VOICE_MODELS.md) ·
 [Privacy](docs/VOICE_PRIVACY.md) · [Fase-5-testverslag](docs/PHASE_5_TEST_REPORT.md).
 Wake-frase is experimenteel; XTTS en gesproken onderbreken zijn niet beschikbaar.
-Geen tweede backend of Windows-app. Stop na fase 5; geen Android gestart.
+Geen tweede backend of Windows-app. Dit beschrijft de eerdere fase 5;
+de actuele fase-7-uitbreiding en fasegrens staan bovenaan.
 
 ## Server en webchat — gerealiseerd in fase 3
 

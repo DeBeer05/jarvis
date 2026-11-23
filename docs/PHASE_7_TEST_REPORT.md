@@ -1,12 +1,17 @@
 # Testverslag fase 7
 
 Geïmplementeerd op feature/smart-automations vanaf develop c405304 (fase 6/PR #17).
-Alle tests gebruiken tijdelijke synthetische accounts/databases. Je echte server
-en database zijn nog niet geactiveerd/gemigreerd voor fase 7.
+Alle automatische functionele tests gebruiken tijdelijke synthetische accounts/
+databases. Daarna is de echte server afzonderlijk gecontroleerd herstart. Schema
+4, een voorafgaande backup en behoud van het eigenaaraccount zijn bevestigd.
+Health/ready/webscherm geven 200, anonieme automation-API's geven 401. Er zijn
+nul echte automatiseringstaken en geen Google-accountkoppelingen aangemaakt.
+Lokale fase-/schedulerflags zijn bijgewerkt zonder credentials te wijzigen.
 
 Bevestigd: 194 servertests, waarvan 22 nieuwe automatiseringstests;
 75 Windows-clienttests. Remote CI wordt op dezelfde featurehead gecontroleerd
 vóór integratie naar develop; main blijft ongewijzigd.
+Integratie via [PR #18](https://github.com/DeBeer05/jarvis/pull/18).
 
 Gedekt: SQLite-persistentie/idempotentie, herstel van reads en onzekere externe
 acties, workflowstappen/pauzeren/annuleren, expliciete devicegrants/intrekking,

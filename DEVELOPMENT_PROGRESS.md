@@ -19,7 +19,13 @@ Bandit drie lage bestaande signalen, geen middel/hoge of suppressies.
 Repository-/whitespace-/indexgeheimcontrole geslaagd. Git-afhandeling via eigen
 featurebranch en PR naar develop, uitsluitend na groene checks en inhoudelijke
 review; main blijft ongewijzigd. Android 0.7.0-APK staat in .local/android-build.
-Echte server/data zijn niet herstart of gemigreerd. FCM externe bezorging is nog
+De echte server is daarna afzonderlijk gecontroleerd herstart op dezelfde
+loopback:8765. Schema 4, migratiebackup en behoud van het eigenaaraccount zijn
+bevestigd; health/ready/automations geven 200 en anonieme automation-API's 401.
+Alleen lokale fase-/schedulerflags zijn bijgewerkt; credentials zijn behouden.
+Er zijn nul automatiseringstaken aangemaakt en geen Google-account gekoppeld.
+Integratie via [PR #18](https://github.com/DeBeer05/jarvis/pull/18), na groene CI.
+FCM externe bezorging is nog
 niet ingericht; de engine levert een geauthenticeerde inbox en bestaande lokale
 notificaties. Geen volledige oproepen, productie, mini-pc of fase 8.
 
