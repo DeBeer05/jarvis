@@ -126,6 +126,9 @@ automatiseringen, OAuth Calendar/Gmail en clients. Nieuwe automatiseringsrechten
 alleen na eigenaargrant; externe wijzigingen vereisen gebonden eenmalige approval.
 Geen echte accounttests of externe berichten zonder afzonderlijke toestemming.
 De gebruiker heeft daarna expliciet bediening via AI-chat en spraak opgedragen.
+Windows-bediening en eigenaarbeheer van Windows-/Android-rechten zijn eveneens
+expliciet opgedragen. De eigen app-/browserinterface mag een apparaat selecteren
+en rechten voorstellen; alleen de eigenaar bevestigt de daadwerkelijke grant.
 De headless chat mag uitsluitend gevalideerde geregistreerde automatiseringstools
 gebruiken, onder de bestaande apparaatrechten. Externe mutaties blijven gebonden
 aan een afzonderlijke exacte goedkeuring; een gesproken/getypt ja is geen approval.

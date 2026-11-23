@@ -2,6 +2,7 @@
 import base64
 import hashlib
 import json
+import re
 import secrets
 import threading
 import time
@@ -108,7 +109,8 @@ class ApiClient:
             return {"Authorization": "Bearer " + self.access}
 
     def request(self, method, path, body=None):
-        if not path.startswith("/api/v1/") or "?" in path and not path.startswith("/api/v1/chat/conversations?"):
+        mail_body = re.fullmatch(r"/api/v1/automation/email/[A-Za-z0-9_-]+\?include_body=true", path)
+        if not path.startswith("/api/v1/") or "?" in path and not (path.startswith("/api/v1/chat/conversations?") or mail_body):
             raise ValueError("Invalid API path")
         try:
             return self._network(method, path, headers=self.headers(), **({"json": body} if body is not None else {}))

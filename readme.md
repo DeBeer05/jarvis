@@ -7,6 +7,7 @@ rechten alleen na expliciete eigenaargrant. Normale AI-chat en spraak kunnen dez
 tools nu gebruiken. De gebruiker heeft de Google-koppeling werkend bevestigd;
 automatische accounttests gebruiken synthetische data.
 [Via AI-chat en spraak](docs/AI_CHAT_AUTOMATIONS.md) ·
+[Windows 0.7.1: agenda/mail en Windows-/Android-rechten](docs/WINDOWS_CLIENT.md) ·
 [Starten en koppelen](docs/CALENDAR_INTEGRATION.md) ·
 [Taken en goedkeuringen](docs/WORKFLOW_ENGINE.md) ·
 [E-mail](docs/GMAIL_INTEGRATION.md) · [Teststatus](docs/PHASE_7_TEST_REPORT.md).

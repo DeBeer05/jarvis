@@ -78,10 +78,10 @@ def test_google_selection_and_login_return_allowlist():
     code=r'''
 const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/strict');
 const scripts=process.argv[1];
-for(const destination of ['/automations?google=all#oauth','https://other.example/','//other.example/','javascript:alert(1)']) {
+for(const destination of ['/automations?google=all#oauth','/automations#device=11111111-1111-4111-8111-111111111111','/automations#device=javascript:alert(1)','https://other.example/','//other.example/','javascript:alert(1)']) {
  const context={sessionStorage:{getItem:key=>key==='jarvis_after_login'?destination:null,removeItem:()=>{}},document:{getElementById:()=>({addEventListener:()=>{}})},fetch:()=>new Promise(()=>{}),JarvisAuth:{csrf:()=>''}};
  vm.createContext(context);vm.runInContext(fs.readFileSync(scripts+'/login.js','utf8'),context);
- assert.equal(vm.runInContext('loginDestination()',context),destination==='/automations?google=all#oauth'?destination:'/chat');
+ assert.equal(vm.runInContext('loginDestination()',context),['/automations?google=all#oauth','/automations#device=11111111-1111-4111-8111-111111111111'].includes(destination)?destination:'/chat');
 }
 const checks=['calendar_read','calendar_write','gmail_read','gmail_compose'].map(name=>({name,checked:false}));
 const elements={},fields={};const context={URLSearchParams,Intl,location:{search:'?google=all'},document:{getElementById:id=>elements[id]??(elements[id]={addEventListener:()=>{},querySelectorAll:()=>checks,elements:{namedItem:name=>fields[name]??(fields[name]={value:''})}})},JarvisAuth:{initialize:()=>new Promise(()=>{})}};
@@ -103,4 +103,11 @@ def test_calendar_results_stay_in_calendar_panel():
 def test_mail_results_stay_in_mail_panel_and_body_is_opt_in():
     root=Path(__file__).resolve().parents[1]
     result=subprocess.run([shutil.which("node"),str(root/"tests/js/mail_view.cjs"),str(root/"server/static/automations.js")],capture_output=True,text=True,timeout=10)
+    assert result.returncode==0,result.stderr
+
+
+@pytest.mark.skipif(not shutil.which("node"),reason="Optional JavaScript runtime")
+def test_owner_selects_windows_and_android_without_automatic_grants():
+    root=Path(__file__).resolve().parents[1]
+    result=subprocess.run([shutil.which("node"),str(root/"tests/js/device_grants.cjs"),str(root/"server/static/automations.js")],capture_output=True,text=True,timeout=10)
     assert result.returncode==0,result.stderr

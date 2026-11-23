@@ -4,6 +4,13 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Windows 0.7.1: leesbare native agenda- en e-maillijsten, agenda-/periodekeuze,
+  expliciete berichtinhoud, bescherming tegen late antwoorden en duidelijke
+  rechtenmelding met eigenaarlink. Chat en spraak behouden dezelfde AI-tools.
+- Eigenaarinterface: gekoppelde Windows-/Android-apparaten kiezen op naam/type,
+  huidige rechten bekijken en afzonderlijk toekennen. Een deeplink is alleen een
+  voorstel en verleent niets. Veilige terugkeer naar dat apparaat na eigenaarlogin.
+
 - Agenda, Gmail en herinneringen bedienen vanuit dezelfde AI-chat en spraakroute,
   met gekozen provider, gevalideerde tools, actuele apparaatrechten en tijdelijke
   gespreksreferenties. Leesbare echte toolresultaten; externe wijzigingen blijven
