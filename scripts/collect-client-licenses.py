@@ -6,7 +6,10 @@ from pathlib import Path
 
 destination = Path(sys.argv[1]).resolve() / "third-party-licenses"
 destination.mkdir(parents=True, exist_ok=True)
-for name in ("PySide6-Essentials", "shiboken6", "httpx", "httpcore", "anyio", "idna", "certifi", "h11", "typing_extensions"):
+names = ("PySide6-Essentials", "shiboken6", "httpx", "httpcore", "anyio", "idna", "certifi", "h11", "typing_extensions", "numpy", "sounddevice", "cffi", "pycparser")
+if "--voice" in sys.argv:
+    names = (package.metadata["Name"] for package in importlib.metadata.distributions())
+for name in names:
     package = importlib.metadata.distribution(name)
     for relative in package.files or ():
         if "license" in str(relative).lower() or "copying" in str(relative).lower():

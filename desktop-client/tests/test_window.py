@@ -35,13 +35,13 @@ def test_initialization_navigation_and_safe_defaults(qt, tmp_path, vault):
     app = window(tmp_path, vault)
     app.show()
     qt.processEvents()
-    assert app.pages.count() == 6 and app.isVisible()
+    assert app.pages.count() == 7 and app.isVisible()
     assert not app.send_button.isEnabled() and not app.delete_button.isEnabled()
     assert not app.setting_checks["startup"].isChecked()
-    for index in range(6):
+    for index in range(7):
         app.navigate(index)
         assert app.pages.currentIndex() == index and app.nav[index].isChecked()
-    assert app.voice.microphone == "Niet actief"
+    assert not app.voice.consent and not app.voice.recording and not app.voice.wake_enabled
     app.closing = True
     app.tray.hide()
     app.close()

@@ -1,5 +1,19 @@
 # Architectuurplan — Windows-client en server
 
+## Actuele uitbreiding: fase 5
+
+Dezelfde client heeft nu een lokaal spraakpaneel, sounddevice-capture/playback,
+energie-/Silero-VAD, faster-whisper Nederlands en Piper-stemmen. Een afzonderlijke
+inferencehelper gebruikt private pipes en een eigen geïsoleerde omgeving, zonder
+extra GUI, backend, credentials of audio-endpoints. Capture/tekst/audioqueues zijn
+begrensd; generatiecontrole en procesannulering beschermen tegen oude uitvoer.
+De bestaande geauthenticeerde SSE-route en conversation_id behouden context.
+Microfoon alleen na sessietoestemming. Zie docs/VOICE_ARCHITECTURE.md.
+Experimentele Whisper-wakefrase, CPU-fallback en licht geheugenprofiel; geen XTTS,
+spraakgestuurde barge-in/AEC of bewezen Nederlandse wake-modelkwaliteit.
+**Actuele fasegrens: stop na fase 5, geen Android of mini-pc-deployment.**
+De volgende secties beschrijven de eerder gerealiseerde fasen.
+
 ## Windows-client, fase 4
 
 `desktop-client/jarvis_client` is een zelfstandig PySide6-Essentials-proces.
@@ -10,7 +24,7 @@ scheiden protocol, reconnect, veilige opslag en niet-geheime instellingen.
 Een QLockFile voorkomt concurrerende instanties met dezelfde refreshcredential.
 QSystemTrayIcon levert systeemvak/meldingen, Startup alleen expliciete HKCU Run-
 opt-in, LocalAgent uitsluitend een door de gebruiker toegestane system_info-demo.
-VoiceCapability is een inactieve interface voor de apart opgedragen fase 5.
+De eerdere VoiceCapability-placeholder is in fase 5 vervangen door de spraakmodules.
 
 Native desktoplogin gebruikt op gebruikersverzoek de bestaande eigenaarcredentials
 via /api/v1/auth/desktop-login. Dezelfde Argon2id-/rate-limitservice geeft minimale

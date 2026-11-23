@@ -10,7 +10,7 @@ import pytest
 
 from jarvis_client.api import ApiClient, ClientError, challenge
 from jarvis_client.connection import backoff
-from jarvis_client.platform_services import LocalAgent, NotificationCenter, VoiceCapability, Startup
+from jarvis_client.platform_services import LocalAgent, NotificationCenter, Startup
 from jarvis_client.settings import Preferences, SettingsStore, endpoint
 from jarvis_client.vault import WindowsVault
 
@@ -188,7 +188,6 @@ def test_local_agent_has_only_explicit_non_shell_capability():
     with pytest.raises(PermissionError):
         agent.run("shell", {"shell"})
     assert "cpu_threads" in agent.run("system_info", {"system_info"})
-    assert not VoiceCapability().enabled
 
 
 def test_notification_preferences_deduplication_and_bounded_history():

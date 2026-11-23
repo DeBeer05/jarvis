@@ -3,7 +3,6 @@ import os
 import platform
 import sys
 import time
-from dataclasses import dataclass
 from pathlib import Path
 
 
@@ -14,14 +13,6 @@ class LocalAgent:
         if action not in self.ALLOWED or action not in grants:
             raise PermissionError("Deze lokale actie is niet toegestaan.")
         return {"os": platform.system(), "release": platform.release(), "architecture": platform.machine(), "cpu_threads": os.cpu_count()}
-
-
-@dataclass(frozen=True)
-class VoiceCapability:
-    enabled: bool = False
-    microphone: str = "Niet actief"
-    push_to_talk: bool = False
-    wake_word: bool = False
 
 
 class NotificationCenter:

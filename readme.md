@@ -1,6 +1,6 @@
 # JARVIS — Windows-client en beveiligde AI-webchat
 
-De aparte Windows-client (fase 4) gebruikt dezelfde server en een eigen veilige
+De Windows-client 0.5.0 (fase 5) gebruikt dezelfde server en een eigen veilige
 Windows-apparaatsessie. Start vanuit de bestaande projectroot:
 
 ```powershell
@@ -19,8 +19,15 @@ onderdeel van de client. Autostart staat standaard uit.
 [Windows-handleiding](docs/WINDOWS_CLIENT.md) ·
 [Clientbeveiliging](docs/WINDOWS_CLIENT_SECURITY.md) ·
 [Build](docs/WINDOWS_CLIENT_BUILD.md) · [Fase-4-testverslag](docs/PHASE_4_TEST_REPORT.md).
-Fase 5 is inmiddels apart opgedragen en wordt bovenop deze client ontwikkeld;
-er wordt geen tweede backend of Windows-app gestart.
+**Spraak:** open het scherm Spraak, kies je apparaten en Piper/Ronnie, test de
+stem en geef zelf microfoontoestemming. **Ctrl+Space** start/verwerkt opname;
+**Ctrl+Shift+Space** stopt audio en antwoord. Microfoon en globale sneltoetsen
+staan standaard uit. Whisper Small en Nederlandse Piper-stemmen zijn op deze
+desktop na toestemming geïnstalleerd. De bestaande chat/context wordt hergebruikt.
+[Spraakhandleiding](docs/VOICE_SETUP.md) · [Modellen](docs/VOICE_MODELS.md) ·
+[Privacy](docs/VOICE_PRIVACY.md) · [Fase-5-testverslag](docs/PHASE_5_TEST_REPORT.md).
+Wake-frase is experimenteel; XTTS en gesproken onderbreken zijn niet beschikbaar.
+Geen tweede backend of Windows-app. Stop na fase 5; geen Android gestart.
 
 ## Server en webchat — gerealiseerd in fase 3
 
