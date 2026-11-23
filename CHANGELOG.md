@@ -4,6 +4,14 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Webmail: afzender/onderwerp en leesbare reader in E-mail, zonder bericht-ID's
+  te kopiëren. Inhoud opt-in, veilige tekstweergave en begrensde metadata-opvraag;
+  resultaten verschijnen niet meer bij Actie voorbereiden.
+
+- Webagenda: agenda's selecteren op naam en afspraken leesbaar direct bij Agenda;
+  standaard weekperiode en lokale laad-/fout-/leegmeldingen. Resultaten verschijnen
+  niet langer als losse JSON bij Actie voorbereiden. Late antwoorden afgeschermd.
+
 - Google-setup: herstel 404/MIME-fout voor automations.js in de bestaande
   assetallowlist, regressiecontrole op echte HTML-assets en Google-koppelen.bat
   voor veilige Desktop OAuth-JSON-configuratie en alle vier ondersteunde rechten.

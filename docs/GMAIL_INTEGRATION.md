@@ -7,8 +7,14 @@ gebruik voor ontwikkeling je eigen toestemming/testaccount, geen publieke uitrol
 Er zijn geen echte mailboxgegevens opgehaald of echte e-mails verzonden in tests.
 
 Web → E-mail: zoek bijvoorbeeld in:inbox of from:synthetic@example.com. Open een
-bericht-ID. Standaard wordt alleen metadata gelezen; inhoud vereist een expliciete
+bericht via Bericht openen in de lijst met afzender en onderwerp. Er worden per
+zoekactie maximaal tien berichten getoond; verfijn zo nodig je zoekopdracht.
+Standaard wordt alleen metadata gelezen; inhoud vereist een expliciete
 keuze. Volledige ontvangen e-mails worden niet in de takenhistorie gekopieerd.
+Na Inhoud lezen kun je met Geselecteerd bericht openen de tekst ophalen. Alleen
+de gewone tekstversie wordt weergegeven; HTML wordt niet uitgevoerd en externe
+afbeeldingen worden niet geladen. Voor HTML-only mail staat er een korte weergave
+en een aanwijzing om de volledige opmaak in Gmail te bekijken.
 Samenvatten gebruikt de bestaande AI-router, met de tekst als onbetrouwbare data.
 Die functie heeft geen tool-/rechtenpad. Stuur alleen inhoud naar je gekozen
 provider die je daarmee wilt delen; kies Ollama wanneer je verwerking lokaal wilt.
