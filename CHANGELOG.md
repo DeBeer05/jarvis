@@ -4,6 +4,11 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Spraakagenda: ‘Wat stond er voor vandaag in mijn agenda?’ en vergelijkbare
+  complete dagvragen halen rechtstreeks echte toolresultaten op, met dezelfde
+  rechtencontrole. ‘En morgen?’ behoudt de gekozen agenda; geen willekeurige
+  modelontkenning van toegang bij een persoonlijke toolvraag.
+
 - Windows 0.7.1: leesbare native agenda- en e-maillijsten, agenda-/periodekeuze,
   expliciete berichtinhoud, bescherming tegen late antwoorden en duidelijke
   rechtenmelding met eigenaarlink. Chat en spraak behouden dezelfde AI-tools.

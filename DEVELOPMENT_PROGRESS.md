@@ -2,6 +2,33 @@
 
 ## Huidige opdracht
 
+### Spraakagenda en Android-verbinding herstellen — 23 november 2026
+
+Windows-/rechtenuitbreiding via PR #22 geïntegreerd naar develop 237b10c na tien
+groene push-/PR-jobs. Tijdens die opdracht meldde de gebruiker dat spraak alsnog
+geen agenda kon lezen en dat Android offline was. Nieuwe fixbranch vanaf deze
+basis; bestaande gebruikersbestanden en sessies behouden.
+
+Actuele rechtencontrole: zowel het bestaande Windows- als Android-apparaat heeft
+inmiddels expliciet automation:read/write. De gesproken variant met ‘stond’ en
+vraagteken bleek een gewone modelreactie zonder tool te krijgen, terwijl een
+eerdere getypte variant wél las. Complete dagvragen worden nu rechtstreeks
+gevalideerd gelezen, onafhankelijk van hoofdletters, leestekens en staat/stond.
+‘En morgen?’ behoudt de werkelijk gekozen agenda, ook na een lege lijst. Dezelfde
+actuele sessie-/rechten-/requestguards blijven gelden. Een persoonlijke toolvraag
+kan niet meer via chat:true een verzonnen ontkenning van agendatoegang opleveren.
+
+31 gerichte automatiseringschattests en de volledige suite van 235 servertests
+geslaagd. De bestaande loopbackserver gecontroleerd herstart met de fix. Geen
+echt Google-account namens de gebruiker bevraagd of externe mutatie uitgevoerd.
+
+Android: aanvankelijk alleen de emulator via ADB zichtbaar. Na expliciete
+gebruikersbevestiging werd de echte telefoon aangesloten. Ontbrekende reverse-
+tunnel naar 8765 hersteld; HTTP 200 vanaf de echte telefoon naar /health bevestigd.
+De eigen JARVIS-UI op de echte telefoon toont daarna Online; tijdelijke UI-dump
+direct verwijderd. Geen APK-update, dataverwijdering, herpairing of publieke poort.
+USB moet voor deze lokale ontwikkelopstelling verbonden blijven. Stop na fase 7.
+
 ### Windows-bediening en Windows-/Android-rechten — 23 november 2026
 
 AI-chatuitbreiding geïntegreerd via PR #21 / develop 9b6f498 na tien groene

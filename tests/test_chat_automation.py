@@ -58,7 +58,7 @@ def test_agenda_reads_actual_tool_result_through_existing_sse(tools_chat):
     data=[json.loads(line[6:]) for line in response.text.splitlines() if line.startswith("data: ")]
     assert [data[0]["type"],data[-1]["type"]]==["meta","done"]
     assert data[-1]["status"]=="completed" and "Tandarts" in data[-1]["message"]
-    assert len(calls)==1 and router.planning_calls[0][1]=="ollama"
+    assert len(calls)==1 and not router.planning_calls
     assert "Tandarts" in c.get("/api/v1/chat/conversations/"+data[0]["conversation_id"]).json()["turns"][0]["assistant_text"]
 
 
@@ -279,7 +279,7 @@ def test_local_model_shape_and_dutch_tomorrow_use_full_local_day(tools_chat):
     router.plans=[{"CalendarRead":{"start":"2020-01-01T00:00:00Z","end":"2020-01-02T00:00:00Z"}}]
     async def events(payload):calls.append(payload);return {"items":[]}
     app.state.automation.integrations.events=events
-    assert "geen afspraken" in call(c,"Wat staat er morgen in mijn agenda?").json()["message"]
+    assert "geen afspraken" in call(c,"Zoek afspraken voor morgen in mijn agenda").json()["message"]
     expected=datetime.now(ZoneInfo("Europe/Amsterdam")).date()+timedelta(days=1)
     start=datetime.fromisoformat(calls[0]["start"]);end=datetime.fromisoformat(calls[0]["end"])
     assert start.date()==expected and start.hour==0 and end.date()==expected+timedelta(days=1) and end.hour==0
@@ -370,3 +370,30 @@ def test_read_clarification_keeps_context_for_short_answer(tools_chat):
     assert "geen afspraken" in answer["message"] and len(calls)==1
     assert "andere agenda" in router.planning_calls[-1][0][1]["content"]
     assert "Gewone chat" not in answer["message"]
+
+
+@pytest.mark.parametrize("message",["wat stond er voor vandaag in mijn agenda","Wat stond er voor vandaag in mijn agenda?","Wat staat er morgen in mijn agenda?"])
+def test_spoken_day_request_cannot_be_replaced_with_model_access_denial(tools_chat,message):
+    app,c,router=tools_chat;calls=[]
+    router.plans=[{"chat":True}]
+    async def events(payload):calls.append(payload);return {"items":[example_event()]}
+    app.state.automation.integrations.events=events
+    result=call(c,message).json()
+    assert "Tandarts" in result["message"] and len(calls)==1 and not router.planning_calls
+
+
+def test_short_day_followup_keeps_selected_calendar_even_after_empty_result(tools_chat):
+    app,c,router=tools_chat;calls=[]
+    router.plans=[{"tool":"CalendarRead","input":{**calendar_plan()["input"],"calendar_id":"work"}}]
+    async def events(payload):calls.append(payload);return {"items":[]}
+    app.state.automation.integrations.events=events
+    first=call(c,"Zoek afspraken vandaag in mijn werkagenda").json()
+    answer=call(c,"En morgen?",first["conversation_id"]).json()
+    assert "geen afspraken" in answer["message"] and [p["calendar_id"] for p in calls]==["work","work"]
+    assert len(router.planning_calls)==1
+
+
+def test_personal_tool_question_does_not_return_false_model_access_claim(tools_chat):
+    app,c,router=tools_chat;router.plans=[{"chat":True}]
+    answer=call(c,"Hoe ziet mijn agenda er deze week uit?").json()
+    assert "Ik kan je agenda" in answer["message"] and len(router.planning_calls)==1

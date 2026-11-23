@@ -54,7 +54,10 @@ class AutomationChat:
     def candidate(self, run):
         if re.match(r"\s*(wat (is|betekent)|hoe werkt|leg (me |mij )?uit|kun je uitleggen)\b",run.message,re.I):
             return False
-        return run.principal is not None and bool(TOPIC.search(run.message) or self.memory(run).get("read_question") or (REFERENCE.search(run.message) and self.memory(run)))
+        if run.principal is None:return False
+        memory=self.memory(run)
+        day_followup=memory.get("recent")==[{"kind":"events"}] and re.fullmatch(r"\s*(?:en\s+)?(?:vandaag|morgen|overmorgen)(?:\s+dan)?\s*[?.!]*",run.message,re.I)
+        return bool(TOPIC.search(run.message) or day_followup or memory.get("read_question") or (REFERENCE.search(run.message) and memory))
 
     def guard(self, run, permission):
         if run.cancel.is_set():
@@ -208,6 +211,16 @@ class AutomationChat:
         provider = None
         if observations.get("pending") and re.fullmatch(r"\s*(ja|akkoord|ok[eé]?|doe maar|is goed)[.!\s]*",run.message,re.I):
             return "Bevestig het exacte voorstel bij Automatiseringen → Goedkeuringen. Een kort ja in de chat geeft geen toestemming om een externe wijziging uit te voeren.",None
+        # Complete everyday read commands do not need a model to grant access.
+        # This also keeps STT punctuation/capitalization and past tense equivalent.
+        day_question=re.fullmatch(r"\s*(?:wat (?:staat|stond) er|wat (?:heb|had) ik|toon(?: me)?|laat(?: me)?)\s+(?:voor |er )?(vandaag|morgen|overmorgen)\s+(?:in|op)\s+(?:mijn|de)\s+agenda\s*[?.!]*",run.message,re.I)
+        day_followup=observations.get("recent")==[{"kind":"events"}] and re.fullmatch(r"\s*(?:en\s+)?(?:vandaag|morgen|overmorgen)(?:\s+dan)?\s*[?.!]*",run.message,re.I)
+        if day_question or day_followup:
+            previous=observations.get("calendar_query",[{}])[0] if day_followup else {}
+            payload=self.temporal("CalendarRead",{"calendar_id":previous.get("calendar_id","primary"),"query":previous.get("query","")},run.message)
+            _,result=await self.read(run,"CalendarRead",validate("CalendarRead",payload))
+            self.guard(run,"automation:read")
+            return result,None
         # Resolve ordinal references from this conversation, not from model-invented IDs.
         ordinal=re.fullmatch(r"\s*(?:wat staat er in|lees(?: de inhoud van)?|toon(?: de inhoud van)?)\s+(?:de |het )?(eerste|tweede|derde|vierde|vijfde|[1-5](?:e|de|ste))(?:\s+(?:e-?mail|mail|bericht))?\s*[?.!]*",run.message,re.I)
         if ordinal and observations.get("recent")==[{"kind":"messages"}]:
@@ -222,13 +235,9 @@ class AutomationChat:
             self.guard(run, "automation:read")
             plan, provider = await self.plan(run, observations, completed)
             self.guard(run, "automation:read")
-            # A complete everyday read request needs no extra consent or guessed dates.
-            if not completed and ("clarification" in plan or plan.get("chat")):
-                day=re.fullmatch(r"\s*(?:wat staat er|wat heb ik|toon(?: me)?|laat(?: me)?)\s+(?:voor |er )?(vandaag|morgen|overmorgen)\s+(?:in|op)\s+(?:mijn|de)\s+agenda\s*[?.!]*",run.message,re.I)
-                if day:
-                    payload=self.temporal("CalendarRead",{},run.message)
-                    plan={"tool":"CalendarRead","input":validate("CalendarRead",payload)}
             if plan.get("chat"):
+                if re.search(r"\b(mijn|vandaag|morgen|overmorgen|laatste|eerste|die|deze)\b",run.message,re.I):
+                    return "Ik kan je agenda, e-mails en herinneringen via de gekoppelde functies opvragen. Noem de dag of het bericht dat je wilt bekijken, bijvoorbeeld: ‘Wat staat er morgen in mijn agenda?’.",provider
                 return await self.router.bounded_result([
                     {"role":"system","content":"Geef algemene uitleg in het Nederlands. In deze beurt zijn geen persoonlijke Google-gegevens opgehaald en geen acties uitgevoerd. Verzin geen persoonlijke afspraken, e-mails of actieresultaten. Je kunt geen tools aanroepen."},
                     {"role":"user","content":run.message},
@@ -288,6 +297,7 @@ class AutomationChat:
                 events[index]["calendar_id"]=payload["calendar_id"]
             self.guard(run,"automation:read")
             self.remember(run,"events",events)
+            self.remember(run,"calendar_query",[payload])
             lines = [f"{i+1}. {item.get('summary','Afspraak')} — {self.when(item.get('start',{}))} tot {self.when(item.get('end',{}))}" for i,item in enumerate(events)]
             text = "Je agenda:\n"+"\n".join(lines) if lines else "Je hebt geen afspraken in de opgevraagde agenda en periode."
             if data.get("nextPageToken") or len(data.get("items",[])) > 20:
