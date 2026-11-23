@@ -56,9 +56,12 @@ class AIRouter:
 
     async def propose_tool(self, instruction):
         import json
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
         from server.automation.models import REGISTRY,validate
         schemas={name:model.model_json_schema() for name,(model,_) in REGISTRY.items()}
-        result=await self.bounded_text([{"role":"system","content":"Je maakt uitsluitend een voorstel voor de expliciete gebruikersopdracht. Geef precies één JSON-object met tool en input uit deze schemas. Vraag om verduidelijking bij ontbrekende details met {\"clarification\":\"vraag\"}. Kies nooit een willekeurige afspraak of ontvanger. Niets wordt uitgevoerd. Schemas: "+json.dumps(schemas)},{"role":"user","content":instruction}])
+        now=datetime.now(ZoneInfo("Europe/Amsterdam")).isoformat()
+        result=await self.bounded_text([{"role":"system","content":"Huidig tijdstip: "+now+"; standaardtijdzone Europe/Amsterdam. Je maakt uitsluitend een voorstel voor de expliciete gebruikersopdracht. Geef precies één JSON-object met tool en input uit deze schemas. Vraag om verduidelijking bij ontbrekende details met {\"clarification\":\"vraag\"}. Kies nooit een willekeurige afspraak of ontvanger. Niets wordt uitgevoerd. Schemas: "+json.dumps(schemas)},{"role":"user","content":instruction}])
         data=json.loads(result)
         if set(data)=={"clarification"} and isinstance(data["clarification"],str): return {"clarification":data["clarification"][:1000]}
         if set(data)!={"tool","input"}: raise ValueError("Ongeldig toolvoorstel")
