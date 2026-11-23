@@ -26,6 +26,13 @@ Uitgevoerd op Windows/Python 3.12.10:
 - Portable onedir-build succesvol gemaakt: 225 bestanden, circa 148 MB bij de
   eerste build. Bronrookproef: echt Qt-venster, 6 pagina's, netwerk uit, tray aanwezig.
   De definitieve executable krijgt dezelfde rookproef na laatste bronwijzigingen.
+- Lokale portable proef vond build-PATH-vervuiling: een ICU-DLL van externe
+  PDF-tools kwam onterecht in de build en miste Qt's vereiste exports, terwijl
+  de schone CI-runner wel slaagde. Buildscript isoleert nu zijn PATH en gebruikt
+  Qt's coherente gepinde CRT-set in _internal.
+  Geen Windows-systeembestanden of global runtime-installatie aangepast.
+  De herbouwde portable executable start nu ook lokaal: Qt-venster, 6 pagina's,
+  geen netwerk in de rookproef, zelfstandig afgesloten met exitcode 0.
 - Pip check en dependency-audit clientomgeving zonder bekende kwetsbaarheden.
   Bandit: 0 bevindingen, geen onderdrukking. Index-/Gitleaks-/repository-/whitespace-
   controles geslaagd. Echte CI wordt vóór merge gecontroleerd.
