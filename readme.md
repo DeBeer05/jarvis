@@ -3,8 +3,10 @@
 **Fase 7:** centrale automatiseringen, herinneringen, workflows en gecontroleerde
 Google Calendar/Gmail-adapters. Bedien via **Automatiseringen** in Windows/Android
 of op http://127.0.0.1:8765/automations. Bestaande native apparaten krijgen nieuwe
-rechten alleen na expliciete eigenaargrant. Echte Google-accounts zijn nog niet
-gekoppeld/getest; mocks zijn geen live integratiebewijs.
+rechten alleen na expliciete eigenaargrant. Normale AI-chat en spraak kunnen deze
+tools nu gebruiken. De gebruiker heeft de Google-koppeling werkend bevestigd;
+automatische accounttests gebruiken synthetische data.
+[Via AI-chat en spraak](docs/AI_CHAT_AUTOMATIONS.md) ·
 [Starten en koppelen](docs/CALENDAR_INTEGRATION.md) ·
 [Taken en goedkeuringen](docs/WORKFLOW_ENGINE.md) ·
 [E-mail](docs/GMAIL_INTEGRATION.md) · [Teststatus](docs/PHASE_7_TEST_REPORT.md).

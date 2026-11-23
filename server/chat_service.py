@@ -34,6 +34,7 @@ class Generation:
     error: dict | None = None
     started: bool = False
     expiry: asyncio.TimerHandle | None = field(default=None, repr=False)
+    principal: object | None = field(default=None, repr=False)
 
     def public(self) -> dict:
         return {"request_id": self.request_id, "conversation_id": self.conversation_id,
@@ -47,8 +48,9 @@ class ChatService:
         self.active: dict[str, Generation] = {}
         self.admissions = deque()
         self.persistence_tasks: set[asyncio.Task] = set()
+        self.automation_chat = None
 
-    async def prepare(self, message: str, mode: str | None = None, conversation_id: str | None = None, request_id: str | None = None) -> Generation:
+    async def prepare(self, message: str, mode: str | None = None, conversation_id: str | None = None, request_id: str | None = None, *, principal=None) -> Generation:
         if len(message) > self.settings.max_message_chars or not message.strip():
             raise ChatError("invalid_message", "Het bericht is leeg of te lang.", 422)
         if len(message) + len(self.settings.system_prompt) > self.settings.max_context_chars:
@@ -66,6 +68,7 @@ class ChatService:
         if request_id in self.active:
             raise ChatError("duplicate_request", "Dit verzoek loopt al.", 409)
         run = Generation(request_id, conversation_id, mode or self.settings.ai_provider, self.store.clean(message.strip()))
+        run.principal = principal
         self.active[request_id] = run  # Reserve before the first await; no unbounded wait queue.
         self.admissions.append(tick)
         try:
@@ -110,7 +113,8 @@ class ChatService:
             yield {"type": "meta", "request_id": run.request_id, "conversation_id": run.conversation_id}
             if run.cancel.is_set():
                 raise GenerationCancelled
-            async with aclosing(self.router.stream(self.context(run), run.mode)) as stream:
+            source = self.automation_chat.stream(run) if self.automation_chat and self.automation_chat.candidate(run) else self.router.stream(self.context(run), run.mode)
+            async with aclosing(source) as stream:
                 try:
                     async with asyncio.timeout(self.settings.ai_timeout_seconds):
                         while True:

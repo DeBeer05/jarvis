@@ -2,6 +2,38 @@
 
 ## Huidige opdracht
 
+### AI-bediening binnen fase 7 — 23 november 2026
+
+Gebruiker bevestigt werkende integraties en vraagt expliciet bediening via AI.
+Branch feature/ai-automation-chat vanaf actuele develop 062fec2. De bestaande
+chat/SSE-route geeft de geauthenticeerde principal door aan een gesloten
+AutomationChat-controller; transcripties gebruiken dezelfde route. Geen nieuwe
+client, APK, modellen, dependencies of schema. Gewone gesprekken behouden hun
+bestaande providerroute. De planner en samenvattingen respecteren de gekozen
+provider en bestaande fallbacklimieten. Tools/inputs worden gevalideerd; actuele
+sessie-/apparaatrechten worden vóór en na planning en vlak vóór Google-verzoeken
+opnieuw gecontroleerd, ook na tokenrefresh. Geen automatische scopeverhoging.
+
+Agenda's/afspraken, mailmetadata/expliciete inhoud, herinneringen en gecontroleerde
+concepten werken via geregistreerde tools. Externe mutaties blijven voorstellen
+voor de bestaande goedkeuringspagina; een kort ja autoriseert niets. Referenties
+zijn begrensd tot dezelfde sessie/apparaat/gesprek en vijftien minuten. Geen
+mailbody naar de planner; samenvatting zonder executor. Nederlandse daggrenzen
+en numerieke relatieve herinneringen gecontroleerd. CalendarSummary-validatie
+hersteld; CalendarList toegevoegd zonder opslag van accountdata in jobresultaten.
+
+23 gerichte tests geslaagd, inclusief echte geauthenticeerde SSE met gemockte
+Google, synthetische STT→toolchat→TTS, revoke/refresh/cancel, ongeldige/injectie-
+plannen, metadata/bodykeuze, concept-snapshot en externe approval. Echte lokale
+Qwen2.5 3B-proef met tijdelijke database en gemockte Google: agenda, mail en
+herinnering geslaagd; modelverwarring CalendarList/Read gevonden en afgeschermd.
+Geen echte accounttests of microfoonproef uitgevoerd. Volledige regressiesuite:
+225 servertests en 75 Windows-clienttests geslaagd; pip check, repository-/
+whitespacecontrole schoon; Bandit nul middel/hoge bevindingen. De server is met
+de bestaande helpers gecontroleerd herstart op loopback:8765; accounts, settings
+en Google-credentials behouden. Geen nieuwe APK nodig. Remote CI en integratie
+via feature-PR naar develop; main blijft ongewijzigd. Stop na fase 7.
+
 Aanvullende melding e-mail meegenomen in dezelfde weergavefix: zoekresultaten
 tonen nu afzender/onderwerp onder E-mail, met leesknoppen en een lokale reader.
 Alleen metadata wordt automatisch opgehaald (maximaal tien, batches van vijf).

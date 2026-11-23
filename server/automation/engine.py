@@ -187,6 +187,7 @@ class ActionExecutor:
                 db.execute("INSERT OR IGNORE INTO automation_followups VALUES (?,?,?,?,?,?)",(row["id"],p["thread_id"],encode([m["id"] for m in data.get("messages",[])]),datetime.fromisoformat(p["due"]).timestamp(),"waiting",row["device_id"]))
             return {"waiting_for_reply":True}
         if tool=="CalendarRead": return await e.integrations.events(p)
+        if tool=="CalendarList": return await e.integrations.calendar_list()
         if tool.startswith("Calendar"):
             if tool=="CalendarUpdate":
                 analysis=await e.reschedule.analyze(p)
@@ -299,7 +300,7 @@ class AutomationEngine:
                         async with asyncio.timeout(90): result=await self.executor.execute(row)
                     finally: WRITE_GUARD.reset(context)
                     # Never persist email bodies or event descriptions in execution history.
-                    safe_result={"available":True} if row["tool"] in ("EmailRead","EmailSearch","CalendarRead") else result
+                    safe_result={"available":True} if row["tool"] in ("EmailRead","EmailSearch","CalendarRead","CalendarList") else result
                     status="waiting" if row["tool"] in ("WorkflowCreate","WaitForReply") else "completed"
                     with self.store.db(True) as db:
                         if row["repeat"]!="once":
