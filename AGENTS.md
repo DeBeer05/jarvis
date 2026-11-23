@@ -108,12 +108,12 @@ a small built-in fallback — instead of crashing.
 - Keep to the libraries already in `requirements.txt`.
 
 
-## JARVIS fork: blijvende Codex-projectinstructies (fase 4)
+## JARVIS fork: blijvende Codex-projectinstructies (fase 5)
 
 Deze aanvullende regels behouden de upstreamrichtlijnen hierboven. De opdracht
-van de gebruiker blijft leidend. Fase 4 is expliciet opgedragen: afzonderlijke
-Windows-desktopclient op de bestaande beveiligde server, poort 8765 behouden.
-STOP na fase 4; geen volgende fase starten.
+van de gebruiker blijft leidend. Fase 5 is expliciet opgedragen: Nederlandse
+spraak bovenop dezelfde Windows-client en beveiligde server, poort 8765 behouden.
+STOP na fase 5; geen Android of andere volgende fase starten.
 
 Vóór iedere taak:
 1. Controleer `git status --short --branch`, huidige branch en remotes.
@@ -147,7 +147,15 @@ zonder browsergoedkeuring. Hergebruik de Argon2id-/rate-limitservice, geef allee
 native chat-/statusrechten en bewaar nooit het wachtwoord. Bestaande pairing voor
 andere clients en cookie-CSRF blijven behouden; public device-ID is geen credential.
 Nieuwe niet-loopback endpoints uitsluitend HTTPS met certificaatvalidatie.
-Geen volledige spraak, berichten, account-OAuth, autonome acties, permanente Windows-
+Fase 5 staat sounddevice/numpy en een geïsoleerde faster-whisper/Piper-runtime toe.
+De inferencehelper is een eigen subprocess met private pipes, geen tweede GUI of
+backend. Geen audio-endpoints, impliciete downloads of permanente microfoonaudio.
+Microfoon standaard uit; expliciete toestemming per appsessie, zichtbare opname,
+lokale verwerking. Alleen transcripttekst gaat naar de bestaande chatroute.
+Globale sneltoetsen alleen na expliciete opt-in. Onderbreken annuleert ook oude
+TTS/generaties. Grote modellen alleen na omvangindicatie en toestemming; eigenaar
+heeft Whisper Small (~486 MB) en Piper NL (~77 MB) expliciet goedgekeurd.
+Geen berichten, account-OAuth, autonome acties, permanente Windows-
 service of productie-deployment. Alleen localhost; alles op de ontwikkeldesktop.
 Gebruik voorlopig uitsluitend profiel desktop-development. Verplaats niets naar
 de mini-pc. Modelinstallaties zijn niet nodig om tests met mocks uit te voeren.

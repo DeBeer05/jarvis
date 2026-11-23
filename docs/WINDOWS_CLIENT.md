@@ -1,4 +1,8 @@
-# Windows-client — fase 4
+# Windows-client — fasen 4–5
+
+Spraak is toegevoegd in versie 0.5.0. Gebruik [VOICE_SETUP.md](VOICE_SETUP.md)
+voor microfoontoestemming, PTT, Piper-stemmen en onderbreken. De onderstaande
+account-/chat-/systeemvakbediening blijft gelden.
 
 Deze afzonderlijke PySide6-app praat met de bestaande FastAPI-server; hij start
 geen server, upstream-PyQt-app of AI-model. Standaard: http://127.0.0.1:8765.

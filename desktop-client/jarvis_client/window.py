@@ -12,7 +12,8 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFormLayout, 
 from jarvis_client import __version__
 from jarvis_client.api import ClientError
 from jarvis_client.connection import ConnectionManager, Jobs
-from jarvis_client.platform_services import LocalAgent, NotificationCenter, Startup, VoiceCapability
+from jarvis_client.platform_services import LocalAgent, NotificationCenter, Startup
+from jarvis_client.voice.panel import VoicePanel
 from jarvis_client.settings import Preferences
 from jarvis_client.theme import icon, stylesheet
 
@@ -63,7 +64,7 @@ class MainWindow(QMainWindow):
         self.login_busy = False
         self.active_origin = None
         self.permissions = LocalAgent()
-        self.voice = VoiceCapability()
+        self.pending_voice = None
         self.setWindowTitle("JARVIS — Desktop")
         self.setWindowIcon(icon())
         self.resize(1160, 790)
@@ -84,7 +85,7 @@ class MainWindow(QMainWindow):
         side.addSpacing(28)
         self.pages = QStackedWidget()
         self.nav = []
-        for index, title in enumerate(("Chat", "Gesprekken", "Apparaten", "Meldingen", "Instellingen", "Account")):
+        for index, title in enumerate(("Chat", "Gesprekken", "Apparaten", "Meldingen", "Instellingen", "Account", "Spraak")):
             nav = button(title, lambda checked=False, i=index: self.navigate(i))
             nav.setObjectName("nav")
             nav.setCheckable(True)
@@ -108,6 +109,9 @@ class MainWindow(QMainWindow):
         self.make_notifications()
         self.make_settings()
         self.make_account()
+        self.voice_panel = VoicePanel(self)
+        self.voice = self.voice_panel.manager
+        self.pages.addWidget(self.voice_panel)
         self.render_timer = QTimer(self)
         self.render_timer.setSingleShot(True)
         self.render_timer.timeout.connect(self.render)
@@ -157,8 +161,8 @@ class MainWindow(QMainWindow):
         self.composer.send.connect(self.send_message)
         body.addWidget(self.composer)
         actions = QHBoxLayout()
-        self.mic = button("Microfoon niet actief", lambda: self.show_notice("Spraakbediening komt in een latere fase. Er wordt geen microfoon geopend."))
-        self.mic.setToolTip("Geen opname, push-to-talk of wake word actief")
+        self.mic = button("Spraak / microfoon", lambda: self.navigate(6))
+        self.mic.setToolTip("Open het spraakpaneel; de microfoon vereist jouw toestemming")
         actions.addWidget(self.mic)
         actions.addStretch()
         self.stop_button = button("Stop antwoord", self.stop_answer)
@@ -351,8 +355,9 @@ class MainWindow(QMainWindow):
 
     def update_controls(self):
         permissions = set(self.principal["permissions"]) if self.principal else set()
+        self.voice_panel.set_authorized("chat:write" in permissions and self.manager.state == "online")
         self.send_button.setEnabled("chat:write" in permissions and not self.running and self.manager.state == "online")
-        self.stop_button.setEnabled(self.running)
+        self.stop_button.setEnabled(self.running or self.voice.responding)
         self.new_button.setEnabled(not self.running)
         self.delete_button.setEnabled("chat:delete" in permissions and not self.running)
         self.logout_button.setEnabled(bool(self.principal) and not self.running)
@@ -487,6 +492,7 @@ class MainWindow(QMainWindow):
     def new_conversation(self):
         if self.running:
             return
+        self.voice.stop()
         self.conversation = None
         self.rows = []
         self.transcript.clear()
@@ -507,6 +513,7 @@ class MainWindow(QMainWindow):
             self.show_notice("Typ een bericht van maximaal 8000 tekens.")
             return
         api = self.manager.api
+        self.voice.begin_response()
         self.request_id = str(uuid4())
         request_id, conversation, provider = self.request_id, self.conversation, self.provider.currentData()
         self.reply = ""
@@ -517,12 +524,25 @@ class MainWindow(QMainWindow):
         self.update_controls()
         self.render()
         self.show_notice("")
+        generation = self.manager.generation
+        def current():
+            return not self.closing and generation == self.manager.generation and self.request_id == request_id and bool(self.principal)
         def finished(_):
+            if not current():
+                return
             self.running = False
             self.manager.pinned = False
             self.update_controls()
             self.load_history()
+            if self.pending_voice:
+                pending, self.pending_voice = self.pending_voice, None
+                self.voice.voice_next = True
+                self.voice_message(pending)
         def failed(error):
+            if not current():
+                return
+            self.voice.finish_response(False)
+            self.pending_voice = None
             self.running = False
             self.manager.pinned = False
             if self.rows:
@@ -530,7 +550,30 @@ class MainWindow(QMainWindow):
                 self.render()
             self.report_error(error)
             self.update_controls()
-        self.jobs.submit(lambda emit: api.stream(message, conversation, provider, emit, request_id), finished, failed, self.stream_event)
+        self.jobs.submit(lambda emit: api.stream(message, conversation, provider, emit, request_id), finished, failed,
+                         lambda event: self.stream_event(event) if current() else None)
+
+    def voice_ptt(self):
+        if self.running and not self.voice.recording:
+            self.stop_answer()
+        self.voice.toggle_recording()
+
+    def voice_stop(self):
+        self.pending_voice = None
+        self.voice.stop()
+        self.stop_answer()
+
+    def voice_message(self, text):
+        if not self.principal or self.manager.state != "online":
+            self.voice.stop()
+            self.show_notice("Log opnieuw in voordat je een spraakopdracht verstuurt.")
+            return
+        if self.running:
+            self.pending_voice = text
+            self.stop_answer()
+            return
+        self.composer.setPlainText(text)
+        self.send_message()
 
     def stream_event(self, event):
         if self.closing or not self.running:
@@ -541,6 +584,7 @@ class MainWindow(QMainWindow):
         elif kind == "provider":
             self.model_info.setText(str(event["provider"]) + " · " + str(event["model"]))
         elif kind == "delta":
+            self.voice.delta(event["text"])
             self.reply += event["text"]
             self.rows[-1] = ("JARVIS", self.reply)
             if not self.render_timer.isActive():
@@ -548,8 +592,10 @@ class MainWindow(QMainWindow):
         elif kind == "fallback":
             self.show_notice("Provider niet beschikbaar. JARVIS schakelt over naar " + event["to"] + ".")
         elif kind == "error":
+            self.voice.finish_response(False)
             self.show_notice(event["message"])
         elif kind == "done":
+            self.voice.finish_response(event["status"] == "completed")
             self.render_timer.stop()
             self.reply = event["message"]
             self.rows[-1] = ("JARVIS", self.reply + ("\n[" + event["status"] + "]" if event["status"] != "completed" else ""))
@@ -558,6 +604,7 @@ class MainWindow(QMainWindow):
                 self.notify("answer", "Je JARVIS-antwoord staat klaar.")
 
     def stop_answer(self):
+        self.voice.stop()
         if not self.running or not self.manager.api:
             return
         self.call("POST", "/api/v1/chat/requests/" + self.request_id + "/cancel", None, lambda _: self.show_notice("Antwoord wordt gestopt."))
@@ -586,6 +633,8 @@ class MainWindow(QMainWindow):
             self.logout(revoke=True)
 
     def clear_private(self):
+        self.pending_voice = None
+        self.voice_panel.set_authorized(False)
         self.render_timer.stop()
         self.history_busy = False
         self.principal = None
@@ -659,6 +708,7 @@ class MainWindow(QMainWindow):
         if self.closing:
             return
         self.closing = True
+        self.voice_panel.close_voice()
         self.manager.stop()
         self.render_timer.stop()
         self.tray.hide()
@@ -669,7 +719,7 @@ class MainWindow(QMainWindow):
         self.shutdown_timer.start(50)
 
     def finish_shutdown(self):
-        if self.jobs.pool.activeThreadCount() == 0:
+        if self.jobs.pool.activeThreadCount() == 0 and not self.voice.busy:
             self.shutdown_timer.stop()
             self.clear_private()
             QApplication.instance().quit()

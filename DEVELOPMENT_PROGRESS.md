@@ -2,6 +2,35 @@
 
 ## Huidige opdracht
 
+Fase 5 is expliciet geautoriseerd: Nederlandse spraak in dezelfde Windows-app,
+geen tweede backend, bestaande localhost:8765/auth/chatcontext behouden. Branch
+feature/dutch-voice-assistant vanaf develop d6e1b83; fase-4-PR #15 is gemerged en
+de echte repository-/server-/client-CI was groen. Main blijft c995834.
+Gebruiker heeft downloads van Whisper Small (~486 MB), Piper MLS (~77 MB) en
+aanvullend Piper Ronnie (~63 MB) afzonderlijk goedgekeurd. Alle bestanden lokaal
+buiten Git gedownload, pinned revisies/groottes/hashes gecontroleerd.
+
+Geïmplementeerd: sessietoestemming/microfoon uit bij start, spraakpaneel,
+hardwarekeuze, PTT/sneltoetsen/expliciete globale opt-in, stiltepoort/Silero,
+faster-whisper Nederlands met CPU-fallback, Piper-stem/snelheid/voorbeeld,
+zinsgewijze bestaande SSE/context, begrensde queues/RAM-cache, directe audiostop
+en annulering van de eigen inferenceprocesboom. Geen audio naar de server.
+71 clienttests en 165 servertests geslaagd; eerste portable build/start en echte
+ingepakte Whisper/Piper-inferentie geslaagd. Nieuwe bron/laatste build/CI nog te
+controleren. Bandit en volledige client-/voice-constraints-audits schoon.
+Twaalf echte synthetische enginebeurten: STT mediaan 1,983 s, TTS 0,137 s warm;
+CPU-fallback, piek helper-RAM circa 869 MiB. Dit is geen fysieke audioproef.
+Eigenaar is gevraagd de echte microfoon, uitvoer en stopknop zelf te testen.
+
+Beperkingen: wakefunctie is experimentele Whisper-fraseherkenning na een uiting,
+geen bewezen Nederlands wake-wordmodel. XTTS/licentiereferentie/runtime ontbreken;
+geen gesproken barge-in/AEC of bewezen hybride voordeel. RTX 4060 gedetecteerd,
+maar benodigde CUDA-libraries ontbreken; CPU werkt. Licht profiel voorbereid,
+geen 8-GB-mini-pc getest. STOP na fase 5; geen Android/fase 6.
+Zie docs/PHASE_5_TEST_REPORT.md en de vier VOICE-handleidingen.
+
+## Voorgeschiedenis fase 4 en eerder
+
 Actuele bijsturing: eigenaar wil in de Windows-app rechtstreeks met gebruikersnaam
 en wachtwoord inloggen, zonder browsergoedkeuring, en na appherstart ingelogd blijven.
 Geïmplementeerd via bestaande Argon2id-/rate-limitservice, cookie-vrije desktop-

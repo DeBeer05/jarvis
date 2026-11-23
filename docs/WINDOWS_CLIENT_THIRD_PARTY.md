@@ -3,13 +3,24 @@
 JARVIS is een niet-commerciële fork van Mark-LVII door FatihMakes,
 https://github.com/FatihMakes/Mark-LVII, met behoud van CC BY-NC 4.0.
 De originele licentie staat naast deze portable app. Broncode van de fork:
-https://github.com/DeBeer05/jarvis (develop, fase 4).
+https://github.com/DeBeer05/jarvis (develop, fasen 4–5).
 
 De afzonderlijke client gebruikt PySide6-Essentials/Qt en shiboken6 onder hun
 open-sourcevoorwaarden (waaronder LGPLv3), httpx/httpcore (BSD), anyio/idna/h11
 (MIT/BSD) en certifi (MPL-2.0). De werkelijk meegeleverde licentieteksten staan
 onder third-party-licenses. PyInstaller gebruikt GPL met zijn bundelingsexceptie.
 Er wordt geen commerciële Qt-licentie verondersteld.
+
+Fase 5 voegt numpy (BSD), sounddevice/PortAudio (MIT), cffi/pycparser (MIT/BSD)
+toe. De afzonderlijke voice-runtime bundelt onder meer faster-whisper/
+CTranslate2 (MIT), ONNX Runtime (MIT), Piper/eSpeak NG (GPLv3), PyAV/FFmpeg
+(LGPL/GPL afhankelijk van het wheel) en hun meegeleverde notices. Bewaar alle
+third-party-licenses in beide mappen; zie VOICE_MODELS.md voor modellicenties.
+De grote Whisper-/Piper-stemgewichten en gebruikersgegevens blijven buiten de
+build. De wheels leveren wel Silero-VAD en enkele aanvullende taal-/testmodellen;
+die pakketdata behouden hun componentnotices en worden niet extra gedownload.
+Nieuwe helperbron is GPL-3.0-or-later; bestaande upstreamlicentie blijft intact.
+Er is geen publieke distributie/release gedaan.
 
 De portable map bevat losse DLLs en Pythonbibliotheken. Bewaar de volledige map;
 ze zijn geen versleuteld of ondertekend gesloten pakket. Vervangen/debuggen van

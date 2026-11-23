@@ -9,7 +9,7 @@ jobs:
   client:
     name: Windows client tests and build
     runs-on: windows-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -24,6 +24,9 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
         run: ./.local/client-venv/Scripts/python.exe -m pytest -c pytest-client.ini -q
+      - name: Install isolated voice runtime without model downloads
+        shell: powershell
+        run: ./scripts/Install-VoiceRuntime.ps1
       - name: Build portable Windows app
         shell: powershell
         run: ./scripts/Build-WindowsClient.ps1
@@ -39,4 +42,6 @@ jobs:
           if (-not $process.WaitForExit(20000)) { throw 'Portable smoke test timed out' }
           if ($process.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $report)) { throw 'Portable startup failed' }
           $result = Get-Content -LiteralPath $report -Raw | ConvertFrom-Json
-          if ($result.version -ne '0.4.0' -or $result.pages -ne 6 -or $result.network_started) { throw 'Unexpected client startup' }
+          if ($result.version -ne '0.5.0' -or $result.pages -ne 7 -or $result.network_started -or $result.microphone_active -or $result.voice_worker_started) { throw 'Unexpected client startup' }
+      - name: Smoke test packaged speech helper without models
+        run: ./.local/client-venv/Scripts/python.exe scripts/check-voice-bundle.py .local/client-build/dist/JARVIS/voice-runtime/JARVIS-Voice.exe

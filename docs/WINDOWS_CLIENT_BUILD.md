@@ -4,6 +4,7 @@ Python 3.12 x64, Windows PowerShell 5.1. Vanuit de bestaande projectroot:
 
 ```powershell
 powershell.exe -NoProfile -File scripts/Install-WindowsClient.ps1
+powershell.exe -NoProfile -File scripts/Install-VoiceRuntime.ps1
 .\.local\client-venv\Scripts\python.exe -m pytest -c pytest-client.ini -q
 powershell.exe -NoProfile -File scripts/Build-WindowsClient.ps1
 ```
@@ -16,7 +17,7 @@ losse Qt-DLLs. Geen installer, service of automatische systeemwijziging.
 Uitvoer:
 
 - `.local/client-build/dist/JARVIS/JARVIS.exe` met `_internal` en licenties.
-- `.local/client-build/JARVIS-Windows-0.4.0-x64.zip`, de volledige map.
+- `.local/client-build/JARVIS-Windows-0.5.0-x64.zip`, de volledige map inclusief voice-runtime; modellen blijven extern.
 - SHA-256 wordt door het buildscript weergegeven; een build is reproduceerbaar
   qua stappen/versies, niet als garantie van identieke PE-bytes/tijdstempels.
 
@@ -36,6 +37,6 @@ if (-not $process.WaitForExit(20000)) { throw 'Startup timeout' }
 Get-Content -LiteralPath $report
 ```
 
-De app toont een echt Qt-venster en sluit daarna zelf. Verwacht versie 0.4.0,
-6 pagina's en network_started false. CI doet deze proef na een Windows-build,
+De app toont een echt Qt-venster en sluit daarna zelf. Verwacht versie 0.5.0,
+7 pagina's, network_started false en microphone_active false. CI doet deze proef na een Windows-build,
 naast de normale server- en clienttests. Normaal starten gebruikt geen testvlag.

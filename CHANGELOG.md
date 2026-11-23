@@ -4,6 +4,15 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Windows-client 0.5.0: lokaal Nederlands spreken met expliciete toestemming,
+  PTT/sneltoetsen, apparaten/volumes/stilte, faster-whisper en Piper/Ronnie,
+  bestaande beveiligde chat/context/SSE, zinsaudio, onmiddellijke stop en
+  generatie-/procesannulering. Geen audio-opslag of nieuwe API-routes.
+- Experimentele lokale wakefrase, optionele vervolgvraagmodus, begrensde RAM-cache,
+  CPU-fallback en licht profiel. Geen gevalideerd Nederlands wake-model, XTTS of
+  gesproken barge-in. Geïsoleerde voice-runtime en complete portable build zonder
+  impliciete modeldownloads. Handleidingen en hardwareloze regressietests toegevoegd.
+
 - Desktoplogin op verzoek gewijzigd naar gebruikersnaam/wachtwoord, zonder
   browsergoedkeuring. Bestaande Argon2id/rate limits, eigen apparaat zonder
   beheerrechten, 30-daagse desktopsessie en veilig automatisch sessieherstel.

@@ -1,0 +1,121 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+import base64
+import ctypes
+import io
+import os
+import sys
+from pathlib import Path
+import time
+import wave
+
+os.environ["HF_HUB_OFFLINE"] = "1"
+os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
+
+
+class SpeechToTextProvider:
+    def __init__(self):
+        self.model = None
+        self.key = None
+
+    def transcribe(self, request):
+        from faster_whisper import WhisperModel
+        import numpy as np
+        directory = Path(request["models"]) / request.get("model", "whisper-small")
+        if not all((directory / name).is_file() for name in ("model.bin", "config.json", "tokenizer.json", "vocabulary.txt")):
+            raise ValueError("stt_model_missing")
+        device = request.get("device", "auto")
+        if device not in ("auto", "cpu", "cuda"):
+            raise ValueError("invalid_settings")
+        # Our private protocol is PCM WAV only. Decode without FFmpeg/PyAV API
+        # version coupling, then resample Piper's 22.05 kHz test input as needed.
+        with wave.open(io.BytesIO(base64.b64decode(request["audio"], validate=True)), "rb") as source:
+            rate = source.getframerate()
+            if source.getsampwidth() != 2 or source.getnchannels() != 1 or not 8000 <= rate <= 96000 or source.getnframes() > rate * 120:
+                raise ValueError("audio_too_long")
+            audio = np.frombuffer(source.readframes(source.getnframes()), dtype=np.int16).astype(np.float32) / 32768
+        if rate != 16000:
+            audio = np.interp(np.arange(int(len(audio) * 16000 / rate)) * rate / 16000, np.arange(len(audio)), audio).astype(np.float32)
+        # Short isolated utterances need leading/trailing context; do not cut the
+        # first phoneme at Whisper's window boundary. No prompt or canned answer.
+        audio = np.concatenate((np.zeros(8000, dtype=np.float32), audio, np.zeros(8000, dtype=np.float32)))
+        started = time.perf_counter()
+        fallback = False
+        try:
+            if device == "auto":
+                import ctranslate2
+                device = "cuda" if ctranslate2.get_cuda_device_count() else "cpu"
+            if device == "cuda":
+                try:
+                    # Missing CUDA DLLs can abort a native process instead of raising.
+                    loader = ctypes.WinDLL if sys.platform == "win32" else ctypes.CDLL
+                    loader("cublas64_12.dll" if sys.platform == "win32" else "libcublas.so.12")
+                    loader("cudnn64_9.dll" if sys.platform == "win32" else "libcudnn.so.9")
+                except OSError:
+                    device, fallback = "cpu", True
+            text = self._run(WhisperModel, directory, device, audio)
+        except (RuntimeError, OSError):
+            if device != "cuda":
+                raise
+            self.model, self.key = None, None
+            device, fallback = "cpu", True
+            text = self._run(WhisperModel, directory, device, audio)
+        return {"text": text, "device": device, "cpu_fallback": fallback, "seconds": time.perf_counter() - started}
+
+    def _run(self, factory, directory, device, audio):
+        key = str(directory), device
+        if self.key != key:
+            self.model = factory(str(directory), device=device, compute_type="int8" if device == "cpu" else "float16",
+                                 cpu_threads=4, num_workers=1, local_files_only=True)
+            self.key = key
+        segments, _ = self.model.transcribe(audio, language="nl", beam_size=3, vad_filter=True,
+                                            condition_on_previous_text=False,
+                                            vad_parameters={"min_silence_duration_ms": 500})
+        return " ".join(segment.text.strip() for segment in segments if segment.no_speech_prob < 0.75).strip()[:8000]
+
+
+class TextToSpeechProvider:
+    def __init__(self):
+        self.voice, self.key = None, None
+
+    def synthesize(self, request):
+        from piper import PiperVoice, SynthesisConfig
+        voice_name = request.get("voice", "ronnie")
+        if voice_name not in ("ronnie", "mls"):
+            raise ValueError("invalid_settings")
+        model = Path(request["models"]) / ("piper-ronnie/nl_NL-ronnie-medium.onnx" if voice_name == "ronnie" else "piper/nl_NL-mls-medium.onnx")
+        if not model.is_file() or not model.with_suffix(".onnx.json").is_file():
+            raise ValueError("tts_model_missing")
+        if request.get("provider", "piper") != "piper":
+            raise ValueError("tts_provider_unavailable")
+        started = time.perf_counter()
+        if self.key != str(model):
+            self.voice = PiperVoice.load(str(model), use_cuda=False)
+            self.key = str(model)
+        text = request["text"].strip()
+        if not text or len(text) > 700:
+            raise ValueError("invalid_text")
+        speed = min(1.5, max(0.7, float(request.get("speed", 1.0))))
+        speaker = min(51, max(0, int(request.get("speaker", 0)))) if voice_name == "mls" else 0
+        data = io.BytesIO()
+        with wave.open(data, "wb") as output:
+            self.voice.synthesize_wav(text, output, syn_config=SynthesisConfig(speaker_id=speaker, length_scale=1 / speed))
+        return {"audio": base64.b64encode(data.getvalue()).decode("ascii"), "provider": "piper",
+                "seconds": time.perf_counter() - started}
+
+
+class Runtime:
+    def __init__(self):
+        self.stt, self.tts = SpeechToTextProvider(), TextToSpeechProvider()
+
+    def dispatch(self, request):
+        if request.get("profile") == "light":
+            # One large inference engine at a time on a future constrained host.
+            if request["operation"] == "stt":
+                self.tts = TextToSpeechProvider()
+            else:
+                self.stt = SpeechToTextProvider()
+        if request["operation"] == "stt":
+            return self.stt.transcribe(request)
+        if request["operation"] == "tts":
+            return self.tts.synthesize(request)
+        raise ValueError("invalid_operation")
