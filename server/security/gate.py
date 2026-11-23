@@ -76,7 +76,7 @@ class SecurityGate:
                 required = "chat:read" if method in ("GET", "HEAD") else "chat:delete" if method == "DELETE" else "chat:write"
             elif path in ("/api/v1/status", "/api/v1/ai/providers"):
                 required = "status:read"
-            elif path in ("/api/v1/auth/session", "/api/v1/auth/logout"):
+            elif path in ("/api/v1/auth/session", "/api/v1/auth/logout", "/api/v1/auth/device", "/api/v1/auth/disconnect"):
                 required = None
             elif path.startswith("/api/v1/auth/sessions"):
                 required = "admin:sessions"

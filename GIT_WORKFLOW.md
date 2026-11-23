@@ -91,3 +91,8 @@ basis slagen. Fase 1 mag uitsluitend naar develop; main blijft in deze opdracht
 ongewijzigd. Fase 2 is afzonderlijk opgedragen en gebruikt dezelfde PR-/checkprocedure.
 Main blijft ongewijzigd. Fase 3 is nu expliciet opgedragen en gebruikt dezelfde procedure.
 Stop na fase 3; geen volgende fase zonder nieuwe opdracht.
+
+Fase 4 is apart opgedragen: feature/windows-desktop-client vanaf develop;
+dezelfde beschermde PR-procedure, inclusief Windows-clienttests/build.
+Fase 5 is vervolgens expliciet opgedragen en volgt op deze clientbasis:
+feature/dutch-voice-assistant vanaf bijgewerkte develop. Main blijft behouden.

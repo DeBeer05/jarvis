@@ -4,6 +4,13 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Fase 4 / Windows-client 0.4.0: aparte PySide6-app met veilige S256-pairing,
+  Windows Credential Manager, streaming/historie, systeemvak/meldingen,
+  reconnect/profielen/instellingen, expliciete lokale system_info-capability en
+  optionele per-user autostart. Portable PyInstaller-build en geïsoleerde tests/CI.
+- Sessies kunnen via twee beperkte routes uitsluitend hun eigen apparaatstatus
+  bekijken of de eigen koppeling intrekken; geen nieuwe beheerscopes.
+
 - Fase 3 via PR #13 geïntegreerd naar develop (119bcdd); laatste PR-head met
   geslaagde repository-/Windows-/Linuxchecks, main ongewijzigd.
 

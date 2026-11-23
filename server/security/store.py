@@ -217,6 +217,12 @@ class SecurityStore:
             rows = db.execute("SELECT s.id,s.device_id,s.created_at,s.last_seen,s.expires_at,s.revoked_at,d.name AS device_name,d.type AS device_type FROM auth_sessions s JOIN auth_devices d ON d.id=s.device_id ORDER BY s.revoked_at IS NOT NULL,s.last_seen DESC,s.created_at DESC LIMIT 200").fetchall()
         return {"items": [{**dict(row), "current": row["id"] == principal.session_id} for row in rows]}
 
+    def own_device(self, principal):
+        with self.db(True) as db:
+            self._require_live(db, principal)
+            row = db.execute("SELECT id,name,type,created_at,last_seen,trusted,revoked_at FROM auth_devices WHERE id=?", (principal.device_id,)).fetchone()
+            return {**dict(row), "permissions": sorted(principal.permissions)}
+
     def devices(self):
         with self.db() as db:
             rows = db.execute("SELECT * FROM auth_devices ORDER BY revoked_at IS NOT NULL,last_seen DESC,created_at DESC LIMIT 200").fetchall()

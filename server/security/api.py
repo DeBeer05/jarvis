@@ -183,6 +183,21 @@ async def logout(request: Request):
     return response
 
 
+@router.get("/api/v1/auth/device")
+async def own_device(request: Request):
+    return await asyncio.to_thread(service(request).store.own_device, request.state.principal)
+
+
+@router.post("/api/v1/auth/disconnect")
+async def disconnect_device(request: Request):
+    principal = request.state.principal
+    await asyncio.to_thread(service(request).store.change_device, principal.device_id, principal)
+    response = JSONResponse({"status": "revoked"})
+    if request.state.auth_via_cookie:
+        clear_credentials(response, request)
+    return response
+
+
 @router.get("/api/v1/auth/sessions", dependencies=[Depends(require_permission("admin:sessions"))])
 async def sessions(request: Request):
     return await asyncio.to_thread(service(request).store.sessions, request.state.principal)

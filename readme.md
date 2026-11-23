@@ -1,4 +1,27 @@
-# JARVIS — beveiligde AI-webchat, fase 3
+# JARVIS — Windows-client en beveiligde AI-webchat
+
+De aparte Windows-client (fase 4) gebruikt dezelfde server en eigen veilige
+apparaatpairing. Start vanuit de bestaande projectroot:
+
+```powershell
+powershell.exe -NoProfile -File scripts/Start-Server.ps1 -Background
+powershell.exe -NoProfile -File scripts/Start-WindowsClient.ps1
+```
+
+Portable build: `.local/client-build/dist/JARVIS/JARVIS.exe` (volledige map
+behouden). Eerste keer: **Account → Inloggen en apparaat koppelen**; vergelijk
+de code en keur het verzoek goed in je eigenaarbrowser. Je wachtwoord blijft
+in de eigenaarinterface; refreshcredentials gaan naar Windows Credential Manager.
+Chat, streaming/historie, systeemvak, meldingen en verbindingsprofielen zijn
+onderdeel van de client. Autostart staat standaard uit.
+
+[Windows-handleiding](docs/WINDOWS_CLIENT.md) ·
+[Clientbeveiliging](docs/WINDOWS_CLIENT_SECURITY.md) ·
+[Build](docs/WINDOWS_CLIENT_BUILD.md) · [Fase-4-testverslag](docs/PHASE_4_TEST_REPORT.md).
+Fase 5 is inmiddels apart opgedragen en wordt bovenop deze client ontwikkeld;
+er wordt geen tweede backend of Windows-app gestart.
+
+## Server en webchat — gerealiseerd in fase 3
 
 Lichte lokale FastAPI-server met Gemini/Groq/Ollama, streaming, annuleerbare antwoorden
 opgeslagen in SQLite, een donkere webchat en veilig eigenaar-/apparaatbeheer.

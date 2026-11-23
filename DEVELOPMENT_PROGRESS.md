@@ -2,6 +2,23 @@
 
 ## Huidige opdracht
 
+Fase 4 expliciet opgedragen op 23 november 2026: afzonderlijke Windows-client,
+beveiligde pairing/chat, systeemvak/meldingen/instellingen, portable Windows-build.
+In uitvoering op feature/windows-desktop-client vanaf develop 19f3e27.
+Geïmplementeerd: afzonderlijke PySide6-client, Credential Manager, S256-pairing,
+chat/SSE/historie, provider/modelinformatie, veilige profielen/reconnect,
+systeemvak/meldingen/instellingen, lokale expliciete systeeminformatiedemo.
+34 clienttests en 159 servertests geslaagd, inclusief echte native TCP-pairing/chat/
+refresh/historie/intrekking. Bandit/pip-audit/index/Gitleaks/repository schoon.
+Bronclient zichtbaar en rookproef geslaagd;
+portable onedir-build gemaakt. Fase-4-docs en client-Windows-CI toegevoegd.
+De gebruiker droeg tijdens dit werk fase 5 expliciet op: voice bovenop deze
+bestaande client. Modeldownloadtoestemming en echte eigenaarpairing gevraagd;
+geen modellen of microfoon zonder de gevraagde toestemming.
+Alleen ontwikkeldesktop en bestaande localhost:8765; geen externe blootstelling,
+mini-pc-deployment, Android, volledige spraak of autonome acties. STOP na fase 4.
+De fase-3-sectie hieronder is de gecontroleerde uitgangssituatie.
+
 Fase 3 expliciet opgedragen: authenticatie, apparaatbeheer/pairing en beveiliging.
 Afgerond en via PR #13 geïntegreerd naar develop, mergecommit 119bcdd.
 Ontwikkeld op feature/security-device-pairing vanaf develop 5b6960c.

@@ -1,0 +1,87 @@
+# Windows-client — fase 4
+
+Deze afzonderlijke PySide6-app praat met de bestaande FastAPI-server; hij start
+geen server, upstream-PyQt-app of AI-model. Standaard: http://127.0.0.1:8765.
+Gebruik de volledige portable map, inclusief _internal en licenties.
+
+## Starten
+
+Vanuit de bestaande projectroot, Windows PowerShell 5.1:
+
+```powershell
+powershell.exe -NoProfile -File scripts/Start-Server.ps1 -Background
+powershell.exe -NoProfile -File scripts/Start-WindowsClient.ps1
+```
+
+De bronclient gebruikt de geïsoleerde `.local/client-venv`. Op een nieuwe
+ontwikkelmachine eerst `scripts/Install-WindowsClient.ps1` uitvoeren. De portable
+app staat na bouwen in `.local/client-build/dist/JARVIS/JARVIS.exe` en vereist
+geen geïnstalleerde Python. Client en server sluiten onafhankelijk af.
+
+## Inloggen en koppelen
+
+Open **Account**, geef dit apparaat een naam en kies **Inloggen en apparaat
+koppelen**. Open daarna de eigenaarinterface met de browserknop. Log daar zelf
+in, vergelijk de getoonde code en keur de aangevraagde rechten expliciet goed.
+De app haalt daarna zijn eigen Windows-apparaatsessie op. Er wordt geen
+eigenaarwachtwoord in deze client gevraagd of opgeslagen.
+
+Standaard: gesprekken lezen/schrijven en status bekijken. Verwijderen wordt
+alleen aangevraagd als je dat aanvinkt en apart in de eigenaarinterface goedkeurt.
+De client krijgt geen beheerrechten. Wachtwoord wijzigen en andere apparaten
+beheren gaat via **Account → Wachtwoord en eigenaarsessies beheren** in de bestaande
+eigenaarbrowser. Dit hergebruikt de fase-3-beveiliging.
+
+**Uitloggen** trekt alleen deze sessie in. **Apparaten → Deze apparaatkoppeling
+intrekken** trekt de hele eigen apparaatregistratie in, na bevestiging. De
+server accepteert hierbij geen ander apparaat als doel. Bij intrekking/verloop
+wordt persoonlijke inhoud gewist uit de UI en moet je opnieuw koppelen.
+
+## Chat en navigatie
+
+**Chat** ondersteunt Enter om te versturen, Shift+Enter voor een nieuwe regel,
+providerkeuze, zichtbare provider/modelmetadata, streaming en **Stop antwoord**.
+**Nieuw gesprek** begint zonder oude context. In **Gesprekken** kun je historie
+laden, meer laden, openen en — met expliciet recht en bevestiging — verwijderen.
+De server blijft bron van waarheid; de client bewaart geen chathistoriebestand.
+
+**Meldingen** toont maximaal 100 lokale statusmeldingen. Windows-traymeldingen
+zijn instelbaar, worden per type beperkt en bevatten geen antwoordtekst.
+Windows Focus Assist/OS-instellingen kunnen zichtbare meldingen onderdrukken.
+
+## Instellingen en systeemvak
+
+Instellingen worden zonder secrets bewaard onder `%LOCALAPPDATA%/JARVIS/Desktop`.
+Kies serverorigin/profiel, automatisch verbinden, thema, meldingen, systeemvak,
+provider en logniveau. HTTPS is verplicht buiten loopback; TLS-validatie kan niet
+worden uitgezet. `auto` probeert alleen expliciet ingestelde origins en gebruikt
+voor iedere origin afzonderlijke credentials. Een actief antwoord wordt niet
+naar een andere server overgezet of automatisch opnieuw verstuurd.
+
+De bestaande server is nog uitsluitend lokaal beschikbaar. Een extern profiel
+bereidt de client voor; het opent geen firewall, tunnel, Funnel of remote backend.
+De interface is Nederlands; de English-optie vertaalt voorlopig de hoofdnavigatie.
+Logniveau wordt bij herstart toegepast.
+
+**Start deze app bij Windows-aanmelding** staat standaard uit. Alleen opslaan
+na jouw expliciete keuze verandert de eigen HKCU Run-waarde JARVISDesktop;
+uitschakelen verwijdert die waarde. Geen administratorrechten of server-autostart.
+Verplaats de portable map niet terwijl autostart naar die map verwijst.
+
+Venster sluiten verbergt de app in het systeemvak als dat is ingeschakeld en
+beschikbaar. Openen kan via de tray. **App afsluiten / Volledig afsluiten** stopt
+ook netwerkwerk en verwijdert het trayicoon. Er kan maar één client per profiel
+draaien; een tweede instantie verwijst naar het bestaande systeemvak.
+
+## Diagnostiek en grenzen
+
+Geen server? Start hem apart, controleer health/ready en het adres. Geen rechten?
+Keur uitsluitend de nodige scopes opnieuw goed. Een onzekere refreshpoging leidt
+veilig tot opnieuw koppelen, zodat een mogelijk verbruikt token niet wordt herhaald.
+Bij corrupte settings wordt het bestand behouden en volgt een duidelijke fout.
+Logbestand: `%LOCALAPPDATA%/JARVIS/Desktop/client.log`, maximaal 3 × 256 KiB.
+
+De lokale demonstratie **Systeeminformatie** vereist een expliciet aangevinkte
+toestemming en toont alleen OS/architectuur/CPU-aantal lokaal. Er is geen shell-
+executor en de AI kan deze actie niet activeren. Fase 4 opent geen microfoon;
+volledige spraak is een afzonderlijk geautoriseerde fase 5.

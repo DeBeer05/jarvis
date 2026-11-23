@@ -1,4 +1,23 @@
-# Architectuurplan — fase 3 en toekomstig ontwerp
+# Architectuurplan — Windows-client en server
+
+## Windows-client, fase 4
+
+`desktop-client/jarvis_client` is een zelfstandig PySide6-Essentials-proces.
+De bestaande upstream-PyQt6-app wordt niet geïmporteerd. Eenzelfde Qt-hoofdthread
+beheert de UI; begrensde QRunnable-workers doen HTTP/SSE en leveren via QObject-
+slots resultaten. ApiClient, ConnectionManager, WindowsVault en SettingsStore
+scheiden protocol, reconnect, veilige opslag en niet-geheime instellingen.
+Een QLockFile voorkomt concurrerende instanties met dezelfde refreshcredential.
+QSystemTrayIcon levert systeemvak/meldingen, Startup alleen expliciete HKCU Run-
+opt-in, LocalAgent uitsluitend een door de gebruiker toegestane system_info-demo.
+VoiceCapability is een inactieve interface voor de apart opgedragen fase 5.
+
+Native login gebruikt de bestaande S256-pairing, geen nieuwe password/tokenroute.
+Twee zelfbeheerroutes laten een sessie alleen het eigen apparaat zien/intrekken.
+Beheer van overige apparaten en wachtwoord blijven bij de eigenaarbrowser.
+De server draait onafhankelijk op localhost:8765. Clientprofielen bereiden
+HTTPS/remote voor zonder de server bloot te stellen. Portable build via PyInstaller
+onedir, eigen omgeving/constraints en licentieverantwoording.
 
 ## Gerealiseerd in fase 3
 
