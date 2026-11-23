@@ -32,6 +32,10 @@ def stylesheet(mode="dark"):
     QPushButton {{ background: {raised}; border: 1px solid {border}; border-radius: 8px; padding: 10px 15px; }}
     QPushButton:hover {{ border-color: {accent}; }}
     QPushButton:disabled {{ color: {muted}; }}
+    QToolButton {{ background: {raised}; border: 1px solid {border}; border-radius: 8px; padding: 8px 12px; }}
+    QToolButton:hover {{ border-color: {accent}; }}
+    QProgressBar {{ background: {raised}; border: none; border-radius: 4px; min-height: 8px; }}
+    QProgressBar::chunk {{ background: {accent}; border-radius: 4px; }}
     QPushButton#primary {{ background: {accent}; color: {bg}; border: none; font-weight: 700; }}
     QPushButton#nav {{ text-align: left; border: none; padding: 13px 16px; background: transparent; }}
     QPushButton#nav:checked {{ background: {raised}; color: {accent}; }}

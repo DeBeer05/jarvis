@@ -150,11 +150,14 @@ Nieuwe niet-loopback endpoints uitsluitend HTTPS met certificaatvalidatie.
 Fase 5 staat sounddevice/numpy en een geïsoleerde faster-whisper/Piper-runtime toe.
 De inferencehelper is een eigen subprocess met private pipes, geen tweede GUI of
 backend. Geen audio-endpoints, impliciete downloads of permanente microfoonaudio.
-Microfoon standaard uit; expliciete toestemming per appsessie, zichtbare opname,
-lokale verwerking. Alleen transcripttekst gaat naar de bestaande chatroute.
+Microfoon bij opstart uit. Op expliciet gebruikersverzoek wordt toestemming voor
+de gekozen microfoon onthouden; opname blijft alleen via PTT/wake of de bewust
+gekozen vervolgmodus actief, met zichtbare status en niveaumeter.
+Audio wordt lokaal verwerkt. Alleen transcripttekst gaat naar de bestaande chatroute.
 Globale sneltoetsen alleen na expliciete opt-in. Onderbreken annuleert ook oude
 TTS/generaties. Grote modellen alleen na omvangindicatie en toestemming; eigenaar
-heeft Whisper Small (~486 MB) en Piper NL (~77 MB) expliciet goedgekeurd.
+heeft Whisper Small (~486 MB), Piper MLS (~77 MB) en extra Piper Ronnie (~63 MB)
+expliciet goedgekeurd.
 Geen berichten, account-OAuth, autonome acties, permanente Windows-
 service of productie-deployment. Alleen localhost; alles op de ontwikkeldesktop.
 Gebruik voorlopig uitsluitend profiel desktop-development. Verplaats niets naar

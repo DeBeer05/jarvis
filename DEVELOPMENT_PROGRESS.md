@@ -10,17 +10,23 @@ Gebruiker heeft downloads van Whisper Small (~486 MB), Piper MLS (~77 MB) en
 aanvullend Piper Ronnie (~63 MB) afzonderlijk goedgekeurd. Alle bestanden lokaal
 buiten Git gedownload, pinned revisies/groottes/hashes gecontroleerd.
 
-Geïmplementeerd: sessietoestemming/microfoon uit bij start, spraakpaneel,
+Geïmplementeerd: onthoudbare microfoontoestemming/microfoon uit bij start, spraakpaneel,
 hardwarekeuze, PTT/sneltoetsen/expliciete globale opt-in, stiltepoort/Silero,
 faster-whisper Nederlands met CPU-fallback, Piper-stem/snelheid/voorbeeld,
 zinsgewijze bestaande SSE/context, begrensde queues/RAM-cache, directe audiostop
 en annulering van de eigen inferenceprocesboom. Geen audio naar de server.
-71 clienttests en 165 servertests geslaagd; eerste portable build/start en echte
+74 clienttests en 165 servertests geslaagd; portable build/start en echte
 ingepakte Whisper/Piper-inferentie geslaagd. Nieuwe bron/laatste build/CI nog te
 controleren. Bandit en volledige client-/voice-constraints-audits schoon.
 Twaalf echte synthetische enginebeurten: STT mediaan 1,983 s, TTS 0,137 s warm;
 CPU-fallback, piek helper-RAM circa 869 MiB. Dit is geen fysieke audioproef.
-Eigenaar is gevraagd de echte microfoon, uitvoer en stopknop zelf te testen.
+Eigenaar bevestigt de echte audioproef met 'het werkt'. Op zijn verzoek zijn
+instructiealinea's vervangen door grote luister-/verwerkings-/spreekstatus,
+live niveaumeter, duidelijk transcript en ingeklapte instellingen. Toestemming
+en gekozen microfoon worden onthouden; globale shortcuts blijven per sessie opt-in.
+Een daaropvolgende fout bleek geselecteerd maar niet geïnstalleerd Whisper Tiny;
+Small hersteld, apparaten behouden, ontbrekende modellen onselecteerbaar en
+concrete foutmelding direct bovenaan. Geen extra download of opname uitgevoerd.
 
 Beperkingen: wakefunctie is experimentele Whisper-fraseherkenning na een uiting,
 geen bewezen Nederlands wake-wordmodel. XTTS/licentiereferentie/runtime ontbreken;

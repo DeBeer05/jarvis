@@ -27,8 +27,11 @@ class VoiceSettings:
     ptt_shortcut: str = "Ctrl+Space"
     stop_shortcut: str = "Ctrl+Shift+Space"
     global_hotkeys: bool = False
+    microphone_allowed: bool = False
 
     def validate(self):
+        if not isinstance(self.models, str) or any(type(value) is not bool for value in (self.cache, self.global_hotkeys, self.microphone_allowed)):
+            raise ValueError("Ongeldige spraakvoorkeur.")
         if self.model not in ("whisper-small", "whisper-base", "whisper-tiny") or self.device not in ("auto", "cpu", "cuda") or self.provider != "piper" or self.profile not in ("desktop", "light") or self.voice not in ("ronnie", "mls"):
             raise ValueError("Kies een ondersteund lokaal spraakprofiel.")
         for value, low, high in ((self.input_gain, 0.1, 3), (self.output_gain, 0, 1), (self.sensitivity, 0, 1),
@@ -65,3 +68,9 @@ class VoiceSettingsManager:
 
 def model_directory(settings):
     return str(Path(settings.models).expanduser().resolve()) if settings.models else str(data_directory() / "models")
+
+
+def installed_stt_models(settings):
+    root = Path(model_directory(settings))
+    return {name for name in ("whisper-small", "whisper-base", "whisper-tiny")
+            if all((root / name / file).is_file() for file in ("model.bin", "config.json", "tokenizer.json", "vocabulary.txt"))}

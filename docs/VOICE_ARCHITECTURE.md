@@ -60,7 +60,12 @@ Wake word is een **experimentele frasefilter na Whisper**, niet openWakeWord met
 een Nederlands getraind model. Alleen een uiting die begint met Hé/He/Hey/Hee
 en Jarvis (beperkte spellingvariant Jervis) activeert. Andere standbyteksten gaan
 niet naar de server. Een losse activatie opent de volgende opname; zonder spraak
-volgt timeout. Default uit, per appsessie toestemming en zichtbare microfoonstatus.
+volgt timeout. Default uit, expliciete onthoudbare toestemming en zichtbare microfoonstatus.
+De eigenaar vroeg om de microfoontoestemming en gekozen apparaten blijvend te
+bewaren. Na sessieherstel is die toestemming weer beschikbaar, maar de app opent
+bij opstart nog geen microfoon. Live energieniveau en de statussen Ik luister /
+Ik hoor je / Spraak verwerken / JARVIS denkt / JARVIS spreekt maken de fasen
+zichtbaar. Definitief verstaan blijkt uit het transcript, niet uit alleen de VAD.
 Betrouwbaarheid in echte kamers moet handmatig worden getest; geen always-on-claim.
 
 Profielen: desktop kan beide engines vasthouden in de helper; expliciet stoppen

@@ -12,6 +12,10 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
   CPU-fallback en licht profiel. Geen gevalideerd Nederlands wake-model, XTTS of
   gesproken barge-in. Geïsoleerde voice-runtime en complete portable build zonder
   impliciete modeldownloads. Handleidingen en hardwareloze regressietests toegevoegd.
+- Spraakbediening toont live niveau en duidelijke luister-/verwerkings-/spreekstatus.
+  Instructiealinea's ingeklapt; microfoontoestemming en apparaatkeuze worden op
+  gebruikersverzoek onthouden. Ontbrekend Tiny is niet selecteerbaar; fouten
+  verschijnen direct bij de status en een beschikbare Small-voorkeur wordt hersteld.
 
 - Desktoplogin op verzoek gewijzigd naar gebruikersnaam/wachtwoord, zonder
   browsergoedkeuring. Bestaande Argon2id/rate limits, eigen apparaat zonder

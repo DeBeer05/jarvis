@@ -11,7 +11,7 @@ import pytest
 from jarvis_client.voice import audio
 from jarvis_client.voice.manager import VoiceConversationManager
 from jarvis_client.voice.processing import AudioCache, InterruptionController, SentenceBuffer, VoiceActivityDetector, WakeWordEngine
-from jarvis_client.voice.settings import VoiceSettings, VoiceSettingsManager
+from jarvis_client.voice.settings import VoiceSettings, VoiceSettingsManager, installed_stt_models
 from jarvis_client.voice.worker import InferenceWorker
 from test_window import window
 
@@ -224,7 +224,7 @@ def test_ptt_auth_consent_transcript_stream_playback_and_followup(qt):
     until(qt, lambda: bool(metrics))
     assert voice.output.played == [b"Ik ben JARVIS.", b"Aangenaam!"]
     assert metrics[0]["first_token_seconds"] >= 0 and metrics[0]["first_audio_seconds"] >= 0
-    assert any("microfoon actief" in state for state in states)
+    assert any("Ik luister" in state for state in states)
     voice.set_authorized(False)
     assert not voice.consent and not voice.cache.items
     voice.close()
@@ -276,6 +276,74 @@ def test_voice_page_stays_in_existing_window_and_auth_boundary(qt, tmp_path, vau
     app.voice_panel.save()
     assert VoiceSettingsManager(tmp_path).load().speaker == 7
     assert not app.voice.busy
+    app.voice_panel.close_voice()
+    app.closing = True
+    app.tray.hide()
+    app.close()
+
+
+def test_microphone_permission_and_device_survive_restart(qt, tmp_path, vault):
+    app = window(tmp_path, vault)
+    panel = app.voice_panel
+    panel.consent.setChecked(True)
+    panel.inputs.addItem("Synthetic USB microphone", 4)
+    panel.inputs.setCurrentIndex(1)
+    panel.inputs.activated.emit(1)
+    saved = VoiceSettingsManager(tmp_path).load()
+    assert saved.microphone_allowed and saved.input_device == 4
+    assert not app.voice.authorized and not app.voice.recording
+    panel.close_voice()
+    app.closing = True
+    app.tray.hide()
+    app.close()
+    reopened = window(tmp_path, vault)
+    assert reopened.voice_panel.consent.isChecked()
+    assert reopened.voice_panel.inputs.currentData() == 4
+    assert not reopened.voice.recording and not reopened.voice.consent
+    reopened.manager.state = "online"
+    reopened.principal = {"permissions": ["chat:write"]}
+    reopened.update_controls()
+    assert reopened.voice.consent and not reopened.voice.recording
+    reopened.voice_panel.consent.setChecked(False)
+    assert not VoiceSettingsManager(tmp_path).load().microphone_allowed and not reopened.voice.consent
+    reopened.voice_panel.close_voice()
+    reopened.closing = True
+    reopened.tray.hide()
+    reopened.close()
+
+
+def test_live_microphone_feedback_and_stop_clear_meter(qt, tmp_path, vault):
+    app = window(tmp_path, vault)
+    voice, panel = app.voice, app.voice_panel
+    voice.authorized, voice.consent, voice.recording = True, True, True
+    voice._delivered((voice.interruptions.generation, "activity", (.1, True, False)))
+    assert panel.status.text() == "Ik hoor je…" and panel.level.value() == 80
+    assert "Microfoon actief" in panel.microphone_status.text()
+    assert panel.ptt.text() == "■  Opname afronden"
+    voice.stop()
+    assert panel.level.value() == 0 and "Microfoon uit" in panel.microphone_status.text()
+    panel.close_voice()
+    app.closing = True
+    app.tray.hide()
+    app.close()
+
+
+def test_missing_tiny_disabled_and_repaired_to_installed_small(qt, tmp_path, vault):
+    models = tmp_path / "models"
+    model = models / "whisper-small"
+    model.mkdir(parents=True)
+    for name in ("model.bin", "config.json", "tokenizer.json", "vocabulary.txt"):
+        (model / name).write_bytes(b"synthetic")
+    store = VoiceSettingsManager(tmp_path)
+    store.save(VoiceSettings(models=str(models), model="whisper-tiny"))
+    app = window(tmp_path, vault)
+    assert app.voice.settings.model == "whisper-small"
+    assert store.load().model == "whisper-small"
+    choice = app.voice_panel.choices["model"]
+    assert not choice.model().item(choice.findData("whisper-tiny")).isEnabled()
+    assert installed_stt_models(app.voice.settings) == {"whisper-small"}
+    app.voice_panel.show_problem("Spraakmodel ontbreekt.")
+    assert app.voice_panel.error.text() == "Spraakmodel ontbreekt." and not app.voice_panel.error.isHidden()
     app.voice_panel.close_voice()
     app.closing = True
     app.tray.hide()

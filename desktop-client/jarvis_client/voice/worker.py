@@ -132,6 +132,8 @@ class InferenceWorker:
                         self.cancel()
                         raise RuntimeError("Spraakverwerking duurde te lang; afgebroken.")
             if not response.get("ok"):
+                code = response.get("code") if response.get("code") in ERRORS else "voice_failed"
+                logging.getLogger("jarvis.voice").warning("Local speech request failed category=%s", code)
                 raise RuntimeError(ERRORS.get(response.get("code"), ERRORS["voice_failed"]))
             return response["result"]
 

@@ -33,7 +33,7 @@ class AudioInputManager:
     def stop(self, discard=False):
         self.cancelled.set() if discard else self.finish.set()
 
-    def capture(self, settings, *, consent, timeout=6):
+    def capture(self, settings, *, consent, timeout=6, activity=None):
         if not consent:
             raise AudioError("Geef eerst in het spraakpaneel toestemming voor de microfoon.")
         blocks = queue.Queue(maxsize=12)
@@ -66,7 +66,10 @@ class AudioInputManager:
                     samples = np.frombuffer(block, dtype=np.int16).astype(np.float32) * settings.input_gain
                     samples = np.clip(samples, -32768, 32767).astype(np.int16)
                     audio.extend(samples.tobytes())
-                    outcome = detector.feed(float(np.sqrt(np.mean((samples.astype(np.float32) / 32768) ** 2))), len(samples) / 16000)
+                    rms = float(np.sqrt(np.mean((samples.astype(np.float32) / 32768) ** 2)))
+                    outcome = detector.feed(rms, len(samples) / 16000)
+                    if activity:
+                        activity(rms, rms >= detector.threshold)
                     if overflow.is_set():
                         raise AudioError("Microfoonstream overbelast of onderbroken; opname gestopt.")
                     if outcome in ("finish", "empty"):

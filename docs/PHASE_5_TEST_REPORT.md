@@ -2,11 +2,12 @@
 
 Status: implementatie en lokale verificatie op
 feature/dutch-voice-assistant, vanaf develop d6e1b83 (fase-4-PR #15, echte CI groen).
-Geen wijzigingen naar main of fase 6. Remote CI en fysieke audioacceptatie staan
-nog open; de technische verificatie hieronder is daadwerkelijk uitgevoerd.
+Geen wijzigingen naar main of fase 6. De eigenaar heeft de echte audioproef
+bevestigd met 'het werkt'. Daarna zijn statusfeedback en onthouden toestemming
+op verzoek verbeterd. Remote CI voor die laatste bijsturing volgt nog.
 
 Volledig geïmplementeerd: nieuw spraakpaneel in bestaande app, expliciete
-sessietoestemming, hardwarekeuze, PTT/appshortcut/expliciete globale shortcut,
+onthoudbare expliciete microfoontoestemming, hardwarekeuze, PTT/appshortcut/expliciete globale shortcut,
 begrensde capture met energiepoort, lokale Nederlandse Whisper/Silero,
 Piper-Ronnie/MLS en stemvoorbeeld, snelheids-/geheugenprofielen, bestaande
 geauthenticeerde SSE/context, zinsgewijze TTS, stop/generatiecontrole en RAM-cache.
@@ -14,7 +15,7 @@ Geen nieuwe backend of audio-API, geen persoonlijke data gewijzigd.
 
 Gedeeltelijk: experimentele lokale Hé JARVIS-frasefilter na de hele uiting;
 geen bewezen detectiekwaliteit in een echte kamer. STT is per uiting, niet live
-per woord. Hardware-acceptatie door de eigenaar blijft nodig. GPU wordt
+per woord. De basis-audioketen is door de eigenaar bevestigd. GPU wordt
 gedetecteerd maar gebruikt CPU-fallback wegens ontbrekende CUDA-bibliotheken.
 Licht profiel is voorbereid, niet op de toekomstige 8-GB-machine gemeten.
 
@@ -35,10 +36,12 @@ eerste schrijfblok naar de driver; fysieke hoorbare latency vereist onderstaande
 
 ## Uitgevoerde automatische en engineproeven
 
-- 71 clienttests geslaagd: capture/geen toestemming, missing/busy/denied/unplugged
+- 74 clienttests geslaagd: capture/geen toestemming, missing/busy/denied/unplugged
   drivers, VAD/stilte, PCM-geheugenbuffer, outputstop/fout, apparaten, settings,
   wakefilter, zinsqueue/cache, late TTS-annulering, PTT/auth/UI, netwerkfout zonder
   resend, drie chatbeurten met dezelfde gesprek-ID en CUDA→CPU-fallback.
+  Ook: toestemming/apparaatkeuze na herstart, live niveaumeter, inline foutmelding
+  en herstel van ontbrekend Tiny naar daadwerkelijk geïnstalleerd Small.
 - 165 servertests geslaagd, inclusief echte tijdelijke TCP-auth/chat/refresh/
   context/intrekking; één bestaande Starlette/httpx-adapterwaarschuwing.
 - Pip check op beide clientomgevingen goed; Bandit app/helper 0 bevindingen,
@@ -78,7 +81,7 @@ eerste TTS 0,633 s, piek 877 MiB. Er zijn geen audiobestanden bewaard.
 1. Start server en nieuwe app volgens VOICE_SETUP; bestaande login blijft geldig.
 2. Kies de echte input/output, speel Ronnie-stemvoorbeeld. Controleer Nederlands,
    volume en verstaanbaarheid. Er wordt hierbij niets opgenomen.
-3. Vink zelf toestemming aan. PTT: vraag 'Hoe heet je?', daarna in hetzelfde
+3. Sta de gekozen microfoon eenmalig toe als dat nog niet is ingesteld. PTT: vraag 'Hoe heet je?', daarna in hetzelfde
    gesprek 'Hoeveel is zeven plus vijf?' en een langere opdracht van 20–30 s.
    Controleer transcript, antwoord, context en responsieve UI.
 4. Stop midden in een lang antwoord: stilte moet direct intreden en oude audio
@@ -94,6 +97,9 @@ eerste TTS 0,633 s, piek 877 MiB. Er zijn geen audiobestanden bewaard.
 8. Sluit volledig af tijdens opname/uitvoer en controleer dat mic/audio stopt.
    Heropen: mic uit, sessie hersteld, audio-instellingen behouden.
 
-Deze fysieke proeven zijn nog niet door de agent uitgevoerd; geen opname zonder
-de toestemming/bediening van de eigenaar. Volledige fase-5-acceptatie claimen we
-pas na een geslaagde echte microfoon-/luidsprekerproef.
+De eigenaar heeft de basisaudioproef zelf geslaagd bevestigd. De agent heeft geen
+persoonlijke microfoonaudio opgenomen. De uitgebreide ruis-, unplug-, offline-
+en wakekwaliteitsproeven hierboven blijven aanvullende handmatige controles.
+Een latere foutmelding is herleid tot geselecteerd maar niet geïnstalleerd Whisper
+Tiny. Small is hersteld met behoud van gekozen input/output, ontbrekende modellen
+zijn niet meer selecteerbaar en concrete fouten staan direct bovenaan.

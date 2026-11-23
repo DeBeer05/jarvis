@@ -13,16 +13,21 @@ venster sluiten kan de app in het systeemvak laten draaien. Serverpoort blijft
 geldig. Spraak maakt geen nieuw account of server aan.
 
 1. Open **Spraak**, log indien nodig in bij Account.
-2. Klik **Audioapparaten vernieuwen** en kies microfoon/luidspreker. Controleer de
+2. Open **Stem en microfoon instellen**, klik **Audioapparaten vernieuwen** en kies microfoon/luidspreker. De apparaatkeuze wordt meteen onthouden. Controleer de
    namen opnieuw na apparaatwissels; Windows-apparaatnummers kunnen veranderen.
 3. Kies **Piper → Ronnie**, snelheid 1.0, GPU automatisch of CPU. Klik
    **Spraakinstellingen toepassen en opslaan**. **Stemvoorbeeld afspelen** test
    alleen uitvoer en vraagt geen microfoontoegang.
-4. Geef via het vinkje toestemming voor deze appsessie. Windows kan daarnaast
+4. Geef bij de instellingen eenmalig microfoontoestemming; de app onthoudt die op
+   verzoek van de eigenaar. Op deze desktop is dat al ingesteld. Windows kan daarnaast
    eigen microfoonrechten vereisen; geef die zelf in Windows als je dat wilt.
-5. Klik de grote **Spreken / opname verwerken**-knop of **Ctrl+Space**. Spreek
+5. Klik de grote **Start luisteren**-knop of **Ctrl+Space**. Spreek
    Nederlands. Stilte beëindigt de opname; nogmaals klikken verwerkt meteen.
-   Het transcript verschijnt na de uiting, het antwoord stroomt en wordt uitgesproken.
+   **Ik luister** betekent actieve opname; **Ik hoor je** betekent dat de lokale
+   spraakpoort geluid herkent. De niveaubalk beweegt met het microfoonsignaal.
+   **Spraak verwerken** betekent herkenning; onder **JIJ** zie je wat is verstaan.
+   **JARVIS denkt/spreekt** toont de antwoordfase. De aparte regel vermeldt altijd
+   of de microfoon actief of uit is. Het antwoord stroomt en wordt uitgesproken.
 6. **Stop alles** of **Ctrl+Shift+Space** onderbreekt audio, wachtende synthese en
    het AI-antwoord. Druk daarna opnieuw op spreken voor je volgende vraag.
 

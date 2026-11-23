@@ -17,6 +17,7 @@ class VoiceConversationManager(QObject):
     ready_text = Signal(str)
     problem = Signal(str)
     metrics = Signal(object)
+    level = Signal(float)
     delivered = Signal(object)
 
     def __init__(self, settings, parent=None, *, worker=None, audio_input=None, audio_output=None):
@@ -64,10 +65,12 @@ class VoiceConversationManager(QObject):
         if not self.consent:
             self.wake_enabled = False
             self.stop()
+            self.set_state("Microfoon niet toegestaan" if self.authorized else "Microfoon uit")
         else:
-            self.set_state("Klaar · microfoon uit")
+            self.set_state("Klaar om te luisteren")
 
     def set_authorized(self, value):
+        was_authorized = self.authorized
         self.authorized = bool(value)
         if not self.authorized:
             self.set_consent(False)
@@ -75,10 +78,14 @@ class VoiceConversationManager(QObject):
             self.answer.emit("")
             with self.cache_lock:
                 self.cache.clear()
+        elif not was_authorized and self.settings.microphone_allowed:
+            self.set_consent(True)
+        elif not was_authorized:
+            self.set_state("Microfoon niet toegestaan")
 
     def toggle_wake(self, enabled):
         if enabled and not (self.consent and self.authorized):
-            self.problem.emit("Log in en geef eerst microfoontoestemming voor deze appsessie.")
+            self.problem.emit("Log in en geef microfoontoestemming bij Stem en microfoon instellen.")
             return False
         self.stop()
         self.wake_enabled = bool(enabled)
@@ -97,7 +104,7 @@ class VoiceConversationManager(QObject):
         if self.closed:
             return
         if not self.consent or not self.authorized:
-            self.problem.emit("Log in en vink microfoontoestemming aan in Spraak. Er is geen opname gestart.")
+            self.problem.emit("Log in en sta je microfoon toe bij Stem en microfoon instellen.")
             return
         if self.recording:
             return
@@ -108,12 +115,19 @@ class VoiceConversationManager(QObject):
         self.recording = True
         capture_input = self.input = self.input_factory()
         capture_input.prepare()
-        self.set_state("Standby · microfoon actief · zeg Hé JARVIS" if wake_gate else "Luisteren · microfoon actief · klik nogmaals om te verwerken")
+        self.set_state("Ik wacht op Hé JARVIS" if wake_gate else "Ik luister…")
         timeout = settings.followup_seconds if automatic and self.armed and settings.followup_seconds else 6
 
         def capture():
             try:
-                audio = capture_input.capture(settings, consent=True, timeout=timeout)
+                previous = 0
+                def activity(rms, voiced):
+                    nonlocal previous
+                    now = time.monotonic()
+                    if now - previous >= .1:
+                        previous = now
+                        self.delivered.emit((generation, "activity", (rms, voiced, wake_gate)))
+                audio = capture_input.capture(settings, consent=True, timeout=timeout, activity=activity)
                 if not self.interruptions.valid(generation):
                     return
                 self.delivered.emit((generation, "transcribing", None))
@@ -129,9 +143,14 @@ class VoiceConversationManager(QObject):
         generation, kind, payload = item
         if self.closed or not self.interruptions.valid(generation):
             return
-        if kind == "transcribing":
+        if kind == "activity":
+            rms, voiced, wake_gate = payload
+            self.level.emit(min(1.0, rms * 8))
+            self.set_state("Ik hoor je…" if voiced else ("Ik wacht op Hé JARVIS" if wake_gate else "Ik luister…"))
+        elif kind == "transcribing":
             self.recording = False
-            self.set_state("Spraak herkennen · microfoon uit")
+            self.level.emit(0)
+            self.set_state("Spraak verwerken…")
         elif kind == "captured":
             self.recording = False
             result, wake_gate = payload
@@ -142,7 +161,7 @@ class VoiceConversationManager(QObject):
                 self.measurements["wake_after_utterance_seconds"] = round(result["seconds"], 3)
                 if not detected:
                     self.scheduled.start(150)
-                    self.set_state("Standby hervatten · microfoon uit")
+                    self.set_state("Ik wacht op Hé JARVIS")
                     return
                 if not text:
                     self.armed = True
@@ -154,7 +173,7 @@ class VoiceConversationManager(QObject):
                 self.armed = False
                 self.ready_text.emit(text)
             else:
-                self.set_state("Geen spraak herkend · microfoon uit")
+                self.set_state("Geen duidelijke spraak gehoord")
                 self.armed = False
                 if self.wake_enabled:
                     self.scheduled.start(150)
@@ -162,20 +181,20 @@ class VoiceConversationManager(QObject):
             if not self.first_audio:
                 self.first_audio = time.perf_counter()
                 self.measurements["first_audio_seconds"] = round(self.first_audio - self.response_started, 3)
-            self.set_state("JARVIS spreekt · microfoon uit")
+            self.set_state("JARVIS spreekt")
         elif kind == "drained":
             self.responding = False
             self.measurements["total_seconds"] = round(time.perf_counter() - self.response_started, 3)
             self.metrics.emit(dict(self.measurements))
-            self.set_state("Klaar · microfoon uit")
+            self.set_state("Klaar om te luisteren")
             if self.consent and self.authorized and (self.wake_enabled or self.settings.followup_seconds):
                 self.armed = bool(self.settings.followup_seconds)
                 # Let the output driver's final buffer drain to prevent self-triggering.
                 self.scheduled.start(450)
         elif kind == "error":
             self.stop()
+            self.set_state("Spraak lukt nog niet")
             self.problem.emit(payload)
-            self.set_state("Spraak gestopt · controleer de melding · microfoon uit")
 
     def _auto_listen(self):
         if self.consent and self.authorized and not self.responding:
@@ -191,7 +210,7 @@ class VoiceConversationManager(QObject):
         self.sentence, self.answer_text = SentenceBuffer(), ""
         self.response_started = time.perf_counter()
         self.first_token = self.first_audio = 0
-        self.set_state("Antwoord ophalen · microfoon uit")
+        self.set_state("JARVIS denkt…")
         generation, settings, pending = self.interruptions.generation, replace(self.settings), self.pending
 
         def consume():
@@ -268,7 +287,8 @@ class VoiceConversationManager(QObject):
         self.pending = queue.Queue(maxsize=32)
         if not keep_wake:
             self.wake_enabled = self.armed = False
-        self.set_state("Gestopt · microfoon uit")
+        self.level.emit(0)
+        self.set_state("Gestopt")
 
     def close(self):
         self.closed = True

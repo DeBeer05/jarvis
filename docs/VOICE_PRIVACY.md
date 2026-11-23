@@ -1,7 +1,10 @@
 # Privacy van spraak
 
-Microfoon staat bij iedere start uit. De appsessie vraagt een expliciet vinkje;
-dat wordt nooit opgeslagen. PTT of een bewust ingeschakelde wakefunctie opent
+Microfoon staat bij iedere start uit. De eigenaar vroeg expliciet om toestemming
+voor de gekozen microfoon te onthouden. Die lokale voorkeur wordt nu opgeslagen
+en na veilig sessieherstel opnieuw toegepast; opnieuw aanvinken is niet nodig.
+Je kunt toestemming altijd intrekken bij Stem en microfoon instellen.
+PTT of een bewust ingeschakelde wakefunctie opent
 de opname, zichtbaar in Spraak én op de chatmicrofoonknop. Stop, toestemming
 intrekken, sessieverlies en volledig afsluiten stoppen opname en uitvoer.
 Het venster naar het systeemvak sluiten beëindigt standby niet; gebruik Stop of
@@ -21,8 +24,8 @@ blijft ook de AI-inferentie lokaal mits de lokale server/Ollama beschikbaar zijn
 Standby zonder herkende activatie verstuurt geen tekst naar de server.
 AI-antwoorden gaan lokaal naar Piper. Geen AI-gegenereerde acties worden uitgevoerd.
 
-Instellingen bevatten uitsluitend modelpad, apparaten, volumes, gevoeligheid,
-sneltoetsen en andere voorkeuren. Geen wachtwoorden/tokens of toestemming.
+Instellingen bevatten modelpad, apparaten, volumes, gevoeligheid,
+sneltoetsen en de bewust onthouden microfoontoestemming. Geen wachtwoorden/tokens.
 Refreshcredential blijft in Windows Credential Manager; de helper krijgt nooit
 credentials of toegang tot persoonlijke API-routes. Nieuwe remoteprofielen
 blijven HTTPS met certificaatvalidatie vereisen.
