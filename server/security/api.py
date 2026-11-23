@@ -43,6 +43,10 @@ class DesktopLogin(Login):
     device_id: UUID
 
 
+class AndroidLogin(Login):
+    code_challenge: str = Field(pattern=r"^[A-Za-z0-9_-]{43}$")
+
+
 class Password(Input):
     current_password: SecretStr = Field(min_length=1, max_length=128)
     new_password: SecretStr = Field(min_length=12, max_length=128)
@@ -157,6 +161,20 @@ async def desktop_login(request: Request, body: DesktopLogin):
     credentials = await service(request).login(body.username, body.password.get_secret_value(), body.device_name,
                                              request.client.host, str(body.device_id), desktop=True)
     return credentials.native()
+
+
+@router.post("/api/v1/auth/android-login")
+async def android_login(request: Request, body: AndroidLogin):
+    if request.cookies.get(ACCESS_COOKIE) or request.cookies.get(REFRESH_COOKIE):
+        raise AuthError("csrf_failed", "Gebruik de browserlogin voor een browsersessie.", 403)
+    security = service(request)
+    _, bucket = await security.verify_owner(body.username, body.password.get_secret_value(), request.client.host)
+    await public_rate(request, "pair-request", 5)
+    result = await asyncio.to_thread(security.store.request_pair, body.device_name, "android",
+                                    {"chat:read", "chat:write", "chat:delete", "status:read"}, body.code_challenge)
+    await asyncio.to_thread(security.store.reset_rate, bucket)
+    result["verification_uri"] = str(request.base_url).rstrip("/") + "/security"
+    return result
 
 
 @router.post("/api/v1/auth/refresh")

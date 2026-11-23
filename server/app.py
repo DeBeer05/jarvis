@@ -27,6 +27,7 @@ from server.security.service import SecurityService
 from server.security.gate import SecurityGate
 from server.security.api import router as security_router
 from server.security.types import AuthError
+from server.mobile import router as mobile_router, SpeechBridge
 
 logger = logging.getLogger("jarvis.server")
 
@@ -74,6 +75,8 @@ def create_app(
     app.state.runtime = runtime
     app.state.chat = chat
     app.state.security = security
+    app.state.speech = SpeechBridge()
+    app.state.mobile_push = {}
     app.add_middleware(SecurityGate, service=security)
     app.add_middleware(RequestGuard, port=settings.port, allowed_origins=settings.allowed_origins)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(settings.trusted_hosts))
@@ -81,6 +84,7 @@ def create_app(
     app.include_router(api_router)
     app.include_router(chat_router)
     app.include_router(security_router)
+    app.include_router(mobile_router)
 
     @app.middleware("http")
     async def security_headers(request: Request, call_next):

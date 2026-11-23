@@ -23,6 +23,7 @@ PUBLIC = {
     "/api/v1/auth/status": {"GET"}, "/api/v1/auth/csrf": {"GET"},
     "/api/v1/auth/login": {"POST"}, "/api/v1/auth/refresh": {"POST"},
     "/api/v1/auth/desktop-login": {"POST"},
+    "/api/v1/auth/android-login": {"POST"},
     "/api/v1/auth/token": {"POST"},
     "/api/v1/pairing/requests": {"POST"}, "/api/v1/pairing/token": {"POST"},
     "/internal/status": {"GET"}, "/internal/shutdown": {"POST"},
@@ -73,7 +74,13 @@ class SecurityGate:
             if via_cookie and method not in ("GET", "HEAD", "OPTIONS"):
                 if not hmac.compare_digest(principal.csrf_hash, digest(csrf_value(scope))):
                     raise AuthError("csrf_failed", "Vernieuw de pagina en probeer opnieuw.", 403)
-            if path.startswith("/api/v1/chat"):
+            if path == "/api/v1/mobile/speech/transcribe":
+                required = "chat:write"
+            elif path == "/api/v1/mobile/speech/synthesize":
+                required = "chat:read"
+            elif path == "/api/v1/mobile/push":
+                required = "status:read"
+            elif path.startswith("/api/v1/chat"):
                 required = "chat:read" if method in ("GET", "HEAD") else "chat:delete" if method == "DELETE" else "chat:write"
             elif path in ("/api/v1/status", "/api/v1/ai/providers"):
                 required = "status:read"

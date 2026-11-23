@@ -38,6 +38,12 @@ class SecurityService:
             return False
 
     async def login(self, username, password, name, client_key, device_hint=None, *, desktop=False):
+        encoded, bucket = await self.verify_owner(username, password, client_key)
+        result = await asyncio.to_thread(self.store.login, encoded, name, device_hint, desktop=desktop)
+        await asyncio.to_thread(self.store.reset_rate, bucket)
+        return result
+
+    async def verify_owner(self, username, password, client_key):
         bucket = "login:" + digest(client_key)
         await asyncio.to_thread(self.store.rate, bucket, self.settings.login_attempts, self.settings.login_window_seconds)
         owner = await asyncio.to_thread(self.store.owner)
@@ -47,9 +53,7 @@ class SecurityService:
         if not valid or not owner or owner["username"] != username:
             await asyncio.to_thread(self.store.audit, "login_failed")
             raise AuthError("invalid_credentials", "Inloggen mislukt. Controleer je gegevens.")
-        result = await asyncio.to_thread(self.store.login, encoded, name, device_hint, desktop=desktop)
-        await asyncio.to_thread(self.store.reset_rate, bucket)
-        return result
+        return encoded, bucket
 
     async def change_password(self, principal, current, new, revoke_all=None):
         self.validate_password(new)

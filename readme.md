@@ -1,5 +1,12 @@
 # JARVIS — Windows-client en beveiligde AI-webchat
 
+**Android (fase 6):** native Kotlin/Compose-app in `android/`, met dezelfde
+beveiligde chat, eigenaarpairing en servergestuurde Nederlandse spraak.
+[Installatie](docs/ANDROID_SETUP.md) · [Build](docs/ANDROID_BUILD.md) ·
+[Beveiliging](docs/ANDROID_SECURITY.md) · [Teststatus](docs/PHASE_6_TEST_REPORT.md).
+Ontwikkeling via USB/ADB naar localhost:8765; geen publieke servertoegang.
+FCM zonder configuratie: lokale testmeldingen; volledige oproepen horen bij fase 8.
+
 De Windows-client 0.5.0 (fase 5) gebruikt dezelfde server en een eigen veilige
 Windows-apparaatsessie. Start vanuit de bestaande projectroot:
 

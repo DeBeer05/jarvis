@@ -4,6 +4,11 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Fase 6: native Android 0.6.0 met Compose/Material3, S256-ownerpairing,
+  Keystore/Room/DataStore, chat/SSE/historie, foreground-spraak via bestaande
+  centrale Whisper/Piper-helper en Android-notificatiekanalen. Geen publieke
+  toegang, achtergrondmicrofoon, FCM-bezorgclaim of volledige internetoproepen.
+
 - Windows-client 0.5.0: lokaal Nederlands spreken met expliciete toestemming,
   PTT/sneltoetsen, apparaten/volumes/stilte, faster-whisper en Piper/Ronnie,
   bestaande beveiligde chat/context/SSE, zinsaudio, onmiddellijke stop en
