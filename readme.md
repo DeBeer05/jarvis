@@ -1,7 +1,7 @@
 # JARVIS — Windows-client en beveiligde AI-webchat
 
-De aparte Windows-client (fase 4) gebruikt dezelfde server en eigen veilige
-apparaatpairing. Start vanuit de bestaande projectroot:
+De aparte Windows-client (fase 4) gebruikt dezelfde server en een eigen veilige
+Windows-apparaatsessie. Start vanuit de bestaande projectroot:
 
 ```powershell
 powershell.exe -NoProfile -File scripts/Start-Server.ps1 -Background
@@ -9,9 +9,10 @@ powershell.exe -NoProfile -File scripts/Start-WindowsClient.ps1
 ```
 
 Portable build: `.local/client-build/dist/JARVIS/JARVIS.exe` (volledige map
-behouden). Eerste keer: **Account → Inloggen en apparaat koppelen**; vergelijk
-de code en keur het verzoek goed in je eigenaarbrowser. Je wachtwoord blijft
-in de eigenaarinterface; refreshcredentials gaan naar Windows Credential Manager.
+behouden). Eerste keer: **Account → Inloggen** met je bestaande gebruikersnaam
+en wachtwoord. Er is geen browsergoedkeuring nodig. Het wachtwoord wordt niet
+bewaard; refreshcredentials gaan naar Windows Credential Manager, zodat je na
+afsluiten/herstarten ingelogd blijft binnen de sessiegeldigheid.
 Chat, streaming/historie, systeemvak, meldingen en verbindingsprofielen zijn
 onderdeel van de client. Autostart staat standaard uit.
 

@@ -4,6 +4,30 @@ Uitgangspunt develop 19f3e27, branch feature/windows-desktop-client. De gebruike
 heeft inmiddels ook fase 5 opgedragen; het bestaande fase-4-werk wordt als basis
 behouden en beoordeeld, niet stilzwijgend als eerder afgerond aangenomen.
 
+## Actuele desktoplogin op gebruikersverzoek
+
+De desktopapp gebruikt nu gebruikersnaam/wachtwoord zonder browsergoedkeuring.
+165 servertests en 37 clienttests zijn daadwerkelijk geslaagd. Dit omvat correcte/
+foutieve login, gedeelde brute-forcelimiet, Windows-apparaat zonder beheerscopes,
+weigering van browsercookies/cross-origin-verzoeken, hergebruik van dezelfde
+installatie, intrekking en opnieuw authenticeren, gemaskeerd/direct gewist
+wachtwoordveld en geen wachtwoord/gebruikersnaam in settings.
+
+De echte TCP-proef draait nu voor zowel bestaande S256-pairing als directe
+wachtwoordlogin. Bij wachtwoordlogin wordt de client echt gesloten en een nieuwe
+ApiClient met dezelfde credentialstore gemaakt: sessieherstel zonder opnieuw
+invoeren werkt, gevolgd door chat/SSE/historie/refresh/intrekking. Een verbindings-
+fout vóór verzending bewaart de sessie; onzekere refresh blijft fail-closed.
+
+Nieuwe desktopwachtwoordsessies zijn maximaal 30 dagen geldig; ongebruikte refresh
+standaard 7 dagen. Browser-/pairingsessies behouden hun eerdere levensduur.
+Geen database-migratie, geen echt eigenaarwachtwoord gewijzigd of uitgelezen.
+Bandit (server en client) 0 bevindingen zonder onderdrukking; beide dependency-
+audits melden geen bekende kwetsbaarheden. Lokale portable startup slaagt na
+build-PATH-isolatie; de eerdere DLL-fout is daadwerkelijk hersteld.
+
+De onderstaande fase-4-resultaten beschrijven de eerdere implementatiebasis.
+
 Uitgevoerd op Windows/Python 3.12.10:
 
 - 156 oorspronkelijke servertests geslaagd vóór clientwerk.

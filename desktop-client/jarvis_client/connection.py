@@ -91,6 +91,7 @@ class ConnectionManager(QObject):
         self.state, self.attempt, self.generation, self.stopping = "offline", 0, 0, False
         self.busy = False
         self.pinned = False
+        self.login_pending = False
         self.timer = QTimer(self)
         self.timer.setSingleShot(True)
         self.timer.timeout.connect(self.check)
@@ -100,7 +101,7 @@ class ConnectionManager(QObject):
         self.check()
 
     def check(self):
-        if self.stopping or self.busy:
+        if self.stopping or self.busy or self.login_pending:
             return
         self.busy = True
         generation = self.generation

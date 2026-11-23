@@ -4,6 +4,14 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Desktoplogin op verzoek gewijzigd naar gebruikersnaam/wachtwoord, zonder
+  browsergoedkeuring. Bestaande Argon2id/rate limits, eigen apparaat zonder
+  beheerrechten, 30-daagse desktopsessie en veilig automatisch sessieherstel.
+  Wachtwoord wordt direct gewist en nooit op schijf bewaard.
+- Veilige refreshcredential blijft behouden bij netwerkuitval vóór verzending;
+  onzekere tokenrotatie blijft opnieuw inloggen vereisen. Installatie-UUID blijft
+  behouden bij instellingen wijzigen en opnieuw inloggen.
+
 - Fase 4 / Windows-client 0.4.0: aparte PySide6-app met veilige S256-pairing,
   Windows Credential Manager, streaming/historie, systeemvak/meldingen,
   reconnect/profielen/instellingen, expliciete lokale system_info-capability en

@@ -12,7 +12,12 @@ QSystemTrayIcon levert systeemvak/meldingen, Startup alleen expliciete HKCU Run-
 opt-in, LocalAgent uitsluitend een door de gebruiker toegestane system_info-demo.
 VoiceCapability is een inactieve interface voor de apart opgedragen fase 5.
 
-Native login gebruikt de bestaande S256-pairing, geen nieuwe password/tokenroute.
+Native desktoplogin gebruikt op gebruikersverzoek de bestaande eigenaarcredentials
+via /api/v1/auth/desktop-login. Dezelfde Argon2id-/rate-limitservice geeft minimale
+Windows-chat-/statusrechten, zonder beheerrechten. Refresh gaat naar Credential
+Manager; de openbare installatie-UUID voorkomt dubbele apparaatregistraties.
+De 30-daagse desktopsessie wordt na appherstart via tokenrotatie hersteld.
+De bestaande S256-pairing blijft voor andere clients beschikbaar.
 Twee zelfbeheerroutes laten een sessie alleen het eigen apparaat zien/intrekken.
 Beheer van overige apparaten en wachtwoord blijven bij de eigenaarbrowser.
 De server draait onafhankelijk op localhost:8765. Clientprofielen bereiden

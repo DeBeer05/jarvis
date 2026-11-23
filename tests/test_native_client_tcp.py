@@ -4,6 +4,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from uuid import uuid4
 
 import httpx
 import pytest
@@ -25,7 +26,8 @@ class TemporaryVault:
         self.values.pop(origin, None)
 
 
-def test_native_client_true_tcp_pair_chat_history_refresh_and_revoke(tmp_path):
+@pytest.mark.parametrize("method", ["pairing", "password"])
+def test_native_client_true_tcp_pair_chat_history_refresh_and_revoke(tmp_path, method):
     with socket.socket() as probe:
         probe.bind(("127.0.0.1", 0))
         port = probe.getsockname()[1]
@@ -50,12 +52,18 @@ def test_native_client_true_tcp_pair_chat_history_refresh_and_revoke(tmp_path):
                 api = ApiClient(origin, vault, clock=lambda: clock[0])
                 try:
                     api.probe()
-                    public = api.begin_pair("Synthetic native TCP", delete=True)
-                    pending = owner.get("/api/v1/pairing/requests").json()["items"][0]
-                    approved = owner.post("/api/v1/pairing/requests/" + pending["id"] + "/decision", json={"approve": True, "user_code": public["user_code"], "scopes": ["chat:read", "chat:write", "chat:delete", "status:read"]}, headers={"X-Jarvis-CSRF": owner.cookies["jarvis_csrf"]})
-                    assert approved.status_code == 200
-                    clock[0] += 6
-                    principal = api.poll_pair()
+                    if method == "password":
+                        principal = api.login("owner", TEST_PASSWORD, "Synthetic native TCP", str(uuid4()))
+                        api.close()
+                        api = ApiClient(origin, vault, clock=lambda: clock[0])
+                        assert api.session()["session_id"] == principal["session_id"]
+                    else:
+                        public = api.begin_pair("Synthetic native TCP", delete=True)
+                        pending = owner.get("/api/v1/pairing/requests").json()["items"][0]
+                        approved = owner.post("/api/v1/pairing/requests/" + pending["id"] + "/decision", json={"approve": True, "user_code": public["user_code"], "scopes": ["chat:read", "chat:write", "chat:delete", "status:read"]}, headers={"X-Jarvis-CSRF": owner.cookies["jarvis_csrf"]})
+                        assert approved.status_code == 200
+                        clock[0] += 6
+                        principal = api.poll_pair()
                     assert api.request("GET", "/api/v1/auth/device")["type"] == "windows"
                     events = []
                     assert api.stream("Synthetic request", None, "auto", events.append)["completed"]

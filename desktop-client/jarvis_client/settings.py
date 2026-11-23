@@ -1,8 +1,9 @@
 import json
 import os
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from urllib.parse import urlsplit
+from uuid import UUID, uuid4
 
 
 def endpoint(value):
@@ -28,6 +29,7 @@ def data_directory():
 
 @dataclass
 class Preferences:
+    installation_id: str = field(default_factory=lambda: str(uuid4()))
     local_url: str = "http://127.0.0.1:8765"
     remote_url: str = ""
     connection_mode: str = "local"
@@ -42,6 +44,10 @@ class Preferences:
     log_level: str = "warning"
 
     def validate(self):
+        try:
+            UUID(self.installation_id)
+        except (ValueError, TypeError, AttributeError):
+            raise ValueError("Ongeldige installatie-identiteit.") from None
         self.local_url = endpoint(self.local_url)
         if self.remote_url:
             self.remote_url = endpoint(self.remote_url)

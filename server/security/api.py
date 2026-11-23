@@ -39,6 +39,10 @@ class Refresh(Input):
     refresh_token: SecretStr = Field(min_length=32, max_length=128)
 
 
+class DesktopLogin(Login):
+    device_id: UUID
+
+
 class Password(Input):
     current_password: SecretStr = Field(min_length=1, max_length=128)
     new_password: SecretStr = Field(min_length=12, max_length=128)
@@ -144,6 +148,15 @@ async def login(request: Request, body: Login):
 @router.get("/api/v1/auth/session")
 async def me(request: Request):
     return request.state.principal.public()
+
+
+@router.post("/api/v1/auth/desktop-login")
+async def desktop_login(request: Request, body: DesktopLogin):
+    if request.cookies.get(ACCESS_COOKIE) or request.cookies.get(REFRESH_COOKIE):
+        raise AuthError("csrf_failed", "Gebruik de browserlogin voor een browsersessie.", 403)
+    credentials = await service(request).login(body.username, body.password.get_secret_value(), body.device_name,
+                                             request.client.host, str(body.device_id), desktop=True)
+    return credentials.native()
 
 
 @router.post("/api/v1/auth/refresh")

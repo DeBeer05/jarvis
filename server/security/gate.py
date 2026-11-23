@@ -22,6 +22,7 @@ PUBLIC = {
     "/chat/assets/security.js": {"GET"},
     "/api/v1/auth/status": {"GET"}, "/api/v1/auth/csrf": {"GET"},
     "/api/v1/auth/login": {"POST"}, "/api/v1/auth/refresh": {"POST"},
+    "/api/v1/auth/desktop-login": {"POST"},
     "/api/v1/auth/token": {"POST"},
     "/api/v1/pairing/requests": {"POST"}, "/api/v1/pairing/token": {"POST"},
     "/internal/status": {"GET"}, "/internal/shutdown": {"POST"},

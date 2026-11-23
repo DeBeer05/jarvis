@@ -18,24 +18,33 @@ ontwikkelmachine eerst `scripts/Install-WindowsClient.ps1` uitvoeren. De portabl
 app staat na bouwen in `.local/client-build/dist/JARVIS/JARVIS.exe` en vereist
 geen geïnstalleerde Python. Client en server sluiten onafhankelijk af.
 
-## Inloggen en koppelen
+## Inloggen en ingelogd blijven
 
-Open **Account**, geef dit apparaat een naam en kies **Inloggen en apparaat
-koppelen**. Open daarna de eigenaarinterface met de browserknop. Log daar zelf
-in, vergelijk de getoonde code en keur de aangevraagde rechten expliciet goed.
-De app haalt daarna zijn eigen Windows-apparaatsessie op. Er wordt geen
-eigenaarwachtwoord in deze client gevraagd of opgeslagen.
+Open **Account**, vul je bestaande JARVIS-gebruikersnaam en wachtwoord in en
+kies **Inloggen**. Goedkeuren in een browser is voor de desktopapp niet meer
+nodig. Het wachtwoordveld is gemaskeerd en wordt direct na verzenden gewist.
+Het wachtwoord wordt niet op schijf bewaard. De server controleert dezelfde
+Argon2id-hash en inloglimiet als de webchat.
 
-Standaard: gesprekken lezen/schrijven en status bekijken. Verwijderen wordt
-alleen aangevraagd als je dat aanvinkt en apart in de eigenaarinterface goedkeurt.
-De client krijgt geen beheerrechten. Wachtwoord wijzigen en andere apparaten
+De app bewaart uitsluitend de refreshcredential in Windows Credential Manager.
+Na volledig afsluiten/herstarten wordt de sessie automatisch hersteld, mits
+automatisch verbinden aan staat. De desktopsessie is standaard maximaal 30
+dagen geldig (`JARVIS_DESKTOP_SESSION_SECONDS=2592000`); een ongebruikte refresh-
+credential verloopt standaard na 7 dagen. Regelmatig gebruik vernieuwt die
+credential automatisch, tot de absolute sessiegrens. Na uitloggen, intrekking,
+wachtwoordwijziging met sessie-intrekking of veilig verloop log je opnieuw in.
+
+Na correcte eigenaarlogin: gesprekken lezen/schrijven/verwijderen en status
+bekijken, zonder beheerrechten. De openbare installatie-UUID voorkomt steeds
+nieuwe apparaatregistraties; de UUID zelf verleent geen toegang.
+Wachtwoord wijzigen en andere apparaten
 beheren gaat via **Account → Wachtwoord en eigenaarsessies beheren** in de bestaande
 eigenaarbrowser. Dit hergebruikt de fase-3-beveiliging.
 
 **Uitloggen** trekt alleen deze sessie in. **Apparaten → Deze apparaatkoppeling
 intrekken** trekt de hele eigen apparaatregistratie in, na bevestiging. De
 server accepteert hierbij geen ander apparaat als doel. Bij intrekking/verloop
-wordt persoonlijke inhoud gewist uit de UI en moet je opnieuw koppelen.
+wordt persoonlijke inhoud gewist uit de UI en moet je opnieuw inloggen.
 
 ## Chat en navigatie
 
@@ -76,8 +85,9 @@ draaien; een tweede instantie verwijst naar het bestaande systeemvak.
 ## Diagnostiek en grenzen
 
 Geen server? Start hem apart, controleer health/ready en het adres. Geen rechten?
-Keur uitsluitend de nodige scopes opnieuw goed. Een onzekere refreshpoging leidt
-veilig tot opnieuw koppelen, zodat een mogelijk verbruikt token niet wordt herhaald.
+Log opnieuw in met je eigenaargegevens als de sessie is verlopen of ingetrokken.
+Een onzekere refreshpoging leidt veilig tot opnieuw inloggen, zodat een mogelijk
+verbruikt token niet wordt herhaald.
 Bij corrupte settings wordt het bestand behouden en volgt een duidelijke fout.
 Logbestand: `%LOCALAPPDATA%/JARVIS/Desktop/client.log`, maximaal 3 × 256 KiB.
 

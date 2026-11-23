@@ -60,7 +60,7 @@ class MainWindow(QMainWindow):
         self.previous_state = "offline"
         self.reply = ""
         self.rows = []
-        self.pair_origin = None
+        self.login_busy = False
         self.active_origin = None
         self.permissions = LocalAgent()
         self.voice = VoiceCapability()
@@ -118,10 +118,6 @@ class MainWindow(QMainWindow):
         self.manager.changed.connect(self.connection_changed)
         self.manager.authenticated.connect(self.authenticated)
         self.manager.problem.connect(self.report_error)
-        self.pair_timer = QTimer(self)
-        self.pair_timer.setInterval(1000)
-        self.pair_timer.timeout.connect(self.poll_pair)
-        self.pair_busy = False
         self.navigate(0)
         self.update_controls()
         if self.preferences.auto_connect:
@@ -153,7 +149,7 @@ class MainWindow(QMainWindow):
         self.transcript = QTextEdit()
         self.transcript.setReadOnly(True)
         self.transcript.setAcceptRichText(False)
-        self.transcript.setPlaceholderText("JARVIS\n\nJouw werkruimte staat klaar. Log in en koppel deze app om te beginnen.")
+        self.transcript.setPlaceholderText("JARVIS\n\nJouw werkruimte staat klaar. Log in met je gebruikersnaam en wachtwoord om te beginnen.")
         body.addWidget(self.transcript, 1)
         self.composer = Composer()
         self.composer.setPlaceholderText("Typ je bericht…  Enter verstuurt · Shift+Enter nieuwe regel")
@@ -252,23 +248,31 @@ class MainWindow(QMainWindow):
         body.addLayout(permissions)
 
     def make_account(self):
-        body = self.page("Account", "Log in via je eigenaarbrowser en keur deze Windows-app apart goed. Je eigenaarwachtwoord blijft buiten de client.")
-        self.account_info = label("Niet ingelogd. Koppel om veilig met je server te chatten.")
+        body = self.page("Account", "Log in met je bestaande JARVIS-gebruikersnaam en wachtwoord. Je blijft na het afsluiten van de app ingelogd.")
+        self.account_info = label("Niet ingelogd.")
         body.addWidget(self.account_info)
+        self.login_form = QWidget()
+        form = QFormLayout(self.login_form)
+        form.setContentsMargins(0, 0, 0, 0)
+        self.username = QLineEdit()
+        self.username.setPlaceholderText("Je JARVIS-gebruikersnaam")
+        self.username.setMaxLength(64)
+        self.username.setAccessibleName("Gebruikersnaam")
+        self.password = QLineEdit()
+        self.password.setEchoMode(QLineEdit.EchoMode.Password)
+        self.password.setMaxLength(128)
+        self.password.setAccessibleName("Wachtwoord")
+        self.password.returnPressed.connect(self.login)
+        form.addRow("Gebruikersnaam", self.username)
+        form.addRow("Wachtwoord", self.password)
         self.device_name = QLineEdit("JARVIS Windows")
         self.device_name.setMaxLength(80)
         self.device_name.setPlaceholderText("Naam voor dit apparaat")
-        body.addWidget(self.device_name)
-        self.allow_delete = QCheckBox("Ook toestemming vragen om gesprekken te verwijderen")
-        body.addWidget(self.allow_delete)
-        self.pair_button = button("Inloggen en apparaat koppelen", self.begin_pair, True)
-        body.addWidget(self.pair_button)
-        self.pair_code = label("", "heading")
-        self.pair_code.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        body.addWidget(self.pair_code)
-        self.pair_detail = label("", "muted")
-        body.addWidget(self.pair_detail)
-        body.addWidget(button("Inloggen / goedkeuren in browser", self.open_security))
+        form.addRow("Apparaatnaam", self.device_name)
+        body.addWidget(self.login_form)
+        self.login_button = button("Inloggen", self.login, True)
+        body.addWidget(self.login_button)
+        body.addWidget(label("Je wachtwoord wordt niet bewaard. Windows Credential Manager bewaart uitsluitend je beveiligde sessie.", "muted"))
         body.addWidget(button("Wachtwoord en eigenaarsessies beheren", self.open_security))
         self.logout_button = button("Uitloggen op deze app", self.logout)
         body.addWidget(self.logout_button)
@@ -319,9 +323,10 @@ class MainWindow(QMainWindow):
             self.notify("restored", "Verbinding met JARVIS hersteld.")
         if state == "login":
             self.clear_private()
-            self.account_info.setText("Niet ingelogd. Log in door deze Windows-app te koppelen.")
+            self.account_info.setText("Niet ingelogd. Vul je gebruikersnaam en wachtwoord in.")
             if self.previous_state != "login":
-                self.show_notice("Server bereikbaar. Open Account om in te loggen en deze app te koppelen.")
+                self.show_notice("Server bereikbaar. Log in met je gebruikersnaam en wachtwoord.")
+                self.navigate(5)
         self.previous_state = state
         self.diagnostics.setText(f"Profiel: {self.preferences.connection_mode} · {self.manager.api.origin if self.manager.api else 'geen server'}\nTLS-validatie actief; geen automatische publieke toegang.")
         self.update_controls()
@@ -352,16 +357,16 @@ class MainWindow(QMainWindow):
         self.delete_button.setEnabled("chat:delete" in permissions and not self.running)
         self.logout_button.setEnabled(bool(self.principal) and not self.running)
         self.revoke_button.setEnabled(bool(self.principal) and not self.running)
-        self.pair_button.setEnabled(self.manager.state == "login" and not self.pair_timer_active())
+        self.login_button.setEnabled(self.manager.state == "login" and not self.login_busy)
+        self.login_button.setVisible(not bool(self.principal))
+        self.login_form.setVisible(not bool(self.principal))
+        self.login_form.setEnabled(not self.login_busy)
         self.provider.setEnabled(not self.running)
-
-    def pair_timer_active(self):
-        return hasattr(self, "pair_timer") and self.pair_timer.isActive()
 
     def call(self, method, path, body, success):
         api = self.manager.api
         if not api or not self.principal:
-            self.show_notice("Log eerst in en koppel deze Windows-app.")
+            self.show_notice("Log eerst in met je gebruikersnaam en wachtwoord.")
             return
         generation = self.manager.generation
         def done(value):
@@ -369,58 +374,51 @@ class MainWindow(QMainWindow):
                 success(value)
         self.jobs.submit(lambda _: api.request(method, path, body), done, self.report_error)
 
-    def begin_pair(self):
+    def login(self):
         api = self.manager.api
-        if not api:
+        if self.login_busy or self.principal:
+            return
+        if not api or self.manager.state != "login":
             self.manager.start()
             self.show_notice("Wacht op de serververbinding en probeer daarna opnieuw.")
             return
+        username, password = self.username.text().strip(), self.password.text()
         name = self.device_name.text().strip()
-        if not name:
-            self.show_notice("Geef dit apparaat een naam.")
+        if not username or not password or not name:
+            self.show_notice("Vul je gebruikersnaam, wachtwoord en apparaatnaam in.")
             return
-        self.pair_button.setEnabled(False)
-        self.pair_origin = api.origin
-        delete = self.allow_delete.isChecked()
-        def started(result):
-            if api is not self.manager.api or self.closing:
-                return
-            self.pair_code.setText(result["user_code"])
-            self.pair_detail.setText("Vergelijk deze code in je eigenaarbrowser. Kies daar rechten en keur expliciet goed. Geldig gedurende " + str(result["expires_in"]) + " seconden.")
-            self.pair_timer.start()
-            self.update_controls()
-        def failed(error):
-            self.report_error(error)
-            self.update_controls()
-        self.jobs.submit(lambda _: api.begin_pair(name, delete), started, failed)
-
-    def poll_pair(self):
-        api = self.manager.api
-        if not api or api.origin != self.pair_origin:
-            self.pair_timer.stop()
-            self.pair_code.clear()
+        self.password.clear()
+        try:
+            # Persist only this installation's public UUID and non-secret settings.
+            self.store.save(self.preferences)
+        except (ValueError, OSError):
+            self.show_notice("Instellingen konden niet worden opgeslagen. Je wachtwoord is niet bewaard.")
             return
-        if self.pair_busy:
-            return
-        self.pair_busy = True
+        self.login_busy = True
+        self.manager.login_pending = True
+        self.manager.generation += 1
+        self.manager.timer.stop()
+        generation = self.manager.generation
+        installation_id = self.preferences.installation_id
+        self.update_controls()
         def done(result):
-            self.pair_busy = False
-            if not result.get("pending"):
-                self.pair_timer.stop()
-                self.pair_code.clear()
-                self.pair_detail.setText("Apparaat veilig gekoppeld.")
-                self.manager.state = "online"
-                self.connection_changed("online")
-                self.authenticated(result)
-                self.navigate(0)
+            self.login_busy = False
+            self.manager.login_pending = False
+            if api is not self.manager.api or generation != self.manager.generation or self.closing:
+                return
+            self.manager.state = "online"
+            self.connection_changed("online")
+            self.authenticated(result)
+            self.navigate(0)
+            self.manager.timer.start(20000)
         def failed(error):
-            self.pair_busy = False
-            if error.code != "network":
-                self.pair_timer.stop()
-                self.pair_code.clear()
-            self.report_error(error)
-            self.update_controls()
-        self.jobs.submit(lambda _: api.poll_pair(), done, failed)
+            self.login_busy = False
+            self.manager.login_pending = False
+            if generation == self.manager.generation and not self.closing:
+                self.report_error(error)
+                self.update_controls()
+                self.manager.timer.start(20000)
+        self.jobs.submit(lambda _: api.login(username, password, name, installation_id), done, failed)
 
     def open_security(self):
         origin = self.manager.api.origin if self.manager.api else self.preferences.candidates()[0]
@@ -567,7 +565,6 @@ class MainWindow(QMainWindow):
         api = self.manager.api
         if not api:
             return
-        self.pair_timer.stop()
         self.jobs.submit(lambda _: api.logout(revoke), lambda _: self.logged_out(), lambda error: (self.logged_out(), self.show_notice("Lokaal uitgelogd. Als de server onbereikbaar was: trek deze sessie ook in via de eigenaarinterface.")))
 
     def logged_out(self):
@@ -577,7 +574,7 @@ class MainWindow(QMainWindow):
         self.show_notice("Uitgelogd op deze Windows-app.")
 
     def revoke_device(self):
-        if QMessageBox.question(self, "Apparaat intrekken", "Alle toegang van deze Windows-app intrekken? Opnieuw koppelen is daarna nodig.", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes:
+        if QMessageBox.question(self, "Apparaat intrekken", "Alle toegang van deze Windows-app intrekken? Opnieuw inloggen is daarna nodig.", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes:
             self.logout(revoke=True)
 
     def clear_private(self):
@@ -590,15 +587,16 @@ class MainWindow(QMainWindow):
         self.transcript.clear()
         self.history.clear()
         self.composer.clear()
+        self.password.clear()
         self.device_info.setText("Geen geldige apparaatkoppeling.")
 
     def save_settings(self):
         try:
-            value = Preferences(local_url=self.local_url.text(), remote_url=self.remote_url.text(), connection_mode=self.mode.currentData(),
+            value = Preferences(installation_id=self.preferences.installation_id, local_url=self.local_url.text(), remote_url=self.remote_url.text(), connection_mode=self.mode.currentData(),
                                 theme=self.theme_choice.currentData(), language=self.language_choice.currentData(), provider=self.provider.currentData(),
                                 log_level=self.log_choice.currentText(), **{key: item.isChecked() for key, item in self.setting_checks.items()}).validate()
-            if self.running:
-                raise ValueError("Stop eerst het lopende antwoord voordat je instellingen wijzigt.")
+            if self.running or self.login_busy:
+                raise ValueError("Wacht op de login of stop het lopende antwoord voordat je instellingen wijzigt.")
             if value.startup != self.preferences.startup:
                 Startup.set_enabled(value.startup)
             self.store.save(value)
@@ -608,8 +606,7 @@ class MainWindow(QMainWindow):
             self.setStyleSheet(stylesheet(value.theme))
             self.clear_private()
             self.manager.reset()
-            self.pair_timer.stop()
-            self.pair_code.clear()
+            self.password.clear()
             self.show_notice("Instellingen opgeslagen. " + ("English wordt na herstart toegepast op de hoofdnavigatie." if value.language == "en" else ""))
         except (ValueError, OSError) as error:
             self.show_notice(str(error))
@@ -653,7 +650,6 @@ class MainWindow(QMainWindow):
         if self.closing:
             return
         self.closing = True
-        self.pair_timer.stop()
         self.manager.stop()
         self.render_timer.stop()
         self.tray.hide()

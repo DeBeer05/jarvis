@@ -5,17 +5,25 @@ is gekozen volgens gebruikersvoorkeur, met één QApplication en widgets op de
 Qt-hoofdthread. HTTP/SSE draait op maximaal vier workers; signalen/slots leveren
 resultaten aan de UI-thread. Tests controleren daadwerkelijk de thread-ID's.
 
-Inloggen is de bestaande RFC8628-gebaseerde S256-pairing met menselijke code-
-vergelijking en expliciete eigenaargoedkeuring. De native client krijgt alleen
-minimale rechten. Eigenaarwachtwoordbeheer blijft gedelegeerd aan de beveiligde
-webinterface; de client kan geen beheerrechten aanvragen.
+Op expliciet gebruikersverzoek gebruikt de desktopapp nu gebruikersnaam en
+wachtwoord via POST /api/v1/auth/desktop-login. De bestaande Argon2id-verificatie,
+generieke fouten en dezelfde IP-inloglimiet worden hergebruikt. De route geeft
+geen cookies af en weigert browsers met authcookies; de Origin-/JSON-/loopback-
+controles blijven gelden. Een correcte eigenaarlogin verleent alleen de vier
+bestaande chat-/statusrechten aan een Windows-apparaat. De installatie-UUID
+is openbaar, wordt pas na wachtwoordcontrole gebruikt en kan geen browserapparaat
+overnemen. Opnieuw inloggen hergebruikt het apparaat en trekt oude sessies ervan in.
+Wachtwoordbeheer en overige apparaatbeheer blijven bij de eigenaarinterface.
+De S256-pairing-API blijft beschikbaar voor andere clients, zonder bypass.
 
 Refresh-tokens staan uitsluitend in Windows Credential Manager, generiek type,
 per exacte serverorigin gehashte targetnaam. Access-tokens blijven in geheugen.
 Geen plaintextfallback. Een proceslock voorkomt gelijktijdige instanties die
 dezelfde refreshcredential roteren. Rotatie is binnen het proces geserialiseerd;
-het oude duurzame token wordt vóór het verzoek verwijderd. Bij een crash of
-onzekere refresh-response is opnieuw koppelen nodig, in plaats van tokenreplay.
+het oude duurzame token wordt vóór het verzoek verwijderd. Een verbindingsfout
+vóór verzending behoudt de credential; bij een crash of onzekere refresh-response
+is opnieuw inloggen nodig, in plaats van tokenreplay. Desktopsessies zijn standaard
+maximaal 30 dagen geldig; ongebruikte refresh-tokens standaard 7 dagen.
 
 TLS-certificaten/hostnamen worden geverifieerd, redirects worden niet gevolgd,
 omgevingproxy's worden niet gebruikt. HTTP is uitsluitend toegestaan voor

@@ -2,6 +2,19 @@
 
 ## Huidige opdracht
 
+Actuele bijsturing: eigenaar wil in de Windows-app rechtstreeks met gebruikersnaam
+en wachtwoord inloggen, zonder browsergoedkeuring, en na appherstart ingelogd blijven.
+Geïmplementeerd via bestaande Argon2id-/rate-limitservice, cookie-vrije desktop-
+loginroute, dezelfde Windows-apparaatidentiteit en Credential Manager. Geen
+wachtwoordopslag. Nieuwe desktoplogin maximaal 30 dagen; refresh bij gebruik,
+ongebruikte refresh standaard 7 dagen. Andere apparaten/pairing blijven beveiligd.
+Getest: 165 server- en 37 clienttests geslaagd, inclusief directe login via echte
+TCP-server en herstel na clientherstart zonder nieuwe wachtwoordinvoer. Geen
+secret in settings. Bandit en beide dependency-audits zonder actuele bevindingen.
+De native-login portable build start lokaal succesvol na fix voor build-PATH/ICU-
+vervuiling. Eigenaaraccount/chatdata behouden; geen database-migratie nodig.
+De eerdere vraag om eigenaarpairing is hiermee voor deze Windows-app vervallen.
+
 Fase 4 expliciet opgedragen op 23 november 2026: afzonderlijke Windows-client,
 beveiligde pairing/chat, systeemvak/meldingen/instellingen, portable Windows-build.
 In uitvoering op feature/windows-desktop-client vanaf develop 19f3e27.

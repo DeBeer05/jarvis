@@ -142,6 +142,10 @@ zijn voor deze opdracht toegestaan. Importeer geen upstream PyQt6-/spraakstack;
 één QApplication in het zelfstandige clientproces, widgets alleen op Qt-hoofdthread.
 Netwerkwerk buiten de UI-thread; server nooit vanuit de client starten. Bewaar
 refreshcredentials via Windows Credential Manager; geen plaintext fallback.
+De gebruiker heeft de desktoplogin gewijzigd naar gebruikersnaam/wachtwoord
+zonder browsergoedkeuring. Hergebruik de Argon2id-/rate-limitservice, geef alleen
+native chat-/statusrechten en bewaar nooit het wachtwoord. Bestaande pairing voor
+andere clients en cookie-CSRF blijven behouden; public device-ID is geen credential.
 Nieuwe niet-loopback endpoints uitsluitend HTTPS met certificaatvalidatie.
 Geen volledige spraak, berichten, account-OAuth, autonome acties, permanente Windows-
 service of productie-deployment. Alleen localhost; alles op de ontwikkeldesktop.

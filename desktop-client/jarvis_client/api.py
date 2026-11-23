@@ -38,6 +38,8 @@ class ApiClient:
     def _network(self, method, path, **kwargs):
         try:
             response = self.http.request(method, path, **kwargs)
+        except (httpx.ConnectError, httpx.ConnectTimeout):
+            raise ClientError("network_before_send", "Server niet bereikbaar of TLS-certificaat ongeldig. Je opgeslagen sessie blijft behouden.") from None
         except httpx.TransportError:
             raise ClientError("network", "Server niet bereikbaar of TLS-certificaat ongeldig. Controleer het serveradres.") from None
         return self._decode(response)
@@ -58,7 +60,8 @@ class ApiClient:
             messages = {"authorization_pending": "Wacht op jouw goedkeuring in de browser.", "slow_down": "Even wachten voor de volgende koppelcontrole.",
                         "expired_token": expired_message, "access_denied": "Deze koppeling is geweigerd.",
                         "invalid_grant": "De koppeling is ongeldig of al gebruikt.", "permission_denied": "Dit apparaat heeft hiervoor geen toestemming.",
-                        "rate_limited": "Te veel verzoeken. Probeer later opnieuw.", "authentication_required": "Je sessie is verlopen of ingetrokken. Koppel opnieuw."}
+                        "rate_limited": "Te veel verzoeken. Probeer later opnieuw.", "authentication_required": "Je sessie is verlopen of ingetrokken. Log opnieuw in."}
+            messages["invalid_credentials"] = "Inloggen mislukt. Controleer je gebruikersnaam en wachtwoord."
             raise ClientError(code, messages.get(code, "Het verzoek is niet gelukt. Controleer je verbinding en rechten."), response.status_code)
         if not isinstance(body, dict):
             raise ClientError("invalid_response", "Onverwacht serverantwoord.")
@@ -87,15 +90,21 @@ class ApiClient:
             if not self.access or self.deadline - self.clock() < 40:
                 refresh = self.vault.load(self.origin)
                 if not refresh:
-                    raise ClientError("authentication_required", "Log in door dit apparaat te koppelen.", 401)
+                    raise ClientError("authentication_required", "Log in met je gebruikersnaam en wachtwoord.", 401)
                 # Remove the old durable token before rotation. A crash/ambiguous failure
                 # must cause re-pairing, never replay of a possibly consumed token.
                 self.vault.delete(self.origin)
                 self.access, self.principal = None, None
                 try:
                     self._install(self._network("POST", "/api/v1/auth/token", json={"refresh_token": refresh}))
+                except ClientError as error:
+                    if error.code == "network_before_send":
+                        # No request reached the server: the old token was not consumed.
+                        self.vault.save(self.origin, refresh)
+                        raise
+                    raise ClientError("authentication_required", "Sessievernieuwing niet bevestigd. Log opnieuw in.", 401) from None
                 except Exception:
-                    raise ClientError("authentication_required", "Sessievernieuwing niet bevestigd. Koppel opnieuw om tokenhergebruik te voorkomen.", 401) from None
+                    raise ClientError("authentication_required", "Sessievernieuwing niet bevestigd. Log opnieuw in.", 401) from None
             return {"Authorization": "Bearer " + self.access}
 
     def request(self, method, path, body=None):
@@ -111,6 +120,16 @@ class ApiClient:
     def session(self):
         self.principal = self.request("GET", "/api/v1/auth/session")
         return self.principal
+
+    def login(self, username, password, name, device_id):
+        with self.lock:
+            if self.closed:
+                raise ClientError("closed", "De verbinding is afgesloten.")
+            credentials = self._network("POST", "/api/v1/auth/desktop-login", json={
+                "username": username, "password": password, "device_name": name, "device_id": device_id,
+            })
+            self._install(credentials)
+            return self.session()
 
     def begin_pair(self, name, delete=False):
         with self.lock:
@@ -184,7 +203,7 @@ class ApiClient:
                         if event["type"] == "done":
                             final = True
                             if (event.get("error") or {}).get("code") == "authentication_expired":
-                                raise ClientError("authentication_required", "Je sessie is ingetrokken. Koppel opnieuw.", 401)
+                                raise ClientError("authentication_required", "Je sessie is ingetrokken. Log opnieuw in.", 401)
                 if not final:
                     raise ClientError("incomplete", "De verbinding stopte vóór het antwoord compleet was. Herlaad de historie; het bericht is niet opnieuw verstuurd.")
         except httpx.TransportError:

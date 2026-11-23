@@ -29,6 +29,15 @@ niet de database, want die bevat ook je gesprekken.
 
 ## Dagelijks gebruik
 
+De Windows-client heeft op gebruikersverzoek ook een directe wachtwoordlogin:
+POST /api/v1/auth/desktop-login met username, password, device_name en device_id
+(de openbare installatie-UUID). Dit is een cookie-vrije native route met dezelfde
+Argon2id-verificatie en brute-forcelimiet; de response bevat opaque access/refresh.
+Geen goedkeuringscode nodig voor deze eigenaarlogin. De client bewaart alleen
+refresh in Windows Credential Manager. Desktop blijft standaard maximaal 30
+dagen aangemeld; de ongebruikte refresh-levensduur blijft standaard 7 dagen.
+De browserlogin en andere apparaten met S256-pairing blijven werken.
+
 1. Open `/login`, vul je eigen gegevens in en kies **Inloggen**.
 2. De webchat op `/chat` laadt pas na authenticatie je gespreksgeschiedenis.
 3. Kies **Beveiliging** of open `/security` voor apparaten, sessies en auditlog.
@@ -87,6 +96,7 @@ kunnen bij gelijktijdig vernieuwen opnieuw moeten inloggen.
 | `JARVIS_ACCESS_SECONDS` | 300 | 60–900 |
 | `JARVIS_REFRESH_SECONDS` | 604800 | 3600–2592000; maximaal sessieduur |
 | `JARVIS_SESSION_SECONDS` | 604800 | 3600–2592000, absolute eindtijd |
+| `JARVIS_DESKTOP_SESSION_SECONDS` | 2592000 | 3600–2592000, absolute eindtijd bij desktopwachtwoordlogin |
 | `JARVIS_PAIRING_SECONDS` | 300 | 60–900 |
 | `JARVIS_PAIRING_POLL_SECONDS` | 5 | 5–30 |
 | `JARVIS_LOGIN_MAX_ATTEMPTS` | 5 | 1–20 per IP en tijdvenster |
