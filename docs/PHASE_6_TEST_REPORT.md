@@ -41,8 +41,13 @@ of providerkeys. De testgoedkeuringsroute bestaat alleen in dat testproces.
 
 Installeerbaar artefact: `.local/android-build/JARVIS-Android-0.6.0-debug.apk`,
 19.215.931 bytes. SHA256:
-`60766b3d777f12cbcc1fdcae553562e513c6be3a88cd879457b8918196dfbd51`.
+`0e91bc2f4a345727109437409a314d3e479c57f9fac98dc6db1f4da414f4aa78`.
 Het standaard Gradle-artefact staat ook onder android/app/build/outputs/apk/debug.
+Integratie via [PR #17](https://github.com/DeBeer05/jarvis/pull/17). De eerste CI
+ontdekte een lege EOF-regel in de meegebundelde licentietekst en een ontbrekende
+SDK-manager op de runner. Alleen EOF is genormaliseerd; de Linux-SDK wordt nu
+zelf met vastgepinde download en SHA256 geïnstalleerd. De licentie-inhoud blijft
+behouden. Merge uitsluitend na alle groene checks op de exacte laatste head.
 Release is unsigned; er zijn geen persoonlijke signinggegevens aangeleverd.
 
 De automatische goedkeuringscontrole blokkeerde de gecombineerde opdracht voor

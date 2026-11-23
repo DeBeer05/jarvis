@@ -17,6 +17,10 @@ unsigned releasebuild geslaagd. Windows-regressies: 74 tests; serverregressies
 165 bestaand plus zeven nieuwe mobieltests. Keystore, refresh/pairing/context,
 TLS-afwijzing, echte Piper/Whisper en Android-audio-API's daadwerkelijk getest.
 APK: .local/android-build/JARVIS-Android-0.6.0-debug.apk (circa 19,2 MB).
+Implementatie gepusht naar de eigen fork; [PR #17](https://github.com/DeBeer05/jarvis/pull/17)
+naar develop. Eerste CI bevestigt servermatrix en Windows-clientbuild; Android-
+SDK-bootstrap en licentie-EOF zijn hersteld na de eerste CI-bevindingen. Alle
+checks op de definitieve head zijn vereist vóór veilige merge. Main blijft intact.
 Races bij uitloggen/refresh en late cachewrites zijn afgeschermd. Alleen expliciet
 goedgekeurde chatrechten activeren Android-chat/microfoon/verwijderknoppen.
 Pythondeps schoon; Bandit zeven lage beoordeelde subprocess/abort-signalen,
