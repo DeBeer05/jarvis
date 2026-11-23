@@ -16,17 +16,27 @@ faster-whisper Nederlands met CPU-fallback, Piper-stem/snelheid/voorbeeld,
 zinsgewijze bestaande SSE/context, begrensde queues/RAM-cache, directe audiostop
 en annulering van de eigen inferenceprocesboom. Geen audio naar de server.
 74 clienttests en 165 servertests geslaagd; portable build/start en echte
-ingepakte Whisper/Piper-inferentie geslaagd. Nieuwe bron/laatste build/CI nog te
-controleren. Bandit en volledige client-/voice-constraints-audits schoon.
+ingepakte Whisper/Piper-inferentie geslaagd. Laatste Windows-GUI-/helperrookproef
+geslaagd op implementatiehead 63826ee. Volledige client-/voice-dependencyaudits:
+0 bekende kwetsbaarheden. Bandit: 4 lage beoordeelde subprocess/abort-signalen,
+0 middel/hoge bevindingen, geen suppressies. Index/nieuwe range met Gitleaks schoon.
 Twaalf echte synthetische enginebeurten: STT mediaan 1,983 s, TTS 0,137 s warm;
 CPU-fallback, piek helper-RAM circa 869 MiB. Dit is geen fysieke audioproef.
-Eigenaar bevestigt de echte audioproef met 'het werkt'. Op zijn verzoek zijn
+Eigenaar bevestigt de echte audioproef met 'Alles werkt, inclusief stoppen'. Op zijn verzoek zijn
 instructiealinea's vervangen door grote luister-/verwerkings-/spreekstatus,
 live niveaumeter, duidelijk transcript en ingeklapte instellingen. Toestemming
 en gekozen microfoon worden onthouden; globale shortcuts blijven per sessie opt-in.
 Een daaropvolgende fout bleek geselecteerd maar niet geïnstalleerd Whisper Tiny;
 Small hersteld, apparaten behouden, ontbrekende modellen onselecteerbaar en
 concrete foutmelding direct bovenaan. Geen extra download of opname uitgevoerd.
+
+Git: implementatie e9c9d7e en UX/herstel 63826ee gepusht naar de eigen fork.
+Integratie via [PR #16](https://github.com/DeBeer05/jarvis/pull/16) naar develop,
+uitsluitend na alle geslaagde checks op de laatste head, inclusief Windows-client-
+build, plus inhoudelijke review. E9c9d7e had reeds groene echte remote CI.
+Owneracceptatie en technische fase-5-basis zijn geleverd; uitgebreide wake-/ruis-
+en hardwarewisselproeven blijven optioneel volgens het testverslag. Geen verdere
+verplichte handmatige installatie voor deze ontwikkeldesktop. Geen main-release.
 
 Beperkingen: wakefunctie is experimentele Whisper-fraseherkenning na een uiting,
 geen bewezen Nederlands wake-wordmodel. XTTS/licentiereferentie/runtime ontbreken;

@@ -3,8 +3,10 @@
 Status: implementatie en lokale verificatie op
 feature/dutch-voice-assistant, vanaf develop d6e1b83 (fase-4-PR #15, echte CI groen).
 Geen wijzigingen naar main of fase 6. De eigenaar heeft de echte audioproef
-bevestigd met 'het werkt'. Daarna zijn statusfeedback en onthouden toestemming
-op verzoek verbeterd. Remote CI voor die laatste bijsturing volgt nog.
+bevestigd met 'Alles werkt, inclusief stoppen'. Statusfeedback, onthouden
+toestemming en modelkeuze zijn op verzoek verbeterd. Integratie loopt via
+[PR #16 naar develop](https://github.com/DeBeer05/jarvis/pull/16), uitsluitend na
+geslaagde checks op de exacte laatste head en inhoudelijke beoordeling.
 
 Volledig geïmplementeerd: nieuw spraakpaneel in bestaande app, expliciete
 onthoudbare expliciete microfoontoestemming, hardwarekeuze, PTT/appshortcut/expliciete globale shortcut,
@@ -44,10 +46,15 @@ eerste schrijfblok naar de driver; fysieke hoorbare latency vereist onderstaande
   en herstel van ontbrekend Tiny naar daadwerkelijk geïnstalleerd Small.
 - 165 servertests geslaagd, inclusief echte tijdelijke TCP-auth/chat/refresh/
   context/intrekking; één bestaande Starlette/httpx-adapterwaarschuwing.
-- Pip check op beide clientomgevingen goed; Bandit app/helper 0 bevindingen,
-  volledige client-/voice-constraints met pip-audit: 0 bekende kwetsbaarheden.
-- Repository-/whitespacecheck geslaagd. Definitieve index/geheimscan en remote CI
-  volgen bij de Git-afhandeling; oude upstream-historie wordt niet herschreven.
+- Pip check op server/client/voice goed; volledige client-/voice-constraints met
+  pip-audit: 0 bekende kwetsbaarheden. Bandit: 4 lage signalen, 0 middel/hoge,
+  0 scanfouten en geen suppressies. Inhoudelijk beoordeeld: B404 subprocessimport,
+  twee B603-aanroepen met vaste eigen helper/taskkill-argumenten zonder shell of
+  AI-invoer, en B110 bij best-effort PortAudio-abort nadat generatieannulering al
+  uitvoer uitsluit. Dit zijn beoordeelde grenzen, geen claim van nul meldingen.
+- Repository-/whitespacecheck, definitieve index en nieuwe commitrange met
+  Gitleaks geslaagd. Oude upstream-historie met eerder vastgestelde verwijderde
+  historische sleutel wordt niet herschreven; geen nieuwe sleutel/data gecommit.
 - Portable GUI 0.5.0 gestart: zeven pagina's, geen netwerk, geen mic en geen
   helper bij start. Ook de ingepakte helper importeert engines en weigert een
   ontbrekend model zonder download. Drie echte ingepakte TTS→STT-proeven geslaagd.
@@ -75,6 +82,15 @@ bestaande servertests verifiëren echte authenticated HTTP/SSE. Geen live
 cloudlatency of volledig offline hardwaregebruik uit mocks afleiden.
 De portable helper geeft dezelfde Nederlandse inhoud; eerste STT 2,516 s,
 eerste TTS 0,633 s, piek 877 MiB. Er zijn geen audiobestanden bewaard.
+
+Laatste lokale Windows-artefact bij implementatiehead 63826ee:
+`JARVIS-Windows-0.5.0-x64.zip`, circa 192 MB. Native GUI- en ontbrekend-model-
+rookproeven opnieuw geslaagd. SHA256 executable:
+`2c1205ef50dedd25fd3f97b930dbb234508d9cbaae7d475ea588b543e3119e59`;
+zip: `6380ab3090d2e3a15fb1cd965f89d43365c48be10b125bc1e665ca4ce6f22aef`.
+De exacte automatische GitHub-checks en merge-uitkomst staan bij PR #16;
+bescherming wordt niet omzeild. De oorspronkelijke implementatiehead e9c9d7e
+had al groene repository-/server-/client-CI; de laatste head moet opnieuw groen zijn.
 
 ## Handmatige acceptatie op jouw hardware
 
