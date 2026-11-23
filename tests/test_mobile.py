@@ -41,6 +41,25 @@ def test_android_password_login_still_requires_owner_pairing(settings):
         assert native.get("/api/v1/devices").status_code==403
 
 
+def test_owner_can_grant_and_revoke_android_automation_without_repairing(settings):
+    from tests.auth_helpers import login
+    from uuid import uuid4
+    app=make_app(settings)
+    with client_for(app) as native:
+        paired(app,native)
+        device=native.get("/api/v1/auth/device").json()["id"]
+        assert native.get("/api/v1/automation").status_code==403
+        with client_for(app) as owner:
+            assert login(owner).status_code==200
+            assert owner.post("/api/v1/automation/grants",json={"device_id":device,"scopes":["automation:read","automation:write"]}).status_code==200
+            assert native.get("/api/v1/automation").status_code==200
+            principal=native.get("/api/v1/auth/session").json()
+            assert "automation:write" in principal["permissions"] and "automation:approve" not in principal["permissions"]
+            assert native.post("/api/v1/automation/jobs",json={"tool":"ReminderList","input":{},"idempotency_key":str(uuid4())}).status_code==200
+            assert owner.post("/api/v1/automation/grants",json={"device_id":device,"scopes":[]}).status_code==200
+            assert native.get("/api/v1/automation").status_code==403
+
+
 def test_android_wrong_password_does_not_create_pair_or_session(settings):
     app=make_app(settings)
     with client_for(app) as native:

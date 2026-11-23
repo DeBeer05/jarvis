@@ -140,8 +140,45 @@ bind("plan",async f=>{const p=await api("/plan","POST",{instruction:f.get("instr
 bind("tool",async f=>{const input=JSON.parse(f.get("input"));if(!confirm("Deze actie indienen?\n"+f.get("tool")+"\n"+JSON.stringify(input,null,2)))return;show(await submit(f.get("tool"),input,{repeat:f.get("repeat"),timezone:zone,...(f.get("due")?{due:new Date(f.get("due")).toISOString()}:{})}));await refresh();});
 bind("policy",async f=>{await api("/notifications","PUT",{quiet_start:Number(f.get("quiet_start")),quiet_end:Number(f.get("quiet_end")),max_hour:Number(f.get("max_hour")),timezone:zone,categories:["urgent","appointments","important","news"]});await refresh();});
 bind("oauth",async f=>{const result=await api("/integrations/google","POST",{features:[...f.keys()]});const url=new URL(result.authorization_url);if(url.origin!=="https://accounts.google.com")throw Error("Ongeldige autorisatielink");el("oauth-link").href=url.href;el("oauth-link").hidden=false;});
-bind("grant",async f=>{if(confirm("Deze rechten aan dit apparaat verlenen?"))await api("/grants","POST",{device_id:f.get("device_id"),scopes:[...f.keys()].filter(x=>x!=="device_id")});});
+bind("grant",async f=>{
+ const id=f.get("device_id"),device=grantDevices.find(item=>item.id===id);
+ if(!device)throw Error("Kies eerst een gekoppeld Windows- of Android-apparaat.");
+ const scopes=[...f.keys()].filter(x=>x!=="device_id");
+ if(confirm(`Rechten wijzigen voor ${device.name} (${device.type})?\n${scopes.join(", ")||"Alle automatiseringsrechten verwijderen"}`)){
+  await api("/grants","POST",{device_id:id,scopes});await loadGrantDevices(id);
+  el("grant-status").textContent="Rechten opgeslagen. Kies in de app Rechten vernieuwen of wacht op de sessiecontrole. Op Android kun je Automatiseringen opnieuw openen.";
+ }
+});
 el("refresh").onclick=run(refresh);
 el("calendars").onclick=run(async()=>calendarRequest("Agenda’s ophalen…",()=>api("/calendar/calendars"),renderCalendars));
 el("disconnect").onclick=run(async()=>{if(confirm("Google-toegang intrekken?"))show(await api("/integrations/google","DELETE"));});
-JarvisAuth.initialize().then(refresh).catch(error=>{el("status").textContent=error.message;});
+let grantDevices=[],grantPrincipal=null;
+const grantScopes=["automation:read","automation:write","automation:approve","integrations:manage"];
+function selectedGrantDevice(){
+ const device=grantDevices.find(item=>item.id===el("grant-device").value);
+ for(const scope of grantScopes)el("grant").querySelector(`[name="${scope}"]`).checked=!!device?.permissions?.includes(scope);
+ el("grant-status").textContent=device?`${device.name} · ${device.type} · ${device.id}`:"Kies een gekoppeld apparaat.";
+}
+async function loadGrantDevices(selected=el("grant-device").value){
+ if(!grantPrincipal?.permissions?.includes("admin:devices")){el("grant-status").textContent="Alleen de eigenaar kan apparaatrechten instellen.";return;}
+ const data=await JarvisAuth.api("/api/v1/devices");
+ grantDevices=(data.items||[]).filter(item=>!item.revoked_at&&item.trusted&&item.id!==grantPrincipal.device_id);
+ const choice=el("grant-device");choice.replaceChildren();
+ const empty=document.createElement("option");empty.value="";empty.textContent="Kies Windows of Android";choice.append(empty);
+ for(const device of grantDevices){const option=document.createElement("option");option.value=device.id;option.textContent=`${device.name} · ${device.type}`;choice.append(option);}
+ choice.value=grantDevices.some(item=>item.id===selected)?selected:"";selectedGrantDevice();
+ if(!grantDevices.length)el("grant-status").textContent="Nog geen gekoppelde apps gevonden. Log eerst in op Windows of koppel Android via Apparaten.";
+}
+el("grant-device").addEventListener("change",selectedGrantDevice);
+el("grant-refresh").onclick=run(()=>loadGrantDevices());
+function prepareDeviceGrant(){
+ const parameters=new URLSearchParams((location.hash||"").slice(1)),id=parameters.get("device");
+ if(!id||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))return;
+ if(!grantDevices.some(item=>item.id===id)){el("grant-status").textContent="Dit apparaat is niet gekoppeld of is ingetrokken. Kies een geldig apparaat uit de lijst.";return;}
+ const form=el("grant");el("grant-device").value=id;selectedGrantDevice();
+ form.querySelector('[name="automation:read"]').checked=true;
+ form.querySelector('[name="automation:write"]').checked=true;
+ form.scrollIntoView({block:"center"});
+ el("grant-status").textContent="Apparaat geselecteerd. Controleer de rechten en klik zelf op Rechten instellen. Er zijn nog geen rechten gewijzigd.";
+}
+JarvisAuth.initialize().then(async principal=>{grantPrincipal=principal;await refresh();await loadGrantDevices();prepareDeviceGrant();}).catch(error=>{el("status").textContent=error.message;});

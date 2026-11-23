@@ -203,7 +203,7 @@ class MainWindow(QMainWindow):
         self.notification_list = QListWidget()
         body.addWidget(self.notification_list, 1)
         body.addWidget(button("Testmelding tonen", lambda: self.notify("test", "Dit is een lokale JARVIS-testmelding.")))
-        body.addWidget(label("Toekomstige herinneringen zijn voorbereid als module; er is geen agenda of planner actief.", "muted"))
+        body.addWidget(label("Je agenda, e-mail en herinneringen staan onder Automatiseringen. Je kunt ze ook via Chat of Spraak opvragen.", "muted"))
 
     def make_settings(self):
         body = self.page("Instellingen", "Vertrouwde endpoints, rustig gedrag en voorkeuren voor deze Windows-app.")
@@ -360,6 +360,7 @@ class MainWindow(QMainWindow):
 
     def update_controls(self):
         permissions = set(self.principal["permissions"]) if self.principal else set()
+        self.automation_panel.set_authorized(permissions,self.manager.state=="online")
         self.voice_panel.set_authorized("chat:write" in permissions and self.manager.state == "online")
         self.send_button.setEnabled("chat:write" in permissions and not self.running and self.manager.state == "online")
         self.stop_button.setEnabled(self.running or self.voice.responding)
@@ -373,7 +374,7 @@ class MainWindow(QMainWindow):
         self.login_form.setEnabled(not self.login_busy)
         self.provider.setEnabled(not self.running)
 
-    def call(self, method, path, body, success):
+    def call(self, method, path, body, success, failure=None):
         api = self.manager.api
         if not api or not self.principal:
             self.show_notice("Log eerst in met je gebruikersnaam en wachtwoord.")
@@ -384,6 +385,7 @@ class MainWindow(QMainWindow):
                 success(value)
         def failed(error):
             if generation == self.manager.generation and self.principal and not self.closing:
+                if failure: failure(error)
                 self.report_error(error)
         self.jobs.submit(lambda _: api.request(method, path, body), done, failed)
 

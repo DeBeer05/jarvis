@@ -2,6 +2,40 @@
 
 ## Huidige opdracht
 
+### Windows-bediening en Windows-/Android-rechten — 23 november 2026
+
+AI-chatuitbreiding geïntegreerd via PR #21 / develop 9b6f498 na tien groene
+push-/PR-jobs. Nieuwe gebruikersopdracht op feature/windows-agenda-mail vanaf
+die actuele basis: agenda/mail ook in Windows bedienen en Android rechten geven.
+De echte Windows-app had nog uitsluitend standaard chat-/statusrechten; deze
+zijn niet stilzwijgend verhoogd. De huidige Windows-sessie is behouden.
+
+Windows 0.7.1 vervangt JSON-leesresultaten door eigen agenda-/mailweergaven:
+agenda's op naam, datumperiode/snelkeuzes, afspraken/tijden/locatie, maximaal vijf
+mailheaders en expliciet berichtinhoud lezen. Ontvangen tekst blijft plain text;
+geen HTML/trackingafbeeldingen. Async werk via bestaande workers en guard op
+sessie/origin/generatie plus request-/selectieversies. Uitloggen of intrekken
+van rechten wist de privéweergaven. Queryallowlist uitsluitend uitgebreid met
+de exacte e-mailbody-opt-in. Bestaande drafts worden niet overschreven door het
+AI-voorbeeld. Geen netwerk-/Qt-werk op verkeerde thread of nieuwe dependencies.
+
+Eigenaarinterface kiest gekoppelde apparaten op naam/type, waaronder Android en
+Windows, met huidige rechten. Windows-knop opent het eigen apparaat als voorstel;
+de eigenaar moet zelf opslaan en bevestigen. Geen automatische grant, reparing,
+Google-consent of nieuwe Android-APK. Veilige UUID-allowlist voor login-return;
+geen vrij redirectadres. Ingetrokken/eigen apparaten uitgesloten van de keuze.
+
+Verificatie: 80 Windows-clienttests; 229 volledige servertests plus afzonderlijke
+nieuwe Android-grant/revoke-test geslaagd. Echte native TCP-proef dekt login,
+default deny, eigenaargrant, agenda, mailbody, AI-SSE en sessiebehoud. JS-gedragstest
+dekt Windows-/Android-keuze zonder automatische POST en expliciete Androidgrant.
+Build 0.7.1 inclusief spraakhelper geslaagd; synthetische agenda-/mailvensters
+visueel gecontroleerd. Echte ontwikkelapp gecontroleerd afgesloten en herstart;
+0.7.1 zichtbaar, ingelogd gebleven, duidelijke rechtenmelding. Geen echte Google-
+accounttests, audioproef of externe mutaties. Bestaande server op 8765 behouden.
+Resterend: eigenaar moet de bedoelde apparaten zelf rechten geven; remote CI en
+PR-integratie worden afzonderlijk gecontroleerd. Main behouden; stop na fase 7.
+
 ### AI-bediening binnen fase 7 — 23 november 2026
 
 Gebruiker bevestigt werkende integraties en vraagt expliciet bediening via AI.

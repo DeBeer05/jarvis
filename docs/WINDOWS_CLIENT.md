@@ -1,4 +1,32 @@
-# Windows-client — fasen 4–5
+# Windows-client — fasen 4–7
+
+## Agenda, e-mail en rechten in 0.7.1
+
+De bestaande app heeft nu leesbare agenda- en mailweergaven onder
+**Automatiseringen**. Haal agenda's op, kies er één, kies Vandaag/Morgen/Komende
+week of een periode en haal de afspraken op. E-mail toont maximaal vijf afzenders
+en onderwerpen. Selecteer een bericht en klik expliciet op **Inhoud lezen**.
+Geen bericht-ID's kopiëren, HTML of externe afbeeldingen laden. Oude antwoorden
+worden genegeerd na een selectie-/sessiewissel of uitloggen. Gewone chat en spraak
+gebruiken dezelfde servertools; de knop **via AI-chat / spraak** opent een voorbeeld
+zonder een bestaand ongestuurd bericht te overschrijven.
+
+Bij ontbrekende rechten: klik **Apparaatrechten instellen als eigenaar**. De browser
+opent het huidige Windows-apparaat als geselecteerd voorstel. Log zo nodig zelf
+in als eigenaar en controleer **Bekijken** en **Taken maken**. Klik zelf op
+**Rechten instellen** en bevestig. Er wordt niets verleend door alleen de link
+te openen. Gebruik daarna **Rechten vernieuwen** in Windows.
+
+In dezelfde eigenaarinterface kun je je gekoppelde **Android** op naam kiezen
+en afzonderlijk rechten geven. Goedkeuren en Accounts beheren zijn aparte keuzes;
+deze worden niet automatisch aangezet. Geen nieuwe Google-koppeling of Android-APK
+nodig voor de rechten. Android moet al door de eigenaar zijn gekoppeld. Open
+daarna Automatiseringen opnieuw of stel je chat-/spraakvraag opnieuw.
+
+De portable bundel staat na bouwen in `.local/client-build/dist/JARVIS/`;
+het versiegebonden archief is `JARVIS-Windows-0.7.1-x64.zip`. De ontwikkelapp start
+met de bestaande `scripts/Start-WindowsClient.ps1`. Logingegevens, profiel,
+microfoonkeuze en Windows Credential Manager-sessie blijven behouden.
 
 Spraak is toegevoegd in versie 0.5.0. Gebruik [VOICE_SETUP.md](VOICE_SETUP.md)
 voor microfoontoestemming, PTT, Piper-stemmen en onderbreken. De onderstaande

@@ -65,6 +65,15 @@ def test_native_client_true_tcp_pair_chat_history_refresh_and_revoke(tmp_path, m
                         clock[0] += 6
                         principal = api.poll_pair()
                     assert api.request("GET", "/api/v1/auth/device")["type"] == "windows"
+                    with pytest.raises(ClientError) as denied:api.request("GET","/api/v1/automation/calendar/calendars")
+                    assert denied.value.status==403
+                    granted=owner.post("/api/v1/automation/grants",json={"device_id":principal["device_id"],"scopes":["automation:read","automation:write"]},headers={"X-Jarvis-CSRF":owner.cookies["jarvis_csrf"]})
+                    assert granted.status_code==200
+                    assert "automation:read" in api.session()["permissions"]
+                    assert api.request("GET","/api/v1/automation/calendar/calendars")["items"][0]["summary"]=="Synthetic calendar"
+                    assert api.request("GET","/api/v1/automation/email/synthetic-mail?include_body=true")["payload"]["body"]["data"]
+                    tool_events=[];assert api.stream("Wat staat er morgen in mijn agenda?",None,"ollama",tool_events.append)["completed"]
+                    assert "Synthetic native appointment" in tool_events[-1]["message"]
                     events = []
                     assert api.stream("Synthetic request", None, "auto", events.append)["completed"]
                     cid = events[0]["conversation_id"]

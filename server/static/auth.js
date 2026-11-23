@@ -9,7 +9,10 @@ window.JarvisAuth = (() => {
   }
   function expired() {
     clearTimeout(timer);
-    if(location.pathname==="/automations") sessionStorage.setItem("jarvis_after_login", "/automations"+(new URLSearchParams(location.search).get("google")==="all"?"?google=all":"")+"#oauth");
+    if(location.pathname==="/automations"){
+      const device=/^#device=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(location.hash||"")?location.hash:null;
+      sessionStorage.setItem("jarvis_after_login", device?"/automations"+device:"/automations"+(new URLSearchParams(location.search).get("google")==="all"?"?google=all":"")+"#oauth");
+    }
     sessionStorage.setItem("jarvis_auth_notice", "Je bent niet ingelogd of je sessie is verlopen. Log in om verder te gaan.");
     location.assign("/login");
   }
@@ -62,7 +65,7 @@ window.JarvisAuth = (() => {
   addEventListener("pagehide", () => {
     document.getElementById("messages")?.replaceChildren();
     document.getElementById("conversations")?.replaceChildren();
-    for (const id of ["device-list", "session-list", "pairing-list", "audit-list", "calendar-events", "calendar-choice", "email-results", "email-message", "result"]) document.getElementById(id)?.replaceChildren();
+    for (const id of ["device-list", "session-list", "pairing-list", "audit-list", "calendar-events", "calendar-choice", "email-results", "email-message", "grant-device", "result"]) document.getElementById(id)?.replaceChildren();
     document.querySelectorAll('input[type="password"]').forEach(input => { input.value = ""; });
   });
   addEventListener("pageshow", event => { if (event.persisted) location.reload(); });

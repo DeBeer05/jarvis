@@ -9,6 +9,7 @@ from PySide6.QtCore import Qt, QTimer, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (QWidget,QVBoxLayout,QHBoxLayout,QTabWidget,QPushButton,QLabel,
     QLineEdit,QComboBox,QPlainTextEdit,QListWidget,QListWidgetItem,QMessageBox,QDateTimeEdit,QCheckBox,QSpinBox)
+from jarvis_client.integration_reads import IntegrationReads, plain_label
 
 BASE="/api/v1/automation"
 
@@ -18,12 +19,18 @@ class AutomationPanel(QWidget):
         super().__init__(window); self.window=window; self.seen=set(); self.items=[]
         layout=QVBoxLayout(self)
         heading=QLabel("Agenda, taken en goedkeuringen"); layout.addWidget(heading)
+        self.access=plain_label("Log in om je agenda, e-mail en taken te gebruiken.");layout.addWidget(self.access)
+        access_actions=QHBoxLayout();layout.addLayout(access_actions)
+        self.rights=QPushButton("Apparaatrechten instellen als eigenaar");self.rights.clicked.connect(self.open_rights);access_actions.addWidget(self.rights)
+        self.check_rights=QPushButton("Rechten vernieuwen");self.check_rights.clicked.connect(lambda:self.window.manager.check());access_actions.addWidget(self.check_rights)
+        self.ai_button=QPushButton("Agenda en e-mail via AI-chat / spraak");self.ai_button.clicked.connect(self.open_chat);access_actions.addWidget(self.ai_button)
         self.tabs=QTabWidget();layout.addWidget(self.tabs)
         for title in ("Agenda","E-mail","Herinneringen","Automatiseringen","Goedkeuringen","Activiteit","Meldingsinstellingen","Gekoppelde accounts"):
             page=QWidget();box=QVBoxLayout(page)
-            info=QLabel({"Agenda":"Zoek afspraken via CalendarRead. Gebruik de serveranalyse vóór verzetten.","E-mail":"Zoek via EmailSearch; externe verzending vraagt aparte goedkeuring.","Herinneringen":"Stel hieronder een datum, tijd en tekst in.","Goedkeuringen":"Selecteer een voorstel en controleer de volledige gevolgen."}.get(title,"Gebruik de gedeelde takenlijst en de acties hieronder.")); info.setWordWrap(True);box.addWidget(info)
+            info=QLabel({"Agenda":"Kies je agenda en periode. Wijzigingen via AI blijven gecontroleerde voorstellen.","E-mail":"Zoek berichten en lees expliciet de inhoud. Verzenden vraagt aparte goedkeuring.","Herinneringen":"Stel hieronder een datum, tijd en tekst in.","Goedkeuringen":"Selecteer een voorstel en controleer de volledige gevolgen."}.get(title,"Gebruik de gedeelde takenlijst en de acties hieronder.")); info.setWordWrap(True);box.addWidget(info)
             self.tabs.addTab(page,title)
-        self.tabs.setMaximumHeight(120)
+        self.calendar_view=IntegrationReads(window,"calendar");self.tabs.widget(0).layout().addWidget(self.calendar_view)
+        self.mail_view=IntegrationReads(window,"mail");self.tabs.widget(1).layout().addWidget(self.mail_view)
         self.tabs.currentChanged.connect(self.filter_jobs)
         self.search=QLineEdit();self.search.setPlaceholderText("Zoekterm, Gmail-zoekopdracht of bericht-ID");layout.addWidget(self.search)
         self.read_bar=QWidget();reads=QHBoxLayout(self.read_bar);reads.setContentsMargins(0,0,0,0)
@@ -35,7 +42,7 @@ class AutomationPanel(QWidget):
         actions=QHBoxLayout()
         for title,callback in (("Vernieuwen",self.refresh),("Goedkeuren",lambda:self.decide(True)),("Weigeren",lambda:self.decide(False)),("Pauzeren",lambda:self.control("paused")),("Hervatten",lambda:self.control("queued")),("Annuleren",lambda:self.control("cancelled"))):
             b=QPushButton(title);b.clicked.connect(callback);actions.addWidget(b)
-        layout.addLayout(actions)
+        self.job_actions=QWidget();self.job_actions.setLayout(actions);layout.addWidget(self.job_actions)
         self.text=QLineEdit();self.text.setPlaceholderText("Waar wil je aan herinnerd worden?");layout.addWidget(self.text)
         self.reminder_bar=QWidget();reminder=QHBoxLayout(self.reminder_bar);reminder.setContentsMargins(0,0,0,0);self.at=QDateTimeEdit();self.at.setCalendarPopup(True)
         from PySide6.QtCore import QDateTime
@@ -61,13 +68,33 @@ class AutomationPanel(QWidget):
         self.filter_jobs()
 
     def clear(self):
+        self.calendar_view.clear();self.mail_view.clear()
         self.jobs.clear();self.details.clear();self.payload.setPlainText("{}");self.text.clear();self.instruction.clear();self.search.clear();self.items=[];self.all_items=[];self.seen.clear()
+
+    def set_authorized(self,permissions,online):
+        allowed=online and "automation:read" in permissions
+        self.calendar_view.set_authorized(allowed);self.mail_view.set_authorized(allowed)
+        self.ai_button.setEnabled(online and "chat:write" in permissions)
+        self.rights.setEnabled(online);self.check_rights.setEnabled(online)
+        self.access.setText("Agenda en e-mail beschikbaar. Typ of spreek je vraag in Chat / Spraak." if allowed else "Dit Windows-apparaat mist automatiseringsrechten of is offline. Open als eigenaar Apparaatrechten en geef Bekijken (automation:read) en eventueel Taken maken (automation:write).")
+
+    def open_rights(self):
+        if self.window.manager.api and self.window.principal:
+            identifier=self.window.principal["device_id"]
+            QDesktopServices.openUrl(QUrl(self.window.manager.api.origin+"/automations#device="+identifier))
+
+    def open_chat(self):
+        if self.window.running:return
+        self.window.navigate(0)
+        if not self.window.composer.toPlainText().strip():self.window.composer.setPlainText("Wat staat er morgen in mijn agenda?")
+        self.window.composer.setFocus()
 
     def call(self,path="",method="GET",body=None,done=None):
         self.window.call(method,BASE+path,body,done or (lambda _:self.refresh()))
 
     def refresh(self):
-        self.call(done=self.loaded)
+        p=self.window.principal
+        if p and "automation:read" in p["permissions"] and self.window.manager.state=="online":self.call(done=self.loaded)
 
     def loaded(self,data):
         self.all_items=data["items"];self.filter_jobs()
@@ -99,11 +126,13 @@ class AutomationPanel(QWidget):
     def filter_jobs(self,*_):
         section=self.tabs.currentIndex();rows=getattr(self,"all_items",[])
         if hasattr(self,"account"):
-            for widget in (self.search,self.read_bar):widget.setVisible(section in (0,1))
+            for widget in (self.search,self.read_bar):widget.hide()
+            for widget in (self.jobs,self.details,self.job_actions):widget.setVisible(section not in (0,1))
+            self.tabs.setMaximumHeight(16777215 if section in (0,1) else 120)
             for widget in (self.text,self.reminder_bar):widget.setVisible(section==2)
             for widget in (self.instruction,self.plan_button,self.advanced):widget.setVisible(section==3)
             for widget in (self.tool,self.payload,self.submit_button):widget.setVisible(section==3 and self.advanced.isChecked())
-            self.policy_bar.setVisible(section==6)
+            self.policy_bar.setVisible(section==6);self.account.setVisible(section==7)
         self.items=[r for r in rows if (section!=2 or r["tool"]=="ReminderCreate") and (section!=4 or r["status"]=="approval")]
         self.jobs.clear()
         for row in self.items:self.jobs.addItem(row["tool"]+" · "+row["status"])

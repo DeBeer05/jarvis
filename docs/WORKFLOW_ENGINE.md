@@ -10,6 +10,12 @@ afzonderlijk bekijken, taken maken en eventueel goedkeuren. Geef accounts behere
 alleen aan een apparaat dat OAuth-toegang mag beheren. Bestaande apparaten krijgen
 deze rechten niet stilzwijgend. Hun sessiestatus wordt opnieuw opgehaald.
 
+De eigenaarinterface toont nu een keuzelijst van gekoppelde apparaten op naam en
+type, inclusief Windows en Android. Je hoeft geen UUID over te typen. Kies eerst
+het juiste apparaat, controleer de huidige rechten en bevestig zelf de wijziging.
+In Windows 0.7.1 opent **Apparaatrechten instellen als eigenaar** het eigen apparaat
+als voorstel; alleen openen wijzigt niets. Daarna **Rechten vernieuwen** in de app.
+
 Herinneringen: vul tekst en tijd in, kies eenmalig/dagelijks/wekelijks en stel in.
 De server accepteert alleen tijden met offset plus een IANA-tijdzone. Herhaling
 behoudt de lokale kloktijd. Een niet-bestaande zomertijd wordt overgeslagen; bij

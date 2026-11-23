@@ -6,7 +6,8 @@ sessionStorage.removeItem("jarvis_auth_notice");
 function loginDestination() {
   const destination=sessionStorage.getItem("jarvis_after_login");
   sessionStorage.removeItem("jarvis_after_login");
-  return ["/automations#oauth","/automations?google=all#oauth"].includes(destination)?destination:"/chat";
+  const device=/^\/automations#device=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(destination||"");
+  return device||["/automations#oauth","/automations?google=all#oauth"].includes(destination)?destination:"/chat";
 }
 async function prepareLogin() {
   let current = await fetch("/api/v1/auth/session", {cache: "no-store"});
