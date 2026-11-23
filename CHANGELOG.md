@@ -11,6 +11,8 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 - Veilige refreshcredential blijft behouden bij netwerkuitval vóór verzending;
   onzekere tokenrotatie blijft opnieuw inloggen vereisen. Installatie-UUID blijft
   behouden bij instellingen wijzigen en opnieuw inloggen.
+- Vertraagde netwerkresponses van een vorige login kunnen de huidige sessie/UI
+  niet overschrijven of gewiste persoonlijke geschiedenis terugzetten.
 
 - Fase 4 / Windows-client 0.4.0: aparte PySide6-app met veilige S256-pairing,
   Windows Credential Manager, streaming/historie, systeemvak/meldingen,

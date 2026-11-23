@@ -95,3 +95,23 @@ def test_login_form_masks_and_clears_password_and_keeps_public_device_identity(q
     app.closing = True
     app.tray.hide()
     app.close()
+
+
+def test_late_history_response_cannot_restore_private_content_after_logout(qt, tmp_path, vault):
+    app = window(tmp_path, vault)
+    pending = []
+    class CapturedJobs:
+        def submit(self, operation, success, failure):
+            pending.append((success, failure))
+    app.jobs = CapturedJobs()
+    app.manager.api = object()
+    app.principal = {"session_id": "synthetic", "permissions": ["chat:read"]}
+    app.load_history()
+    assert app.history_busy
+    app.clear_private()
+    app.manager.generation += 1
+    pending[0][0]({"items": [{"id": "old", "title": "Synthetic private history"}], "has_more": False})
+    assert app.history.count() == 0 and not app.history_busy and not app.principal
+    app.closing = True
+    app.tray.hide()
+    app.close()

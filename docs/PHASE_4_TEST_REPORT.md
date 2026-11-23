@@ -7,11 +7,13 @@ behouden en beoordeeld, niet stilzwijgend als eerder afgerond aangenomen.
 ## Actuele desktoplogin op gebruikersverzoek
 
 De desktopapp gebruikt nu gebruikersnaam/wachtwoord zonder browsergoedkeuring.
-165 servertests en 37 clienttests zijn daadwerkelijk geslaagd. Dit omvat correcte/
+165 servertests en 38 clienttests zijn daadwerkelijk geslaagd. Dit omvat correcte/
 foutieve login, gedeelde brute-forcelimiet, Windows-apparaat zonder beheerscopes,
 weigering van browsercookies/cross-origin-verzoeken, hergebruik van dezelfde
 installatie, intrekking en opnieuw authenticeren, gemaskeerd/direct gewist
 wachtwoordveld en geen wachtwoord/gebruikersnaam in settings.
+Een extra race-test bevestigt dat oude historie-responses na uitloggen geen
+persoonlijke inhoud in de UI kunnen terugzetten.
 
 De echte TCP-proef draait nu voor zowel bestaande S256-pairing als directe
 wachtwoordlogin. Bij wachtwoordlogin wordt de client echt gesloten en een nieuwe

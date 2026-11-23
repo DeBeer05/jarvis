@@ -370,9 +370,12 @@ class MainWindow(QMainWindow):
             return
         generation = self.manager.generation
         def done(value):
-            if generation == self.manager.generation and not self.closing:
+            if generation == self.manager.generation and self.principal and not self.closing:
                 success(value)
-        self.jobs.submit(lambda _: api.request(method, path, body), done, self.report_error)
+        def failed(error):
+            if generation == self.manager.generation and self.principal and not self.closing:
+                self.report_error(error)
+        self.jobs.submit(lambda _: api.request(method, path, body), done, failed)
 
     def login(self):
         api = self.manager.api
@@ -432,7 +435,10 @@ class MainWindow(QMainWindow):
             self.history.clear()
         self.history_busy = True
         offset = self.history_offset
+        generation = self.manager.generation
         def loaded(result):
+            if generation != self.manager.generation or not self.principal or self.closing:
+                return
             self.history_busy = False
             for item in result["items"]:
                 row = QListWidgetItem(item["title"])
@@ -442,6 +448,8 @@ class MainWindow(QMainWindow):
             self.more_history.setEnabled(result.get("has_more", False))
         api = self.manager.api
         def failed(error):
+            if generation != self.manager.generation or not self.principal or self.closing:
+                return
             self.history_busy = False
             self.report_error(error)
         self.jobs.submit(lambda _: api.request("GET", f"/api/v1/chat/conversations?limit=50&offset={offset}"), loaded, failed)
@@ -579,6 +587,7 @@ class MainWindow(QMainWindow):
 
     def clear_private(self):
         self.render_timer.stop()
+        self.history_busy = False
         self.principal = None
         self.conversation = None
         self.rows = []
