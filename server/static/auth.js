@@ -62,7 +62,7 @@ window.JarvisAuth = (() => {
   addEventListener("pagehide", () => {
     document.getElementById("messages")?.replaceChildren();
     document.getElementById("conversations")?.replaceChildren();
-    for (const id of ["device-list", "session-list", "pairing-list", "audit-list"]) document.getElementById(id)?.replaceChildren();
+    for (const id of ["device-list", "session-list", "pairing-list", "audit-list", "calendar-events", "calendar-choice", "email-results", "email-message", "result"]) document.getElementById(id)?.replaceChildren();
     document.querySelectorAll('input[type="password"]').forEach(input => { input.value = ""; });
   });
   addEventListener("pageshow", event => { if (event.persisted) location.reload(); });

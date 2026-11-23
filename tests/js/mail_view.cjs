@@ -34,5 +34,10 @@ async function search(){await element('mail').listeners.submit({preventDefault()
  let release;context.JarvisAuth.api=()=>new Promise(resolve=>{release=resolve;});
  const old=search();context.JarvisAuth.api=async()=>({messages:[]});await search();release({messages:[{id:'old'}]});await old;
  assert.equal(element('email-results').children.length,0);
+ const lifecycle={};const authContext={window:{},addEventListener:(event,fn)=>{lifecycle[event]=fn;},document:{getElementById:element,querySelectorAll:()=>[]}};
+ vm.createContext(authContext);vm.runInContext(fs.readFileSync(require('node:path').join(require('node:path').dirname(process.argv[2]),'auth.js'),'utf8'),authContext);
+ for(const id of ['email-message','email-results','calendar-events'])element(id).append(new Element());
+ lifecycle.pagehide();
+ for(const id of ['email-message','email-results','calendar-events'])assert.equal(element(id).children.length,0,'Private views clear when leaving the page');
  console.log('Email UI behavior passed');
 })().catch(error=>{console.error(error);process.exitCode=1;});
