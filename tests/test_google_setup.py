@@ -84,9 +84,16 @@ for(const destination of ['/automations?google=all#oauth','https://other.example
  assert.equal(vm.runInContext('loginDestination()',context),destination==='/automations?google=all#oauth'?destination:'/chat');
 }
 const checks=['calendar_read','calendar_write','gmail_read','gmail_compose'].map(name=>({name,checked:false}));
-const elements={};const context={URLSearchParams,Intl,location:{search:'?google=all'},document:{getElementById:id=>elements[id]??(elements[id]={addEventListener:()=>{},querySelectorAll:()=>checks})},JarvisAuth:{initialize:()=>new Promise(()=>{})}};
+const elements={},fields={};const context={URLSearchParams,Intl,location:{search:'?google=all'},document:{getElementById:id=>elements[id]??(elements[id]={addEventListener:()=>{},querySelectorAll:()=>checks,elements:{namedItem:name=>fields[name]??(fields[name]={value:''})}})},JarvisAuth:{initialize:()=>new Promise(()=>{})}};
 vm.createContext(context);vm.runInContext(fs.readFileSync(scripts+'/automations.js','utf8'),context);
 assert(checks.every(item=>item.checked));
 '''
     result=subprocess.run([shutil.which("node"),"-e",code,str(root/"server/static")],capture_output=True,text=True,timeout=10)
+    assert result.returncode==0,result.stderr
+
+
+@pytest.mark.skipif(not shutil.which("node"),reason="Optional JavaScript runtime")
+def test_calendar_results_stay_in_calendar_panel():
+    root=Path(__file__).resolve().parents[1]
+    result=subprocess.run([shutil.which("node"),str(root/"tests/js/calendar_view.cjs"),str(root/"server/static/automations.js")],capture_output=True,text=True,timeout=10)
     assert result.returncode==0,result.stderr

@@ -53,7 +53,9 @@ powershell.exe -NoProfile -File scripts/Start-Server.ps1 -Background
    onder Gekoppelde accounts alle gewenste rechten en klik Google koppelen.
    Open de getoonde Google-link in dezelfde computerbrowser en geef toestemming.
    Gebruik voor deze Desktop OAuth-flow de computer, niet de telefoonbrowser.
-6. Via Agenda’s ophalen zie je agenda-ID's. Zoek een afgebakend tijdvak. De
+6. Via Agenda’s ophalen zie je de namen in Kies agenda. Selecteer je agenda en
+   klik Afspraken zoeken; de tijden en titels verschijnen direct onder Agenda.
+   De standaardperiode loopt van vandaag tot over een week. Zoek een afgebakend tijdvak. De
    zoekroute retourneert maximaal honderd occurrences met eventuele nextPageToken;
    verklein het tijdvak bij een onvolledig resultaat. Terugkerende afspraken
    worden door Google naar afzonderlijke occurrences uitgebreid.

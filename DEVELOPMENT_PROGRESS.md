@@ -2,6 +2,16 @@
 
 ## Huidige opdracht
 
+Agendaweergave hersteld na gebruikersmelding: CalendarList en zoekresultaten
+kwamen onterecht als JSON onder Actie voorbereiden terecht. Agenda's vullen nu
+een keuzelijst met namen/hoofdagenda; afspraken staan leesbaar onder Agenda met
+tijden, hele dagen en locatie. Standaardperiode vandaag tot over een week,
+lokale laad-/fout-/leegmeldingen, waarschuwing voor onvolledige resultaten en
+afscherming van late antwoorden na agenda- of zoekwissel. Ontvangen tekst wordt
+alleen via textContent getoond. Geen accountdata opgehaald tijdens ontwikkeling.
+Gerichte Node-gedragstest gebruikt synthetische data, inclusief HTML-injectie,
+de gekozen agenda, fouten, lege/pagineresultaten en verouderde antwoorden.
+
 Herstel Google-setup na gebruikersmelding: de bestaande /chat/assets/{name}-route
 ving automations.js af, maar de allowlist miste het bestand. Daardoor 404 met
 JSON-contenttype en terecht geweigerde uitvoering door nosniff. De algemene

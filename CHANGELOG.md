@@ -4,6 +4,10 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Webagenda: agenda's selecteren op naam en afspraken leesbaar direct bij Agenda;
+  standaard weekperiode en lokale laad-/fout-/leegmeldingen. Resultaten verschijnen
+  niet langer als losse JSON bij Actie voorbereiden. Late antwoorden afgeschermd.
+
 - Google-setup: herstel 404/MIME-fout voor automations.js in de bestaande
   assetallowlist, regressiecontrole op echte HTML-assets en Google-koppelen.bat
   voor veilige Desktop OAuth-JSON-configuratie en alle vier ondersteunde rechten.
