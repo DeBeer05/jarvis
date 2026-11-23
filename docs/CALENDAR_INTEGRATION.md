@@ -1,5 +1,32 @@
 # Google Calendar koppelen en testen
 
+## Snelle Windows-setup
+
+Activeer in je eigen Google Cloud-project uitsluitend **Google Calendar API** en
+**Gmail API** voor de huidige JARVIS-functies. Maak via Google Auth Platform een
+OAuth-client van type **Desktop-app** en download de JSON meteen bij aanmaken.
+Een API-key of Android-/Web-clientbestand is niet geschikt voor deze koppeling.
+
+Dubbelklik daarna op **Google-koppelen.bat** in de projectroot. Kies de JSON in
+het bestandsvenster. De helper controleert het type, bewaart het bestand onder
+het genegeerde secrets/, past alleen twee Google-/schedulerinstellingen in .env
+aan en herstart de eigen server gecontroleerd. Een afwijkend bestaand
+clientbestand wordt behouden; de nieuwe configuratie krijgt een eigen naam.
+
+De browser opent /automations?google=all#oauth. Log als eigenaar in; de pagina
+keert na login terug. De vier ondersteunde rechten zijn voorgeselecteerd:
+calendar.readonly, calendar.events, gmail.readonly en gmail.compose. Klik zelf
+Google koppelen, open de getoonde Google-link en verleen de gewenste toestemming.
+De helper voert geen echte accounttest, agenda-wijziging of e-mailverzending uit.
+
+Controle zonder browser/configuratie/herstart, bijvoorbeeld voor diagnose:
+
+```powershell
+powershell.exe -NoProfile -File scripts/Connect-Google.ps1 -ClientFile "C:\pad\naar\client.json" -CheckOnly
+```
+
+De onderstaande stappen blijven bruikbaar voor handmatige installatie.
+
 1. Maak in Google Cloud je eigen project. Activeer Google Calendar API en Gmail
    API indien gewenst. Stel het OAuth-toestemmingsscherm in en voeg je eigen
    **testaccount** toe. Publiceer de app niet voor deze ontwikkelproef.

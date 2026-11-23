@@ -1,5 +1,21 @@
 # Testverslag fase 7
 
+## Herstel Google-setup en webassets
+
+Een gebruikersmelding ontdekte een ontbrekende allowlistvermelding: de algemene
+/chat/assets/{name}-route ving automations.js af vóór de specifieke route. Dit
+gaf JSON-404 en een correcte nosniff-weigering. De bestaande assetroute verzorgt
+het bestand nu zelf; de onbereikbare dubbele route is verwijderd. Na echte
+herstart bevestigd: 200 text/javascript, ready 200, anonieme automation-API 401.
+De test volgt nu daadwerkelijk de scriptverwijzingen uit de HTML.
+
+Google-koppelen.bat en helpers: zes gerichte tests geslaagd voor configbehoud,
+ongeldig clienttype, alleen controleren, PowerShell-pad met spaties, vier
+voorgeselecteerde rechten en redirect-allowlist. Volledige tussenronde: 199
+servertests geslaagd; daarna de aanvullende JS-regressietest afzonderlijk.
+Geen echte OAuth-credentials gekozen/gekopieerd, Google-consent of externe
+accounttest uitgevoerd. De helper vereist expliciete selectie door de gebruiker.
+
 Geïmplementeerd op feature/smart-automations vanaf develop c405304 (fase 6/PR #17).
 Alle automatische functionele tests gebruiken tijdelijke synthetische accounts/
 databases. Daarna is de echte server afzonderlijk gecontroleerd herstart. Schema

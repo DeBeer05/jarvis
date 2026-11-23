@@ -2,6 +2,22 @@
 
 ## Huidige opdracht
 
+Herstel Google-setup na gebruikersmelding: de bestaande /chat/assets/{name}-route
+ving automations.js af, maar de allowlist miste het bestand. Daardoor 404 met
+JSON-contenttype en terecht geweigerde uitvoering door nosniff. De algemene
+assetroute is hersteld; de dubbele onbereikbare route is verwijderd. Regressietest
+controleert nu alle scripts die de echte automations.html noemt én hun MIME-type.
+Google-koppelen.bat met PowerShell-/Python-helper toegevoegd: expliciet gekozen
+Desktop OAuth-JSON, behoud bestaande config/overige .env-waarden, gecontroleerde
+serverherstart, assetcontrole en selectie van alle vier ondersteunde Google-
+rechten. Geen automatische Google-consent, accounttest of externe mutatie.
+Veilige terugkeer na login naar de koppelpagina; geen vrije redirect-URL.
+Verificatie: volledige serversuite 199 geslaagd vóór de aanvullende JS-test;
+zes gerichte setup-/asset-/redirecttests geslaagd. PowerShell-syntax en echte
+-CheckOnly-uitvoering met spaties in het pad geslaagd. Na gecontroleerde echte
+herstart: automations.js 200 text/javascript, ready 200 en anonieme API 401.
+Geen clientbestand namens de gebruiker gekozen of Google-account gekoppeld.
+
 Fase 7 expliciet opgedragen op feature/smart-automations vanaf develop c405304
 (fase-6-PR #17 is gemerged; alle mergechecks waren groen). Geïmplementeerd:
 SQLite-schema 4 met voorafgaande backup, centrale AutomationEngine/scheduler,

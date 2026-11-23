@@ -4,6 +4,11 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Google-setup: herstel 404/MIME-fout voor automations.js in de bestaande
+  assetallowlist, regressiecontrole op echte HTML-assets en Google-koppelen.bat
+  voor veilige Desktop OAuth-JSON-configuratie en alle vier ondersteunde rechten.
+  Na login terug naar de koppelpagina; Google-toestemming blijft expliciet.
+
 - Fase 7: centrale SQLite-automatiseringen, herinneringen met lokale tijdzones,
   persistente workflows, apparaatrechten en eenmalige approvals. Officiële Google
   Calendar/Gmail OAuth-/REST-adapters met Windows DPAPI; echte accounts nog niet

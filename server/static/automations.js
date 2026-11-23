@@ -3,6 +3,10 @@ const base="/api/v1/automation";
 const el=id=>document.getElementById(id);
 const api=(path="",method="GET",body)=>JarvisAuth.api(base+path,{method,...(body===undefined?{}:{headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})});
 const zone=Intl.DateTimeFormat().resolvedOptions().timeZone;
+const googleOptions=new URLSearchParams(location.search);
+for(const checkbox of el("oauth").querySelectorAll('input[type="checkbox"]')) {
+ if(googleOptions.get("google")==="all" || googleOptions.get(checkbox.name)==="on") checkbox.checked=true;
+}
 const show=data=>{el("result").textContent=JSON.stringify(data,null,2);};
 const run=fn=>async event=>{event?.preventDefault();try{await fn(event);el("status").textContent="Bijgewerkt.";}catch(error){el("status").textContent=error.message;}};
 const bind=(id,fn)=>el(id).addEventListener("submit",run(event=>fn(new FormData(event.target))));

@@ -9,6 +9,7 @@ window.JarvisAuth = (() => {
   }
   function expired() {
     clearTimeout(timer);
+    if(location.pathname==="/automations") sessionStorage.setItem("jarvis_after_login", "/automations"+(new URLSearchParams(location.search).get("google")==="all"?"?google=all":"")+"#oauth");
     sessionStorage.setItem("jarvis_auth_notice", "Je bent niet ingelogd of je sessie is verlopen. Log in om verder te gaan.");
     location.assign("/login");
   }
