@@ -131,6 +131,6 @@ async def webchat():
 
 @router.get("/chat/assets/{name}", include_in_schema=False)
 async def asset(name: str):
-    if name not in ("chat.css", "chat.js", "auth.js", "login.js", "security.js"):
+    if name not in ("chat.css", "chat.js", "auth.js", "login.js", "security.js", "automations.js"):
         raise HTTPException(status_code=404)
     return FileResponse(STATIC / name)

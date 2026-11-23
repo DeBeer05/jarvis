@@ -87,10 +87,6 @@ def engine(request): return request.app.state.automation
 def page(): return FileResponse(STATIC/"automations.html")
 
 
-@router.get("/chat/assets/automations.js")
-def script(): return FileResponse(STATIC/"automations.js",media_type="text/javascript")
-
-
 @router.get(BASE)
 async def dashboard(request:Request,offset:int=Query(default=0,ge=0,le=5000)):
     e=engine(request)
