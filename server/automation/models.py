@@ -137,6 +137,7 @@ class WorkflowCreate(Input):
 
 
 REGISTRY = {
+    "CalendarList": (Empty, False),
     "CalendarSummary": (CalendarSummary, False), "EmailCheck": (EmailSearch, False),
     "WaitForReply": (WaitForReply, False),
     "CalendarRead": (CalendarRead, False), "CalendarCreate": (CalendarChange, True),
@@ -157,7 +158,7 @@ def aware(value):
 def validate(tool, payload):
     if tool not in REGISTRY: raise ValueError("Unknown tool")
     result = REGISTRY[tool][0].model_validate(payload)
-    if tool.startswith("Calendar") and tool != "CalendarRead":
+    if tool in ("CalendarCreate", "CalendarUpdate", "CalendarDelete"):
         if tool != "CalendarCreate" and (not result.event_id or not result.etag): raise ValueError("Event and etag required")
         if tool != "CalendarDelete" and not (result.start and result.end and result.summary): raise ValueError("Event details required")
     if tool == "WorkflowCreate":

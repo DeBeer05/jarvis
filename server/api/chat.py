@@ -34,6 +34,7 @@ async def prepare(request: Request, body: ChatInput):
         body.message, body.provider,
         str(body.conversation_id) if body.conversation_id else None,
         str(body.request_id) if body.request_id else None,
+        principal=request.state.principal,
     )
 
 

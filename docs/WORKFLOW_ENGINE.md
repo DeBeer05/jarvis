@@ -1,5 +1,8 @@
 # Taken, herinneringen en workflows gebruiken
 
+Deze functies zijn ook bereikbaar via de normale AI-chat en spraak.
+Zie [voorbeelden, rechten en goedkeuring](AI_CHAT_AUTOMATIONS.md).
+
 Open de bestaande Windows- of Android-app → Automatiseringen. De webbediening
 staat op http://127.0.0.1:8765/automations. Log daar als eigenaar in. Geef onder
 Apparaatrechten de UUID van je bestaande Windows-/Android-apparaat op. Kies

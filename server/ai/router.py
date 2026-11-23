@@ -41,14 +41,20 @@ class AIRouter:
         return {"mode": self.settings.ai_provider, "preferred": self.settings.preferred_provider,
                 "profile": self.settings.profile, "providers": dict(zip(names, values))}
 
-    async def bounded_text(self, messages):
+    async def bounded_result(self, messages, mode=None):
         import asyncio
         result=""
+        provider=None
         async with asyncio.timeout(self.settings.ai_timeout_seconds):
-            async with aclosing(self.stream(messages,self.settings.ai_provider)) as source:
+            async with aclosing(self.stream(messages,mode or self.settings.ai_provider)) as source:
                 async for event in source:
                     if event["type"]=="delta": result+=event["text"]
+                    if event["type"]=="provider":provider=event
                     if len(result)>16000: raise ValueError("Antwoord te groot")
+        return result,provider
+
+    async def bounded_text(self, messages, mode=None):
+        result,_=await self.bounded_result(messages,mode)
         return result
 
     async def summarize_untrusted(self, text):

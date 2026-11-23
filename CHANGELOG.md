@@ -4,6 +4,16 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Agenda, Gmail en herinneringen bedienen vanuit dezelfde AI-chat en spraakroute,
+  met gekozen provider, gevalideerde tools, actuele apparaatrechten en tijdelijke
+  gespreksreferenties. Leesbare echte toolresultaten; externe wijzigingen blijven
+  voorstellen met afzonderlijke goedkeuring. E-mailinhoud alleen op expliciet
+  verzoek; ontvangen inhoud kan geen acties autoriseren. Nederlandse daggrenzen
+  en numerieke relatieve herinneringstijden worden lokaal gecontroleerd.
+- CalendarSummary-validatie hersteld en CalendarList als gesloten leestool toegevoegd.
+- Geen herbevestiging voor een complete agenda-leesvraag; korte verduidelijkingen
+  blijven in context en ‘wat staat er in de 1e’ leest de gekozen recente mail.
+
 - Webmail: afzender/onderwerp en leesbare reader in E-mail, zonder bericht-ID's
   te kopiëren. Inhoud opt-in, veilige tekstweergave en begrensde metadata-opvraag;
   resultaten verschijnen niet meer bij Actie voorbereiden.

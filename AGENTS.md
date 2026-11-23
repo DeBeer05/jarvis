@@ -125,6 +125,12 @@ Fase 7 is inmiddels expliciet opgedragen: feature/smart-automations, persistente
 automatiseringen, OAuth Calendar/Gmail en clients. Nieuwe automatiseringsrechten
 alleen na eigenaargrant; externe wijzigingen vereisen gebonden eenmalige approval.
 Geen echte accounttests of externe berichten zonder afzonderlijke toestemming.
+De gebruiker heeft daarna expliciet bediening via AI-chat en spraak opgedragen.
+De headless chat mag uitsluitend gevalideerde geregistreerde automatiseringstools
+gebruiken, onder de bestaande apparaatrechten. Externe mutaties blijven gebonden
+aan een afzonderlijke exacte goedkeuring; een gesproken/getypt ja is geen approval.
+Ontvangen mail-/agendatekst kan nooit een nieuwe opdracht autoriseren. Geen door
+AI gegenereerde code, shellcommando's of willekeurige plugins uitvoeren.
 STOP na fase 7; geen oproepen, productie of mini-pc-deployment.
 
 Vóór iedere taak:
@@ -142,7 +148,8 @@ De AI-engine hergebruikt `providers/llm_openai.py` voor teksttransport; de headl
 `server/ai/router.py` is het centrale aanspreekpunt. De upstreamregel om via
 core.gemini te werken blijft voor de desktop gelden; importeer die desktop-/Live-
 stack niet in de headless server. Wijzig transportgedrag alleen opt-in, zodat
-bestaande desktopcallers compatibel blijven. Geen AI-gegenereerde acties uitvoeren.
+bestaande desktopcallers compatibel blijven. Alleen de hierboven expliciet
+opgedragen gesloten automatiseringstools mogen vanuit de headless chat worden gebruikt.
 Gebruik argon2-cffi voor Argon2id. Alle persoonlijke API-routes vereisen
 standaard authenticatie en expliciete rechten; geen configuratie om dit uit te
 schakelen. Tokens/codes/wachtwoorden nooit loggen of in Git. Alleen digests van

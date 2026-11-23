@@ -22,6 +22,7 @@ SCOPES = {
     "gmail_compose": "https://www.googleapis.com/auth/gmail.compose",
 }
 WRITE_GUARD=ContextVar("automation_write_guard",default=None)
+REQUEST_GUARD=ContextVar("automation_request_guard",default=None)
 
 
 class IntegrationManager:
@@ -114,6 +115,8 @@ class IntegrationManager:
 
     async def api(self, feature, path, method="GET", *, params=None, body=None, etag=None):
         access = await self.access(feature)
+        request_guard=REQUEST_GUARD.get()
+        if request_guard is not None:request_guard()
         if method!="GET":
             guard=WRITE_GUARD.get()
             if guard is None: raise ValueError("Externe actie mist uitvoeringsautorisatie")
