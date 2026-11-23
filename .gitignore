@@ -138,3 +138,10 @@ recordings/
 
 # Headless phase 1: database, bounded logs and private process-control token.
 .local/
+# Android: generated artifacts, SDK locations, signing and Firebase configuration.
+android/.gradle/
+android/**/build/
+android/local.properties
+android/**/google-services.json
+*.jks
+*.keystore

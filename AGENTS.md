@@ -108,12 +108,20 @@ a small built-in fallback — instead of crashing.
 - Keep to the libraries already in `requirements.txt`.
 
 
-## JARVIS fork: blijvende Codex-projectinstructies (fase 5)
+## JARVIS fork: blijvende Codex-projectinstructies (fase 6)
 
 Deze aanvullende regels behouden de upstreamrichtlijnen hierboven. De opdracht
-van de gebruiker blijft leidend. Fase 5 is expliciet opgedragen: Nederlandse
-spraak bovenop dezelfde Windows-client en beveiligde server, poort 8765 behouden.
-STOP na fase 5; geen Android of andere volgende fase starten.
+van de gebruiker blijft leidend. Fase 6 is expliciet opgedragen: native Android
+in android/, bestaande server en poort 8765 behouden. Kotlin/Compose/Material3,
+Coroutines/Flow, OkHttp, Room, DataStore en Android Keystore zijn toegestaan.
+Android-sessies vereisen eigenaarpairing, ook na wachtwoordcontrole. Audio via
+geauthenticeerde begrensde serverroutes hergebruikt de fase-5-inferencehelper.
+Geen zware modellen op Android. Geen publieke toegang of firewall/routerwijziging;
+ontwikkelverbinding via expliciete adb reverse naar dezelfde loopbackserver.
+Release uitsluitend HTTPS/certificaatvalidatie; debug HTTP alleen vaste lokale hosts.
+FCM alleen na eigen Firebaseconfig; zonder die config alleen lokale testmeldingen.
+Geen volledige oproepen, integraties, productie of mini-pc-deployment.
+STOP na fase 6; geen fase 7/8 starten.
 
 Vóór iedere taak:
 1. Controleer `git status --short --branch`, huidige branch en remotes.
@@ -136,7 +144,7 @@ standaard authenticatie en expliciete rechten; geen configuratie om dit uit te
 schakelen. Tokens/codes/wachtwoorden nooit loggen of in Git. Alleen digests van
 refresh-, access- en pairinggeheimen bewaren. Eerste eigenaar via lokale
 interactieve setup; kies geen echt eigenaarwachtwoord namens de gebruiker.
-De nieuwe client leeft uitsluitend in desktop-client/jarvis_client en een eigen
+De Windows-client leeft uitsluitend in desktop-client/jarvis_client en een eigen
 requirements-client/constraints-client-omgeving. PySide6-Essentials en PyInstaller
 zijn voor deze opdracht toegestaan. Importeer geen upstream PyQt6-/spraakstack;
 één QApplication in het zelfstandige clientproces, widgets alleen op Qt-hoofdthread.
@@ -149,11 +157,13 @@ andere clients en cookie-CSRF blijven behouden; public device-ID is geen credent
 Nieuwe niet-loopback endpoints uitsluitend HTTPS met certificaatvalidatie.
 Fase 5 staat sounddevice/numpy en een geïsoleerde faster-whisper/Piper-runtime toe.
 De inferencehelper is een eigen subprocess met private pipes, geen tweede GUI of
-backend. Geen audio-endpoints, impliciete downloads of permanente microfoonaudio.
+backend. Audio-endpoints in fase 6 vereisen expliciete rechten, body-/formaat-
+limieten en bestaande authenticatie. Geen impliciete downloads of permanente microfoonaudio.
 Microfoon bij opstart uit. Op expliciet gebruikersverzoek wordt toestemming voor
 de gekozen microfoon onthouden; opname blijft alleen via PTT/wake of de bewust
 gekozen vervolgmodus actief, met zichtbare status en niveaumeter.
-Audio wordt lokaal verwerkt. Alleen transcripttekst gaat naar de bestaande chatroute.
+Audio wordt op de ontwikkeldesktop verwerkt; Android uploadt uitsluitend via
+de beveiligde mobiele routes. Alleen transcripttekst gaat naar de bestaande chatroute.
 Globale sneltoetsen alleen na expliciete opt-in. Onderbreken annuleert ook oude
 TTS/generaties. Grote modellen alleen na omvangindicatie en toestemming; eigenaar
 heeft Whisper Small (~486 MB), Piper MLS (~77 MB) en extra Piper Ronnie (~63 MB)

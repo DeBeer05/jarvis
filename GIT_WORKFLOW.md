@@ -1,5 +1,10 @@
 # Git-workflow
 
+Actuele fase 6: feature/android-client vanaf develop, native Android binnen
+dezelfde repository. Zelfde PR-/test-/reviewregels; controleer ook Android tests
+lint and APK vóór merge. Alleen develop, geen publicatie/merge naar main,
+geen productie-/mini-pc-deployment en stop na fase 6.
+
 ## Remotes en basis
 
 - `origin`: <https://github.com/DeBeer05/jarvis> — enige publicatiedoel.

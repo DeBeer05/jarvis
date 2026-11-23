@@ -1,5 +1,16 @@
 # Architectuurplan — Windows-client en server
 
+## Actuele uitbreiding: fase 6
+
+Native Kotlin/Compose Android-app in android/, eigen build en MVVM/Flow.
+Hergebruikt bestaande chat/auth/pairing en centrale gesprekken. Nieuwe mobile-
+spraakroutes verbinden via begrensde private pipes met de bestaande fase-5-
+inferencehelper. Geen modellen op de telefoon, GUI-imports in server of extra
+backend. Keystore-encryptie, Room-ciphertext en DataStore scheiden geheimen,
+offlinecache en voorkeuren. Ontwikkeling via expliciete ADB reverse naar dezelfde
+loopback:8765, geen publieke/LAN-binding. Zie docs/ANDROID_ARCHITECTURE.md.
+**Actuele fasegrens: stop na fase 6.** De onderstaande secties zijn voorgeschiedenis.
+
 ## Actuele uitbreiding: fase 5
 
 Dezelfde client heeft nu een lokaal spraakpaneel, sounddevice-capture/playback,

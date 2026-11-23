@@ -2,6 +2,37 @@
 
 ## Huidige opdracht
 
+Fase 6 expliciet opgedragen: native Android-app, branch feature/android-client
+vanaf develop a78257e. Bestaande loopbackserver:8765 en Windows-client blijven
+behouden. AGENTS-fasegrens aangepast naar STOP na fase 6. Geen publieke toegang,
+firewall/routerwijziging, mini-pc, integraties of volledige oproepen.
+
+Kotlin/Compose/Material3-app met tien schermen, Keystore, Room/DataStore,
+geauthenticeerde SSE/context, S256-ownerpairing en lokale audio-client gebouwd.
+SDK/Gradle geïsoleerd voorbereid; debug-APK daadwerkelijk gestart op API-36-
+emulator. Nieuwe beveiligde mobile speechroutes hergebruiken fase-5-helper;
+Android-wachtwoordlogin start alleen pairing, nooit een ongekeurde sessie.
+Vijf JVM-tests, zes echte emulatortests, Android-lint zonder fouten en debug- plus
+unsigned releasebuild geslaagd. Windows-regressies: 74 tests; serverregressies
+165 bestaand plus zeven nieuwe mobieltests. Keystore, refresh/pairing/context,
+TLS-afwijzing, echte Piper/Whisper en Android-audio-API's daadwerkelijk getest.
+APK: .local/android-build/JARVIS-Android-0.6.0-debug.apk (circa 19,2 MB).
+Implementatie gepusht naar de eigen fork; [PR #17](https://github.com/DeBeer05/jarvis/pull/17)
+naar develop. Eerste CI bevestigt servermatrix en Windows-clientbuild; Android-
+SDK-bootstrap en licentie-EOF zijn hersteld na de eerste CI-bevindingen. Alle
+checks op de definitieve head zijn vereist vóór veilige merge. Main blijft intact.
+Races bij uitloggen/refresh en late cachewrites zijn afgeschermd. Alleen expliciet
+goedgekeurde chatrechten activeren Android-chat/microfoon/verwijderknoppen.
+Pythondeps schoon; Bandit zeven lage beoordeelde subprocess/abort-signalen,
+geen middel/hoge of suppressies. Geen persoonlijke data/geheimen in artefacten.
+Activering op echte server: gecontroleerde herstart nog door gebruiker nodig;
+automatische review blokkeerde de gecombineerde herstart/emulatoropdracht zonder
+nadere reden. De eigen synthetische testfixture is wel veilig gestopt.
+FCM is zonder configuratie een lokale testimplementatie; geen externe bezorging
+of echte telefoonspraak geclaimd. Zie docs/PHASE_6_TEST_REPORT.md voor status.
+
+## Voorgeschiedenis fase 5
+
 Fase 5 is expliciet geautoriseerd: Nederlandse spraak in dezelfde Windows-app,
 geen tweede backend, bestaande localhost:8765/auth/chatcontext behouden. Branch
 feature/dutch-voice-assistant vanaf develop d6e1b83; fase-4-PR #15 is gemerged en

@@ -1,0 +1,41 @@
+name: Native Android client
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android:
+    name: Android tests lint and APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install pinned Android platform
+        run: |
+          sdk="$RUNNER_TEMP/jarvis-android-sdk"
+          archive="$RUNNER_TEMP/jarvis-command-tools.zip"
+          curl --fail --location 'https://dl.google.com/android/repository/commandlinetools-linux-15859902_latest.zip' --output "$archive"
+          echo "4e4c464f145a7512b57d088ac6c278c03c9eea610886b35a5e0804e74eedf583  $archive" | sha256sum --check
+          mkdir -p "$sdk/cmdline-tools" "$RUNNER_TEMP/jarvis-cli"
+          unzip -q "$archive" -d "$RUNNER_TEMP/jarvis-cli"
+          mv "$RUNNER_TEMP/jarvis-cli/cmdline-tools" "$sdk/cmdline-tools/latest"
+          printf 'y\n%.0s' {1..100} | "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" --licenses
+          "$sdk/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$sdk" 'platforms;android-37.2' 'build-tools;36.0.0' 'platform-tools'
+          echo "ANDROID_HOME=$sdk" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$sdk" >> "$GITHUB_ENV"
+      - name: Unit tests, lint and builds without personal configuration
+        working-directory: android
+        run: bash gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease --no-daemon
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: JARVIS-Android-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7
