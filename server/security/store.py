@@ -51,6 +51,8 @@ class SecurityStore:
 
     def prune(self):
         with self.db(True) as db:
+            for permission in ("automation:read", "automation:write", "automation:approve", "integrations:manage"):
+                db.execute("INSERT OR IGNORE INTO auth_permissions(device_id,permission) SELECT device_id,? FROM auth_permissions WHERE permission='admin:account'", (permission,))
             db.execute("INSERT OR IGNORE INTO auth_permissions(device_id,permission) SELECT d.id,'chat:delete' FROM auth_devices d JOIN auth_permissions p ON p.device_id=d.id WHERE d.type='browser' AND p.permission='admin:account'")
             cutoff = self.clock() - 86400
             db.execute("DELETE FROM auth_refresh_tokens WHERE session_id IN (SELECT id FROM auth_sessions WHERE expires_at<? OR revoked_at<?)", (cutoff, cutoff))

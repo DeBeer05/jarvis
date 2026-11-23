@@ -1,5 +1,9 @@
 # Git-workflow
 
+Actuele fase 7: feature/smart-automations vanaf develop c405304. Zelfde
+PR-/test-/reviewregels; controleer repository-, server-, Windows- en Android-CI.
+Geen main-wijziging, externe accounttests zonder toestemming of fase 8.
+
 Actuele fase 6: feature/android-client vanaf develop, native Android binnen
 dezelfde repository. Zelfde PR-/test-/reviewregels; controleer ook Android tests
 lint and APK vóór merge. Alleen develop, geen publicatie/merge naar main,

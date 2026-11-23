@@ -1,5 +1,9 @@
 # Android-app installeren en gebruiken
 
+Fase 7 levert .local/android-build/JARVIS-Android-0.7.0-debug.apk. Installeer die
+met dezelfde USB/ADB-stappen hieronder. Automatiseringen vereist daarnaast een
+expliciete eigenaargrant; zie WORKFLOW_ENGINE.md en CALENDAR_INTEGRATION.md.
+
 De native app staat in `C:\Users\beren\Desktop\J.A.R.V.I.S\android`.
 De backend blijft op je ontwikkeldesktop, **127.0.0.1:8765**.
 Op Android betekent 127.0.0.1 normaal de telefoon zelf. Daarom gebruiken we in

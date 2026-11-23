@@ -4,7 +4,7 @@ import secrets
 from dataclasses import dataclass, field
 
 AUTH_SCHEME = "Bearer"
-OWNER_SCOPES = frozenset(("chat:read", "chat:write", "chat:delete", "status:read", "admin:devices", "admin:sessions", "admin:account", "audit:read"))
+OWNER_SCOPES = frozenset(("chat:read", "chat:write", "chat:delete", "status:read", "admin:devices", "admin:sessions", "admin:account", "audit:read", "automation:read", "automation:write", "automation:approve", "integrations:manage"))
 DEVICE_SCOPES = frozenset(("chat:read", "chat:write", "chat:delete", "status:read"))
 DEVICE_TYPES = frozenset(("browser", "windows", "android", "other"))
 

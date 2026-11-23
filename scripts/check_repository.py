@@ -155,12 +155,12 @@ def main() -> int:
 
     example = ROOT / ".env.example"
     expected = {
-        "JARVIS_PHASE": "3", "JARVIS_ENV": "development", "JARVIS_HOST": "127.0.0.1",
+        "JARVIS_PHASE": "7", "JARVIS_ENV": "development", "JARVIS_HOST": "127.0.0.1",
         "JARVIS_PORT": "8765", "JARVIS_LOG_LEVEL": "info",
         "JARVIS_LOG_PATH": ".local/logs/server.log", "JARVIS_LOG_MAX_BYTES": "1048576",
         "JARVIS_LOG_BACKUP_COUNT": "3", "JARVIS_DATABASE_PATH": ".local/data/jarvis.sqlite3",
         "JARVIS_RUNTIME_DIR": ".local/run", "JARVIS_ENABLE_EXTERNAL_ACCESS": "false",
-        "JARVIS_ENABLE_AUTOMATIONS": "false", "JARVIS_AI_PROVIDER": "auto", "GEMINI_API_KEY": "",
+        "JARVIS_ENABLE_AUTOMATIONS": "true", "JARVIS_GOOGLE_CLIENT_FILE": "", "JARVIS_AI_PROVIDER": "auto", "GEMINI_API_KEY": "",
         "JARVIS_PROFILE": "desktop-development", "JARVIS_AI_PREFERRED_PROVIDER": "gemini",
         "GROQ_API_KEY": "", "GROQ_MODEL": "openai/gpt-oss-120b",
         "GEMINI_MODEL": "gemini-3.8-flash", "OLLAMA_BASE_URL": "http://127.0.0.1:11434",
@@ -197,7 +197,7 @@ def main() -> int:
                     errors.append("Invalid or duplicate example configuration entry")
                 actual[key] = value
     if actual != expected:
-        errors.append("Example must contain only the approved local phase-3 defaults and empty secrets")
+        errors.append("Example must contain only the approved local phase-7 defaults and empty secrets")
 
     errors.extend(staged_secret_findings())
     result = git("ls-files", "--cached", "--others", "--exclude-standard", "-z")

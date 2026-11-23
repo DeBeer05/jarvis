@@ -14,7 +14,8 @@ class RequestGuard:
             return await self.app(scope, receive, send)
         headers = dict(scope.get("headers", []))
         writing = scope["method"] in ("POST", "PUT", "PATCH", "DELETE")
-        if headers.get(b"sec-fetch-site") == b"cross-site":
+        oauth_callback = scope["path"] == "/oauth/google/callback" and scope["method"] == "GET"
+        if headers.get(b"sec-fetch-site") == b"cross-site" and not oauth_callback:
             return await JSONResponse({"error": {"code": "origin_forbidden", "message": "Gebruik de eigen lokale JARVIS-pagina."}}, status_code=403)(scope, receive, send)
         if (writing or scope["path"] == "/api/v1/auth/csrf") and b"origin" in headers:
             try:

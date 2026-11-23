@@ -16,6 +16,7 @@ from jarvis_client.platform_services import LocalAgent, NotificationCenter, Star
 from jarvis_client.voice.panel import VoicePanel
 from jarvis_client.settings import Preferences
 from jarvis_client.theme import icon, stylesheet
+from jarvis_client.automations import AutomationPanel
 
 
 def label(text, name=None):
@@ -85,7 +86,7 @@ class MainWindow(QMainWindow):
         side.addSpacing(28)
         self.pages = QStackedWidget()
         self.nav = []
-        for index, title in enumerate(("Chat", "Gesprekken", "Apparaten", "Meldingen", "Instellingen", "Account", "Spraak")):
+        for index, title in enumerate(("Chat", "Gesprekken", "Apparaten", "Meldingen", "Instellingen", "Account", "Spraak", "Automatiseringen")):
             nav = button(title, lambda checked=False, i=index: self.navigate(i))
             nav.setObjectName("nav")
             nav.setCheckable(True)
@@ -112,6 +113,8 @@ class MainWindow(QMainWindow):
         self.voice_panel = VoicePanel(self)
         self.voice = self.voice_panel.manager
         self.pages.addWidget(self.voice_panel)
+        self.automation_panel = AutomationPanel(self)
+        self.pages.addWidget(self.automation_panel)
         self.render_timer = QTimer(self)
         self.render_timer.setSingleShot(True)
         self.render_timer.timeout.connect(self.render)
@@ -305,6 +308,8 @@ class MainWindow(QMainWindow):
             self.load_history()
         elif index == 2:
             self.load_device()
+        elif index == 7:
+            self.automation_panel.refresh()
 
     def show_notice(self, text):
         self.notice.setText(text)
@@ -633,6 +638,7 @@ class MainWindow(QMainWindow):
             self.logout(revoke=True)
 
     def clear_private(self):
+        if hasattr(self,"automation_panel"): self.automation_panel.clear()
         self.pending_voice = None
         self.voice_panel.set_authorized(False)
         self.render_timer.stop()

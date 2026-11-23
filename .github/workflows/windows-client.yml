@@ -42,6 +42,6 @@ jobs:
           if (-not $process.WaitForExit(20000)) { throw 'Portable smoke test timed out' }
           if ($process.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $report)) { throw 'Portable startup failed' }
           $result = Get-Content -LiteralPath $report -Raw | ConvertFrom-Json
-          if ($result.version -ne '0.5.0' -or $result.pages -ne 7 -or $result.network_started -or $result.microphone_active -or $result.voice_worker_started) { throw 'Unexpected client startup' }
+          if ($result.version -ne '0.7.0' -or $result.pages -ne 8 -or $result.network_started -or $result.microphone_active -or $result.voice_worker_started) { throw 'Unexpected client startup' }
       - name: Smoke test packaged speech helper without models
         run: ./.local/client-venv/Scripts/python.exe scripts/check-voice-bundle.py .local/client-build/dist/JARVIS/voice-runtime/JARVIS-Voice.exe

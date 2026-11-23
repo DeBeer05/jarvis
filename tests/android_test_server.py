@@ -25,6 +25,7 @@ def fixture(root, port):
     store=SecurityStore(database,settings);store.create_owner("owner",owner_hash())
     app=create_app(settings,ai_router=AIRouter(settings,{name:FakeProvider() for name in ("gemini","groq","ollama")}))
     PUBLIC["/api/test/approve"]={"POST"}  # this isolated test process only
+    PUBLIC["/api/test/grant"]={"POST"}
     owner_device=[None]
     @app.post("/api/test/approve")
     async def approve(request: Request):
@@ -33,6 +34,15 @@ def fixture(root, port):
         owner_device[0]=owner.principal.device_id
         await asyncio.to_thread(app.state.security.store.decide_pair,data["request_id"],owner.principal,True,data["user_code"],{"chat:read","chat:write","chat:delete","status:read"})
         return {"approved":True}
+    @app.post("/api/test/grant")
+    async def grant(request:Request):
+        # Synthetic fixture only; this router is never imported by server.app.
+        access=request.headers.get("authorization","").removeprefix("Bearer ")
+        principal=app.state.security.store.authenticate(access)
+        with app.state.automation.store.db(True) as db:
+            for scope in ("automation:read","automation:write","automation:approve"):
+                db.execute("INSERT OR IGNORE INTO auth_permissions VALUES (?,?)",(principal.device_id,scope))
+        return {"granted":True}
     return app
 
 

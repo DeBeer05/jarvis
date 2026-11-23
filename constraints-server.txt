@@ -26,4 +26,5 @@ argon2-cffi==25.1.0
 argon2-cffi-bindings==26.2.0
 cffi==2.1.1
 pycparser==3.12
+tzdata==2026.6
 pip==26.3

@@ -234,7 +234,7 @@ def test_phase1_database_migration_and_interrupted_recovery(tmp_path):
         db.execute("PRAGMA user_version=1")
     database = Database(path)
     database.initialize()
-    assert list(tmp_path.glob("old.sqlite3.pre-v3-*.bak"))
+    assert list(tmp_path.glob("old.sqlite3.pre-v4-*.bak"))
     with database.connection() as db:
         assert db.execute("SELECT value FROM preserved").fetchone() == ("keep me",)
     store = ChatStore(database)

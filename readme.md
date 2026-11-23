@@ -1,5 +1,15 @@
 # JARVIS — Windows-client en beveiligde AI-webchat
 
+**Fase 7:** centrale automatiseringen, herinneringen, workflows en gecontroleerde
+Google Calendar/Gmail-adapters. Bedien via **Automatiseringen** in Windows/Android
+of op http://127.0.0.1:8765/automations. Bestaande native apparaten krijgen nieuwe
+rechten alleen na expliciete eigenaargrant. Echte Google-accounts zijn nog niet
+gekoppeld/getest; mocks zijn geen live integratiebewijs.
+[Starten en koppelen](docs/CALENDAR_INTEGRATION.md) ·
+[Taken en goedkeuringen](docs/WORKFLOW_ENGINE.md) ·
+[E-mail](docs/GMAIL_INTEGRATION.md) · [Teststatus](docs/PHASE_7_TEST_REPORT.md).
+Stop na fase 7; geen oproepen, publieke toegang of mini-pc-deployment.
+
 **Android (fase 6):** native Kotlin/Compose-app in `android/`, met dezelfde
 beveiligde chat, eigenaarpairing en servergestuurde Nederlandse spraak.
 [Installatie](docs/ANDROID_SETUP.md) · [Build](docs/ANDROID_BUILD.md) ·

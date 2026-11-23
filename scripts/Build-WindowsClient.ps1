@@ -40,7 +40,7 @@ try {
     Copy-Item -LiteralPath (Join-Path $JarvisClientRoot 'desktop-client\voice_worker.py'),(Join-Path $JarvisClientRoot 'desktop-client\voice_runtime') -Destination $voiceSource -Recurse -Force
     Copy-Item -LiteralPath (Join-Path $JarvisClientRoot 'requirements-voice.txt'),(Join-Path $JarvisClientRoot 'constraints-voice.txt') -Destination $voiceSource
     Copy-Item -LiteralPath (Join-Path $JarvisClientRoot 'docs\VOICE_MODELS.md'),(Join-Path $JarvisClientRoot 'docs\VOICE_PRIVACY.md'),(Join-Path $JarvisClientRoot 'docs\VOICE_SETUP.md') -Destination $clientBundle
-    $clientArchive = Join-Path $JarvisClientRoot '.local\client-build\JARVIS-Windows-0.5.0-x64.zip'
+    $clientArchive = Join-Path $JarvisClientRoot '.local\client-build\JARVIS-Windows-0.7.0-x64.zip'
     Compress-Archive -LiteralPath $clientBundle -DestinationPath $clientArchive -Force
     Get-FileHash -LiteralPath (Join-Path $clientBundle 'JARVIS.exe'),$clientArchive -Algorithm SHA256 | Select-Object Path,Hash
     Write-Output ('Portable app: ' + (Join-Path $clientBundle 'JARVIS.exe'))
