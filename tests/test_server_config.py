@@ -26,7 +26,7 @@ def test_env_file_and_environment_precedence(tmp_path):
     ("JARVIS_LOG_MAX_BYTES", "0"), ("JARVIS_LOG_BACKUP_COUNT", "99"),
     ("JARVIS_AI_PROVIDER", "invalid"), ("JARVIS_DATABASE_PATH", "//remote/share/db"),
     ("JARVIS_DATABASE_PATH", ""), ("JARVIS_ENABLE_EXTERNAL_ACCESS", "true"),
-    ("JARVIS_ENABLE_AUTOMATIONS", "true"),
+    ("JARVIS_ENABLE_AUTOMATIONS", "invalid"),
 ])
 def test_invalid_configuration_is_rejected_without_values(tmp_path, name, value):
     with pytest.raises(ConfigurationError) as error:

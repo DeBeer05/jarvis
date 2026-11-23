@@ -2,6 +2,35 @@
 
 ## Huidige opdracht
 
+Fase 7 expliciet opgedragen op feature/smart-automations vanaf develop c405304
+(fase-6-PR #17 is gemerged; alle mergechecks waren groen). Geïmplementeerd:
+SQLite-schema 4 met voorafgaande backup, centrale AutomationEngine/scheduler,
+gesloten tools, eenmalige goedkeuringen, persistente workflows en herinneringen,
+Google Desktop OAuth/PKCE met DPAPI-tokenopslag en officiële Calendar/Gmail REST.
+Windows-/Android-/webbediening in dezelfde bestaande clients. Rechten voor
+bestaande native apparaten uitsluitend na eigenaargrant. Externe mail/agenda-
+wijzigingen altijd met exacte preview/ETag en goedkeuring; onzekere resultaten
+worden niet automatisch herhaald. Geen echte Google-accounttests uitgevoerd.
+Volledige regressiesuite: 194 servertests geslaagd, waarvan 22 nieuwe
+automatiseringstests. Windows: 75 tests; Android: vijf JVM-tests en zeven echte
+instrumented emulatortests. Beide appbuilds/unsigned Android release en lint
+geslaagd, Windows portable 0.7.0 echt gestart. Server-pip check/audit schoon;
+Bandit drie lage bestaande signalen, geen middel/hoge of suppressies.
+Repository-/whitespace-/indexgeheimcontrole geslaagd. Git-afhandeling via eigen
+featurebranch en PR naar develop, uitsluitend na groene checks en inhoudelijke
+review; main blijft ongewijzigd. Android 0.7.0-APK staat in .local/android-build.
+De echte server is daarna afzonderlijk gecontroleerd herstart op dezelfde
+loopback:8765. Schema 4, migratiebackup en behoud van het eigenaaraccount zijn
+bevestigd; health/ready/automations geven 200 en anonieme automation-API's 401.
+Alleen lokale fase-/schedulerflags zijn bijgewerkt; credentials zijn behouden.
+Er zijn nul automatiseringstaken aangemaakt en geen Google-account gekoppeld.
+Integratie via [PR #18](https://github.com/DeBeer05/jarvis/pull/18), na groene CI.
+FCM externe bezorging is nog
+niet ingericht; de engine levert een geauthenticeerde inbox en bestaande lokale
+notificaties. Geen volledige oproepen, productie, mini-pc of fase 8.
+
+## Voorgeschiedenis fase 6
+
 Fase 6 expliciet opgedragen: native Android-app, branch feature/android-client
 vanaf develop a78257e. Bestaande loopbackserver:8765 en Windows-client blijven
 behouden. AGENTS-fasegrens aangepast naar STOP na fase 6. Geen publieke toegang,

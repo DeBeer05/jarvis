@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
 import nl.jarvis.mobile.BuildConfig
 
 private val Context.settingsData by preferencesDataStore("settings")
@@ -15,6 +16,9 @@ data class Preferences(
     val firebaseEnabled: Boolean = false, val inputDevice: Int = 0, val outputDevice: Int = 0
 )
 class SettingsStore(private val context: Context) {
+    private fun cursorKey(origin: String)=doublePreferencesKey("notification_cursor_"+java.security.MessageDigest.getInstance("SHA-256").digest(origin.toByteArray()).joinToString(""){"%02x".format(it)})
+    suspend fun notificationCursor(origin: String):Double = context.settingsData.data.first()[cursorKey(origin)] ?: (System.currentTimeMillis()/1000.0)
+    suspend fun notificationSeen(origin: String,at: Double) { context.settingsData.edit { p -> val key=cursorKey(origin);p[key]=maxOf(p[key] ?: 0.0,at) } }
     private val origin = stringPreferencesKey("origin")
     val values = context.settingsData.data.map { p -> Preferences(
         p[origin] ?: Preferences().origin, p[booleanPreferencesKey("automatic")] ?: true,

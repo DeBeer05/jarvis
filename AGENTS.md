@@ -108,7 +108,7 @@ a small built-in fallback — instead of crashing.
 - Keep to the libraries already in `requirements.txt`.
 
 
-## JARVIS fork: blijvende Codex-projectinstructies (fase 6)
+## JARVIS fork: blijvende Codex-projectinstructies (fase 7)
 
 Deze aanvullende regels behouden de upstreamrichtlijnen hierboven. De opdracht
 van de gebruiker blijft leidend. Fase 6 is expliciet opgedragen: native Android
@@ -120,8 +120,12 @@ Geen zware modellen op Android. Geen publieke toegang of firewall/routerwijzigin
 ontwikkelverbinding via expliciete adb reverse naar dezelfde loopbackserver.
 Release uitsluitend HTTPS/certificaatvalidatie; debug HTTP alleen vaste lokale hosts.
 FCM alleen na eigen Firebaseconfig; zonder die config alleen lokale testmeldingen.
-Geen volledige oproepen, integraties, productie of mini-pc-deployment.
-STOP na fase 6; geen fase 7/8 starten.
+Fase 6 voegde geen integraties toe. Geen volledige oproepen, productie of mini-pc-deployment.
+Fase 7 is inmiddels expliciet opgedragen: feature/smart-automations, persistente
+automatiseringen, OAuth Calendar/Gmail en clients. Nieuwe automatiseringsrechten
+alleen na eigenaargrant; externe wijzigingen vereisen gebonden eenmalige approval.
+Geen echte accounttests of externe berichten zonder afzonderlijke toestemming.
+STOP na fase 7; geen oproepen, productie of mini-pc-deployment.
 
 Vóór iedere taak:
 1. Controleer `git status --short --branch`, huidige branch en remotes.

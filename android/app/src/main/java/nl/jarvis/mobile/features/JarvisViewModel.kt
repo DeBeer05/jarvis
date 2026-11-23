@@ -22,7 +22,8 @@ data class ScreenState(
     val messages: List<Line> = emptyList(), val history: List<Conversation> = emptyList(), val conversation: String? = null,
     val busy: Boolean = false, val recording: Boolean = false, val level: Float = 0f, val voiceStatus: String = "Klaar om te luisteren",
     val transcript: String = "", val error: String = "", val pairCode: String = "", val pairUrl: String = "",
-    val device: String = "Nog niet gekoppeld", val provider: String = "auto", val model: String = "", val notificationStatus: String = "Lokale testmeldingen"
+    val device: String = "Nog niet gekoppeld", val provider: String = "auto", val model: String = "", val notificationStatus: String = "Lokale testmeldingen",
+    val automations: String = "", val automationResult: String = ""
 )
 class JarvisViewModel(application: Application): AndroidViewModel(application) {
     private val graph = (application as JarvisApplication).graph
@@ -41,7 +42,7 @@ class JarvisViewModel(application: Application): AndroidViewModel(application) {
             if (changed) {
                 stop(); pairJob?.cancel(); connection.stop()
                 currentApi = try { graph.api(preferences.origin) } catch (_: IllegalArgumentException) { null }
-                mutable.update { it.copy(messages=emptyList(), history=emptyList(), conversation=null, pairCode="", pairUrl="") }
+                mutable.update { it.copy(automations="", automationResult="", messages=emptyList(), history=emptyList(), conversation=null, pairCode="", pairUrl="") }
             }
             mutable.update { it.copy(preferences=preferences, screen=if (!initialized && currentApi?.hasCredential() == true) "Chat" else it.screen) }
             initialized = true
@@ -54,19 +55,68 @@ class JarvisViewModel(application: Application): AndroidViewModel(application) {
             if (!status.authenticated && was) stop()
             if (status.online && !status.authenticated && currentApi?.hasCredential() != true) {
                 currentApi?.let { graph.cache.clear(it.endpoint.origin) }
-                mutable.update { it.copy(messages=emptyList(), history=emptyList(), conversation=null) }
+                mutable.update { it.copy(automations="", automationResult="", messages=emptyList(), history=emptyList(), conversation=null) }
             }
         } }
     }
-    fun navigate(screen: String) { mutable.update { it.copy(screen=screen, error="") }; if (screen=="Gesprekken") history(); if (screen=="Apparaten" || screen=="Account") device() }
-    fun active(value: Boolean) { foreground = value; if (value) connection.start(mutable.value.preferences.automatic) else { stop(); pairJob?.cancel(); connection.stop() } }
+    fun navigate(screen: String) { mutable.update { it.copy(screen=screen, error="") }; if (screen=="Gesprekken") history(); if (screen=="Apparaten" || screen=="Account") device(); if(screen=="Automatiseringen") automationRefresh() }
+
+    private var automationJob: Job? = null
+    private val seenNotifications=mutableSetOf<String>()
+    fun automationRequest(path: String, method: String="GET", body: JSONObject?=null, done: ((JSONObject)->Unit)?=null) {
+        val api=currentApi ?: return; val epoch=generation
+        viewModelScope.launch { try {
+            val data=api.json("/api/v1/automation$path",method,body)
+            if(currentApi===api && epoch==generation && api.hasCredential()) {
+                if(done!=null) done(data) else mutable.update { it.copy(automationResult=data.toString(2)) }
+            }
+        } catch(error: Exception) { if(currentApi===api && epoch==generation) {
+            if(error is MobileError && error.status==401) problem(error)
+            else message(if(error is MobileError) error.message ?: "Automatiseringsverzoek mislukt" else "Automatiseringsverzoek mislukt. Controleer verbinding en actiegegevens.")
+        } } }
+    }
+    fun automationRefresh() {
+        if(!mutable.value.connection.authenticated || "automation:read" !in mutable.value.connection.permissions) {
+            mutable.update { it.copy(automationResult="Log in en laat de eigenaar automatiseringsrechten voor dit apparaat verlenen.") };return
+        }
+        automationRequest("") { data ->
+        mutable.update { it.copy(automations=data.toString()) }
+        val origin=currentApi?.endpoint?.origin ?: return@automationRequest;val epoch=generation
+        viewModelScope.launch {
+            val floor=graph.settings.notificationCursor(origin);var latest=floor
+            if(currentApi?.endpoint?.origin!=origin || generation!=epoch) return@launch
+            val notes=data.optJSONArray("notifications") ?: JSONArray()
+            for(i in 0 until notes.length()) { val note=notes.getJSONObject(i);latest=maxOf(latest,note.getDouble("at"))
+                if(note.getDouble("at")>floor && seenNotifications.add(note.getString("id")) && note.getString("category") in mutable.value.preferences.categories) graph.notifications.show(note.getString("category"),"Automatiseringen")
+            }
+            graph.settings.notificationSeen(origin,latest)
+        }
+    } }
+    fun automationSubmit(tool: String, text: String) {
+        try { val body=JSONObject().put("tool",tool).put("input",JSONObject(text)).put("idempotency_key",UUID.randomUUID().toString())
+            automationRequest("/jobs","POST",body) { automationRefresh() }
+        } catch (_: Exception) { message("Controleer de JSON-actiegegevens") }
+    }
+    fun automationDecide(id: String, approve: Boolean) {
+        automationRequest("/jobs/$id/challenge","POST") { challenge ->
+            automationRequest("/jobs/$id/decision","POST",JSONObject().put("token",challenge.getString("token")).put("approve",approve)) { automationRefresh() }
+        }
+    }
+    fun automationControl(id: String,status: String) { automationRequest("/jobs/$id/control","POST",JSONObject().put("status",status)) { automationRefresh() } }
+    fun active(value: Boolean) { foreground = value; if (value) {
+        connection.start(mutable.value.preferences.automatic)
+        automationJob?.cancel();automationJob=viewModelScope.launch { while(isActive) {
+            if(mutable.value.connection.authenticated && "automation:read" in mutable.value.connection.permissions) automationRefresh()
+            delay(30000)
+        } }
+    } else { automationJob?.cancel();stop(); pairJob?.cancel(); connection.stop() } }
     fun reconnect() { connection.checkNow() }
     private fun problem(error: Throwable) {
         if (error is CancellationException) return
         mutable.update { it.copy(error=if (error is MobileError) error.message ?: "Verzoek mislukt" else if (error is IllegalArgumentException) error.message ?: "Ongeldige instelling" else "Verbinding of audio onderbroken. Controleer server en apparaten.", busy=false, recording=false, level=0f, voiceStatus="Spraak gestopt") }
         if (error is MobileError && error.status == 401) {
             stop(); currentApi?.forget(); currentApi?.let { api -> viewModelScope.launch { graph.cache.clear(api.endpoint.origin) } }
-            mutable.update { it.copy(connection=Connection(true,false,"Opnieuw koppelen nodig"), messages=emptyList(), history=emptyList(), conversation=null, screen="Inloggen") }
+            mutable.update { it.copy(automations="", automationResult="", connection=Connection(true,false,"Opnieuw koppelen nodig"), messages=emptyList(), history=emptyList(), conversation=null, screen="Inloggen") }
         }
     }
     fun message(text: String) { mutable.update { it.copy(error=text) } }
@@ -212,7 +262,7 @@ class JarvisViewModel(application: Application): AndroidViewModel(application) {
     fun logout(revoke: Boolean = false) { val api=currentApi ?: return; stop(); pairJob?.cancel()
         viewModelScope.launch { try { api.json("/api/v1/mobile/push", "DELETE"); api.json(if(revoke) "/api/v1/auth/disconnect" else "/api/v1/auth/logout", "POST") }
             catch (_: Exception) { message("Lokaal uitgelogd. Trek de sessie bij onbereikbare server ook in via de eigenaarinterface.") }
-            finally { api.forget(); graph.vault.drop("fcm-pending"); graph.cache.clear(api.endpoint.origin); mutable.update { it.copy(messages=emptyList(), history=emptyList(), conversation=null, screen="Inloggen", device="Niet gekoppeld") }; reconnect() } }
+            finally { api.forget(); graph.vault.drop("fcm-pending"); graph.cache.clear(api.endpoint.origin); mutable.update { it.copy(automations="", automationResult="", messages=emptyList(), history=emptyList(), conversation=null, screen="Inloggen", device="Niet gekoppeld") }; reconnect() } }
     }
     fun testNotification(category: String) { if(category in mutable.value.preferences.categories) graph.notifications.show(category) }
     fun firebase(enabled: Boolean) {

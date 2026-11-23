@@ -55,7 +55,7 @@ class MainActivity: ComponentActivity() {
         else lightColorScheme(primary=Color(0xFF166B57))
     MaterialTheme(colorScheme=colors, content=content)
 }
-private val screens=listOf("Welkom","Inloggen","Koppelen","Chat","Gesprekken","Spraak","Meldingen","Apparaten","Instellingen","Account")
+private val screens=listOf("Welkom","Inloggen","Koppelen","Chat","Gesprekken","Spraak","Automatiseringen","Meldingen","Apparaten","Instellingen","Account")
 private fun navigationTitle(screen: String, language: String): String = if(language!="en") screen else mapOf(
     "Welkom" to "Welcome", "Inloggen" to "Sign in", "Koppelen" to "Pair device", "Gesprekken" to "Conversations",
     "Spraak" to "Voice", "Meldingen" to "Notifications", "Apparaten" to "Devices", "Instellingen" to "Settings"
@@ -88,6 +88,7 @@ private fun navigationTitle(screen: String, language: String): String = if(langu
                             "Meldingen" -> NotificationSettings(state,model,notificationPermission)
                             "Apparaten", "Account" -> Account(state,model)
                             "Instellingen" -> Settings(state,model)
+                            "Automatiseringen" -> AutomationScreen(state,model)
                         }
                         Spacer(Modifier.height(24.dp))
                     }

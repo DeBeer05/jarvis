@@ -35,16 +35,31 @@ def test_initialization_navigation_and_safe_defaults(qt, tmp_path, vault):
     app = window(tmp_path, vault)
     app.show()
     qt.processEvents()
-    assert app.pages.count() == 7 and app.isVisible()
+    assert app.pages.count() == 8 and app.isVisible()
     assert not app.send_button.isEnabled() and not app.delete_button.isEnabled()
     assert not app.setting_checks["startup"].isChecked()
-    for index in range(7):
+    for index in range(8):
         app.navigate(index)
         assert app.pages.currentIndex() == index and app.nav[index].isChecked()
     assert not app.voice.consent and not app.voice.recording and not app.voice.wake_enabled
     app.closing = True
     app.tray.hide()
     app.close()
+
+
+def test_automation_filters_and_logout_clear_private_data(qt,tmp_path,vault):
+    app=window(tmp_path,vault)
+    panel=app.automation_panel
+    panel.all_items=[{"id":"synthetic","tool":"EmailSend","status":"approval","payload":{"preview":"Private synthetic body"}}]
+    panel.filter_jobs();panel.jobs.setCurrentRow(0)
+    assert "Private synthetic body" in panel.details.toPlainText()
+    panel.tabs.setCurrentIndex(4);assert panel.jobs.count()==1
+    panel.clear();panel.tabs.setCurrentIndex(3)
+    assert panel.jobs.count()==0 and not panel.details.toPlainText()
+    app.navigate(7);app.show();qt.processEvents()
+    assert app.automation_panel.isVisible()
+    app.grab().save(str(tmp_path/"automation-screen.png"))
+    app.closing=True;app.tray.hide();app.close()
 
 
 def test_worker_callbacks_return_on_main_thread(qt):

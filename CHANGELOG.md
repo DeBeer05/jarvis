@@ -4,6 +4,13 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Fase 7: centrale SQLite-automatiseringen, herinneringen met lokale tijdzones,
+  persistente workflows, apparaatrechten en eenmalige approvals. Officiële Google
+  Calendar/Gmail OAuth-/REST-adapters met Windows DPAPI; echte accounts nog niet
+  geconfigureerd of getest. Windows/Android 0.7.0 en webbediening, centrale inbox,
+  metadata-prioriteit en veilige handmatige messaging. Geen externe FCM-bezorging,
+  persoonlijke WhatsApp/SMS-automatisering, oproepen of productie geclaimd.
+
 - Fase 6: native Android 0.6.0 met Compose/Material3, S256-ownerpairing,
   Keystore/Room/DataStore, chat/SSE/historie, foreground-spraak via bestaande
   centrale Whisper/Piper-helper en Android-notificatiekanalen. Geen publieke

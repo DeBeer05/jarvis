@@ -15,6 +15,8 @@ REFRESH_COOKIE = "jarvis_refresh"
 CSRF_COOKIE = "jarvis_csrf"
 
 PUBLIC = {
+    "/automations": {"GET"}, "/chat/assets/automations.js": {"GET"},
+    "/oauth/google/callback": {"GET"},
     "/health": {"GET", "HEAD"}, "/ready": {"GET", "HEAD"},
     "/chat": {"GET"}, "/login": {"GET"}, "/security": {"GET"},
     "/chat/assets/chat.css": {"GET"}, "/chat/assets/chat.js": {"GET"},
@@ -74,7 +76,14 @@ class SecurityGate:
             if via_cookie and method not in ("GET", "HEAD", "OPTIONS"):
                 if not hmac.compare_digest(principal.csrf_hash, digest(csrf_value(scope))):
                     raise AuthError("csrf_failed", "Vernieuw de pagina en probeer opnieuw.", 403)
-            if path == "/api/v1/mobile/speech/transcribe":
+            if path.startswith("/api/v1/automation"):
+                if path.endswith("/grants"): required = "admin:devices"
+                elif path.endswith("/rules"): required = "admin:account"
+                elif "/integrations" in path: required = "integrations:manage"
+                elif path.endswith(("/challenge", "/decision")): required = "automation:approve"
+                elif method in ("GET", "HEAD") or path.endswith(("/calendar/search", "/email/search", "/reschedule", "/summarize", "/email-priority")): required = "automation:read"
+                else: required = "automation:write"
+            elif path == "/api/v1/mobile/speech/transcribe":
                 required = "chat:write"
             elif path == "/api/v1/mobile/speech/synthesize":
                 required = "chat:read"

@@ -35,6 +35,25 @@ class DeviceIntegrationTest {
         OkHttpClient().newCall(Request.Builder().url("http://127.0.0.1:8765/api/test/approve").post(approve.toString().toRequestBody("application/json".toMediaType())).build()).execute().use {assertTrue(it.isSuccessful)}
         api.finishPair(JSONObject().put("grant_type","urn:ietf:params:oauth:grant-type:device_code").put("device_code",pair.getString("device_code")).put("code_verifier",verifier))
     }
+    @Test fun automationRightsReminderAndOneUseApproval() = runBlocking {
+        val api=api();pair(api)
+        try {api.json("/api/v1/automation");fail("Unapproved automation access") }catch(error:MobileError){assertEquals(403,error.status)}
+        api.json("/api/test/grant","POST",JSONObject())
+        val input=JSONObject().put("text","Synthetic Android reminder").put("at",java.time.OffsetDateTime.now().plusHours(1).toString()).put("repeat","once").put("timezone","Europe/Amsterdam")
+        val key=UUID.randomUUID().toString();val body=JSONObject().put("tool","ReminderCreate").put("input",input).put("idempotency_key",key)
+        val row=api.json("/api/v1/automation/jobs","POST",body)
+        assertEquals(row.getString("id"),api.json("/api/v1/automation/jobs","POST",body).getString("id"))
+        assertTrue(api.json("/api/v1/automation").getJSONArray("items").length()>0)
+        api.json("/api/v1/automation/jobs/${row.getString("id")}/control","POST",JSONObject().put("status","cancelled"))
+        val send=JSONObject().put("draft_id","synthetic").put("message_hash","a".repeat(64)).put("preview","Synthetic message; no actual recipient")
+        val proposal=api.json("/api/v1/automation/jobs","POST",JSONObject().put("tool","EmailSend").put("input",send).put("idempotency_key",UUID.randomUUID().toString()))
+        val path="/api/v1/automation/jobs/${proposal.getString("id")}";assertEquals("approval",proposal.getString("status"))
+        val challenge=api.json("$path/challenge","POST")
+        val decision=JSONObject().put("token",challenge.getString("token")).put("approve",false)
+        assertEquals("denied",api.json("$path/decision","POST",decision).getString("status"))
+        try {api.json("$path/decision","POST",decision);fail("Approval replay") }catch(error:MobileError){assertEquals(400,error.status)}
+        api.json("/api/v1/auth/disconnect","POST");api.forget()
+    }
     @Test fun keystoreAndSettingsPersistWithoutPlaintext() = runBlocking {
         val vault=SecretVault(context); val origin="synthetic:"+UUID.randomUUID();val value=Proof.verifier()
         vault.put(origin,value);assertEquals(value,SecretVault(context).get(origin))

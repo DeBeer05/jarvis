@@ -23,4 +23,10 @@ def vault():
 
 @pytest.fixture(scope="session")
 def qt():
-    return QApplication.instance() or QApplication([])
+    app=QApplication.instance() or QApplication([])
+    if os.name=="nt" and os.environ.get("QT_QPA_PLATFORM")=="offscreen":
+        from PySide6.QtGui import QFontDatabase
+        from pathlib import Path
+        font=Path(os.environ.get("WINDIR","C:/Windows"))/"Fonts/segoeui.ttf"
+        if font.exists():QFontDatabase.addApplicationFont(str(font))
+    return app

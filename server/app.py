@@ -28,6 +28,8 @@ from server.security.gate import SecurityGate
 from server.security.api import router as security_router
 from server.security.types import AuthError
 from server.mobile import router as mobile_router, SpeechBridge
+from server.automation.api import router as automation_router
+from server.automation.engine import AutomationEngine
 
 logger = logging.getLogger("jarvis.server")
 
@@ -52,6 +54,9 @@ def create_app(
         try:
             database.initialize()
             security.initialize()
+            app.state.automation.store.recover()
+            if settings.automations_enabled:
+                app.state.automation.scheduler.start()
             runtime["ready"] = True
             runtime["started_at"] = time.monotonic()
             logger.info("server_started", extra={"environment": settings.environment, "schema_version": SCHEMA_VERSION})
@@ -62,6 +67,7 @@ def create_app(
             raise RuntimeError("Server lifecycle failed; inspect structured event logs") from None
         finally:
             runtime["ready"] = False
+            await app.state.automation.close()
             await chat.shutdown()
             database.close()
             logger.info("server_stopped")
@@ -77,6 +83,7 @@ def create_app(
     app.state.security = security
     app.state.speech = SpeechBridge()
     app.state.mobile_push = {}
+    app.state.automation = AutomationEngine(database, security)
     app.add_middleware(SecurityGate, service=security)
     app.add_middleware(RequestGuard, port=settings.port, allowed_origins=settings.allowed_origins)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(settings.trusted_hosts))
@@ -85,6 +92,11 @@ def create_app(
     app.include_router(chat_router)
     app.include_router(security_router)
     app.include_router(mobile_router)
+    app.include_router(automation_router)
+
+    @app.exception_handler(ValueError)
+    async def invalid_automation(request: Request, error: ValueError):
+        return JSONResponse({"error":{"code":"invalid_action","message":"Controleer actie, tijdzone, accountkoppeling en actuele afspraakgegevens."}},status_code=400)
 
     @app.middleware("http")
     async def security_headers(request: Request, call_next):

@@ -33,6 +33,8 @@ class Settings:
     gemini_api_key: str = field(repr=False, default="")
     groq_api_key: str = field(repr=False, default="")
     groq_model: str = "openai/gpt-oss-120b"
+    google_client_file: str = field(repr=False, default="")
+    automations_enabled: bool = True
     profile: str = "desktop-development"
     preferred_provider: str = "gemini"
     gemini_model: str = "gemini-3.8-flash"
@@ -118,7 +120,7 @@ def load_settings(
     # Public/network binding stays unavailable in phase 3.
     host = choice("JARVIS_HOST", "127.0.0.1", ("127.0.0.1",))
     choice("JARVIS_ENABLE_EXTERNAL_ACCESS", "false", ("false",))
-    choice("JARVIS_ENABLE_AUTOMATIONS", "false", ("false",))
+    automations_enabled = choice("JARVIS_ENABLE_AUTOMATIONS", "true", ("true", "false")) == "true"
     database = path("JARVIS_DATABASE_PATH", ".local/data/jarvis.sqlite3")
     log_path = path("JARVIS_LOG_PATH", ".local/logs/server.log")
     if database == log_path:
@@ -171,6 +173,8 @@ def load_settings(
         raise ConfigurationError("JARVIS_REFRESH_SECONDS exceeds JARVIS_SESSION_SECONDS")
     return Settings(
         environment=choice("JARVIS_ENV", "production" if mini else "development", ("development", "production")),
+        automations_enabled=automations_enabled,
+        google_client_file=text("JARVIS_GOOGLE_CLIENT_FILE", ""),
         host=host,
         port=port,
         log_level=choice("JARVIS_LOG_LEVEL", "warning" if mini else "info", ("debug", "info", "warning", "error", "critical")),

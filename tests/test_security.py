@@ -434,8 +434,8 @@ def test_migration_v2_keeps_chat_and_creates_backup(tmp_path):
     assert database.check()
     with database.connection() as db:
         assert db.execute("SELECT assistant_text FROM chat_turns").fetchone()[0] == "saved answer"
-        assert db.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION == 3
-    backup = next(tmp_path.glob("existing.sqlite3.pre-v3-*.bak"))
+        assert db.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION == 4
+    backup = next(tmp_path.glob("existing.sqlite3.pre-v4-*.bak"))
     with sqlite3.connect(backup) as db:
         assert db.execute("PRAGMA user_version").fetchone()[0] == 2
 

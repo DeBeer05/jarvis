@@ -1,5 +1,8 @@
 # Android bouwen
 
+Actuele fase-7-build: versie 0.7.0,
+.local/android-build/JARVIS-Android-0.7.0-debug.apk.
+
 Project: `C:\Users\beren\Desktop\J.A.R.V.I.S\android`.
 Getest met JDK 17, AGP 9.5.0, Gradle 9.6.0, Kotlin/Compose-plugin 2.3.20,
 Compose BOM 2026.09.00, compile SDK 37.2, target 36 en min 26.

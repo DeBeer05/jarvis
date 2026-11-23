@@ -5,7 +5,7 @@ import uuid
 from contextlib import contextmanager
 from pathlib import Path
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 class Database:
@@ -31,7 +31,7 @@ class Database:
             if version > SCHEMA_VERSION:
                 raise sqlite3.DatabaseError("Database schema is newer than this server")
             if 0 < version < SCHEMA_VERSION:
-                backup_path = self.path.with_name(self.path.name + ".pre-v3-" + uuid.uuid4().hex[:10] + ".bak")
+                backup_path = self.path.with_name(self.path.name + ".pre-v4-" + uuid.uuid4().hex[:10] + ".bak")
                 backup = sqlite3.connect(backup_path)
                 try:
                     connection.backup(backup)
@@ -66,6 +66,11 @@ class Database:
                 migrate(connection)
                 connection.execute("INSERT INTO schema_migrations(version) VALUES (3)")
                 connection.execute("PRAGMA user_version=3")
+            if version < 4:
+                from server.automation.store import migrate
+                migrate(connection)
+                connection.execute("INSERT INTO schema_migrations(version) VALUES (4)")
+                connection.execute("PRAGMA user_version=4")
             # A process restart must never present an unfinished answer as complete.
             connection.execute("UPDATE chat_turns SET status='interrupted', error_code='server_restarted' WHERE status='running'")
         self.initialized = True

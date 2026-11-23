@@ -1,5 +1,16 @@
 # Architectuurplan — Windows-client en server
 
+## Actuele uitbreiding: fase 7
+
+server/automation is de centrale engine binnen dezelfde FastAPI-lifespan en
+SQLite-schema 4. Transactionele claims, opaque approvals, gesloten registry,
+state/PKCE en Windows DPAPI scheiden modelvoorstellen, gebruikersrechten en
+externe gevolgen. Bestaande AI-router, auth, Windows- en Android-clients worden
+hergebruikt. De scheduler doet begrensde lokale checks; providerreads alleen
+voor expliciet ingediende taken. Geen nieuwe zware infrastructuur.
+Zie docs/AUTOMATION_ARCHITECTURE.md en docs/AUTOMATION_SECURITY.md.
+**Actuele fasegrens: stop na fase 7.** Oudere fasegrenzen hieronder zijn historie.
+
 ## Actuele uitbreiding: fase 6
 
 Native Kotlin/Compose Android-app in android/, eigen build en MVVM/Flow.

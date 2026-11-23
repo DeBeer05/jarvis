@@ -16,5 +16,8 @@ class InterfaceTest {
         compose.onNodeWithText("Microfoon uit").assertIsDisplayed()
         compose.onNodeWithText("Stop alles").performClick()
         compose.onNodeWithText("Gestopt").assertIsDisplayed()
+        compose.onNodeWithText("☰").performClick()
+        compose.onNodeWithText("Automatiseringen").performClick()
+        compose.onNodeWithText("Zelfstandig binnen regels").assertIsDisplayed()
     }
 }
