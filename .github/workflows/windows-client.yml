@@ -1,0 +1,42 @@
+name: Windows desktop client
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  client:
+    name: Windows client tests and build
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Install isolated client
+        shell: powershell
+        run: ./scripts/Install-WindowsClient.ps1
+      - name: Client tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: ./.local/client-venv/Scripts/python.exe -m pytest -c pytest-client.ini -q
+      - name: Build portable Windows app
+        shell: powershell
+        run: ./scripts/Build-WindowsClient.ps1
+      - name: Smoke test executable without Python
+        shell: powershell
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          $exe = (Resolve-Path '.local/client-build/dist/JARVIS/JARVIS.exe').Path
+          $profile = Join-Path $env:RUNNER_TEMP 'jarvis-client-smoke'
+          $report = Join-Path $env:RUNNER_TEMP 'jarvis-client-smoke.json'
+          $process = Start-Process -FilePath $exe -ArgumentList @('--data-dir', ('"' + $profile + '"'), '--self-test-report', ('"' + $report + '"')) -PassThru -WindowStyle Hidden
+          if (-not $process.WaitForExit(20000)) { throw 'Portable smoke test timed out' }
+          if ($process.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $report)) { throw 'Portable startup failed' }
+          $result = Get-Content -LiteralPath $report -Raw | ConvertFrom-Json
+          if ($result.version -ne '0.4.0' -or $result.pages -ne 6 -or $result.network_started) { throw 'Unexpected client startup' }

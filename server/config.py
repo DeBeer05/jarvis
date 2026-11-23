@@ -52,6 +52,7 @@ class Settings:
     access_seconds: int = 300
     refresh_seconds: int = 604800
     session_seconds: int = 604800
+    desktop_session_seconds: int = 2592000
     pairing_seconds: int = 300
     pairing_poll_seconds: int = 5
     login_attempts: int = 5
@@ -201,6 +202,7 @@ def load_settings(
         access_seconds=number("JARVIS_ACCESS_SECONDS", "300", 60, 900),
         refresh_seconds=refresh_seconds,
         session_seconds=session_seconds,
+        desktop_session_seconds=number("JARVIS_DESKTOP_SESSION_SECONDS", "2592000", 3600, 2592000),
         pairing_seconds=number("JARVIS_PAIRING_SECONDS", "300", 60, 900),
         pairing_poll_seconds=number("JARVIS_PAIRING_POLL_SECONDS", "5", 5, 30),
         login_attempts=number("JARVIS_LOGIN_MAX_ATTEMPTS", "5", 1, 20),

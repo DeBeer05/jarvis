@@ -97,15 +97,15 @@ class SecurityStore:
             row = db.execute("SELECT 1 FROM auth_nonces WHERE token_hash=? AND expires_at>?", (digest(value), self.clock())).fetchone()
         return bool(row)
 
-    def _device(self, db, name, kind, scopes):
+    def _device(self, db, name, kind, scopes, identifier=None):
         if db.execute("SELECT count(*) FROM auth_devices WHERE revoked_at IS NULL").fetchone()[0] >= self.settings.max_devices:
             raise AuthError("device_limit", "De apparaatlimiet is bereikt. Trek eerst een oud apparaat in.", 409)
-        identifier = str(uuid.uuid4())
+        identifier = identifier or str(uuid.uuid4())
         db.execute("INSERT INTO auth_devices(id,user_id,name,type,created_at,last_seen) VALUES (?,1,?,?,?,?)", (identifier, name, kind, self.clock(), self.clock()))
         db.executemany("INSERT INTO auth_permissions VALUES (?,?)", ((identifier, scope) for scope in scopes))
         return identifier
 
-    def _credentials(self, db, device_id, session_id=None):
+    def _credentials(self, db, device_id, session_id=None, *, session_seconds=None):
         now = self.clock()
         access, refresh, csrf = token(), token(), token()
         if session_id:
@@ -116,7 +116,7 @@ class SecurityStore:
         else:
             if db.execute("SELECT count(*) FROM auth_sessions WHERE revoked_at IS NULL AND expires_at>?", (now,)).fetchone()[0] >= self.settings.max_sessions:
                 raise AuthError("session_limit", "De sessielimiet is bereikt. Trek eerst een oude sessie in.", 409)
-            session_id, expires = str(uuid.uuid4()), now + self.settings.session_seconds
+            session_id, expires = str(uuid.uuid4()), now + (session_seconds or self.settings.session_seconds)
             db.execute("INSERT INTO auth_sessions(id,user_id,device_id,created_at,last_seen,expires_at,access_hash,access_expires_at,csrf_hash) VALUES (?,1,?,?,?,?,?,?,?)",
                        (session_id, device_id, now, now, expires, digest(access), min(now + self.settings.access_seconds, expires), digest(csrf)))
         db.execute("INSERT INTO auth_refresh_tokens(id,session_id,token_hash,issued_at,expires_at) VALUES (?,?,?,?,?)",
@@ -129,17 +129,30 @@ class SecurityStore:
         scopes = frozenset(r[0] for r in db.execute("SELECT permission FROM auth_permissions WHERE device_id=?", (row["device_id"],)))
         return Principal(session_id, row["device_id"], row["username"], scopes, row["access_expires_at"], row["expires_at"], row["csrf_hash"])
 
-    def login(self, expected_hash, name, device_hint=None):
+    def login(self, expected_hash, name, device_hint=None, *, desktop=False):
         with self.db(True) as db:
             row = db.execute("SELECT password_hash FROM auth_users WHERE id=1").fetchone()
             if not row or not hmac.compare_digest(row[0], expected_hash):
                 raise AuthError("invalid_credentials", "Inloggen mislukt. Controleer je gegevens.")
-            previous = db.execute("SELECT id FROM auth_devices WHERE id=? AND type='browser' AND trusted=1 AND revoked_at IS NULL", (device_hint,)).fetchone() if device_hint else None
-            device = previous[0] if previous else self._device(db, name, "browser", OWNER_SCOPES)
+            if desktop:
+                previous = db.execute("SELECT id,type,revoked_at FROM auth_devices WHERE id=?", (device_hint,)).fetchone()
+                if previous and previous["type"] != "windows":
+                    raise AuthError("invalid_device", "Deze apparaatidentiteit kan niet worden gebruikt.", 409)
+                if previous and previous["revoked_at"] is not None and db.execute("SELECT count(*) FROM auth_devices WHERE revoked_at IS NULL").fetchone()[0] >= self.settings.max_devices:
+                    raise AuthError("device_limit", "De apparaatlimiet is bereikt. Trek eerst een oud apparaat in.", 409)
+                device = previous[0] if previous else self._device(db, name, "windows", DEVICE_SCOPES, device_hint)
+                # A successful owner-password check explicitly authorizes this device
+                # again. IDs alone never authenticate; no administrative scopes here.
+                db.execute("UPDATE auth_devices SET name=?,trusted=1,revoked_at=NULL WHERE id=?", (name, device))
+                db.execute("DELETE FROM auth_permissions WHERE device_id=?", (device,))
+                db.executemany("INSERT INTO auth_permissions VALUES (?,?)", ((device, scope) for scope in DEVICE_SCOPES))
+            else:
+                previous = db.execute("SELECT id FROM auth_devices WHERE id=? AND type='browser' AND trusted=1 AND revoked_at IS NULL", (device_hint,)).fetchone() if device_hint else None
+                device = previous[0] if previous else self._device(db, name, "browser", OWNER_SCOPES)
             if previous:
                 for old in db.execute("SELECT id FROM auth_sessions WHERE device_id=? AND revoked_at IS NULL", (device,)).fetchall():
                     self._revoke(db, old[0])
-            credentials = self._credentials(db, device)
+            credentials = self._credentials(db, device, session_seconds=self.settings.desktop_session_seconds if desktop else None)
             self._audit(db, "login_success", credentials.principal)
         return credentials
 
@@ -216,6 +229,12 @@ class SecurityStore:
         with self.db() as db:
             rows = db.execute("SELECT s.id,s.device_id,s.created_at,s.last_seen,s.expires_at,s.revoked_at,d.name AS device_name,d.type AS device_type FROM auth_sessions s JOIN auth_devices d ON d.id=s.device_id ORDER BY s.revoked_at IS NOT NULL,s.last_seen DESC,s.created_at DESC LIMIT 200").fetchall()
         return {"items": [{**dict(row), "current": row["id"] == principal.session_id} for row in rows]}
+
+    def own_device(self, principal):
+        with self.db(True) as db:
+            self._require_live(db, principal)
+            row = db.execute("SELECT id,name,type,created_at,last_seen,trusted,revoked_at FROM auth_devices WHERE id=?", (principal.device_id,)).fetchone()
+            return {**dict(row), "permissions": sorted(principal.permissions)}
 
     def devices(self):
         with self.db() as db:

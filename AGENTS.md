@@ -108,11 +108,12 @@ a small built-in fallback — instead of crashing.
 - Keep to the libraries already in `requirements.txt`.
 
 
-## JARVIS fork: blijvende Codex-projectinstructies (fase 3)
+## JARVIS fork: blijvende Codex-projectinstructies (fase 4)
 
 Deze aanvullende regels behouden de upstreamrichtlijnen hierboven. De opdracht
-van de gebruiker blijft leidend. Fase 3 is expliciet opgedragen: authenticatie, beveiligde webchat en
-apparaatkoppeling op poort 8765. STOP na fase 3; geen volgende fase starten.
+van de gebruiker blijft leidend. Fase 4 is expliciet opgedragen: afzonderlijke
+Windows-desktopclient op de bestaande beveiligde server, poort 8765 behouden.
+STOP na fase 4; geen volgende fase starten.
 
 Vóór iedere taak:
 1. Controleer `git status --short --branch`, huidige branch en remotes.
@@ -135,7 +136,18 @@ standaard authenticatie en expliciete rechten; geen configuratie om dit uit te
 schakelen. Tokens/codes/wachtwoorden nooit loggen of in Git. Alleen digests van
 refresh-, access- en pairinggeheimen bewaren. Eerste eigenaar via lokale
 interactieve setup; kies geen echt eigenaarwachtwoord namens de gebruiker.
-Geen spraak, clientapp, berichten, account-OAuth, autonome acties, permanente Windows-
+De nieuwe client leeft uitsluitend in desktop-client/jarvis_client en een eigen
+requirements-client/constraints-client-omgeving. PySide6-Essentials en PyInstaller
+zijn voor deze opdracht toegestaan. Importeer geen upstream PyQt6-/spraakstack;
+één QApplication in het zelfstandige clientproces, widgets alleen op Qt-hoofdthread.
+Netwerkwerk buiten de UI-thread; server nooit vanuit de client starten. Bewaar
+refreshcredentials via Windows Credential Manager; geen plaintext fallback.
+De gebruiker heeft de desktoplogin gewijzigd naar gebruikersnaam/wachtwoord
+zonder browsergoedkeuring. Hergebruik de Argon2id-/rate-limitservice, geef alleen
+native chat-/statusrechten en bewaar nooit het wachtwoord. Bestaande pairing voor
+andere clients en cookie-CSRF blijven behouden; public device-ID is geen credential.
+Nieuwe niet-loopback endpoints uitsluitend HTTPS met certificaatvalidatie.
+Geen volledige spraak, berichten, account-OAuth, autonome acties, permanente Windows-
 service of productie-deployment. Alleen localhost; alles op de ontwikkeldesktop.
 Gebruik voorlopig uitsluitend profiel desktop-development. Verplaats niets naar
 de mini-pc. Modelinstallaties zijn niet nodig om tests met mocks uit te voeren.

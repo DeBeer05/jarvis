@@ -37,7 +37,7 @@ class SecurityService:
         except (VerificationError, InvalidHashError):
             return False
 
-    async def login(self, username, password, name, client_key, device_hint=None):
+    async def login(self, username, password, name, client_key, device_hint=None, *, desktop=False):
         bucket = "login:" + digest(client_key)
         await asyncio.to_thread(self.store.rate, bucket, self.settings.login_attempts, self.settings.login_window_seconds)
         owner = await asyncio.to_thread(self.store.owner)
@@ -47,7 +47,7 @@ class SecurityService:
         if not valid or not owner or owner["username"] != username:
             await asyncio.to_thread(self.store.audit, "login_failed")
             raise AuthError("invalid_credentials", "Inloggen mislukt. Controleer je gegevens.")
-        result = await asyncio.to_thread(self.store.login, encoded, name, device_hint)
+        result = await asyncio.to_thread(self.store.login, encoded, name, device_hint, desktop=desktop)
         await asyncio.to_thread(self.store.reset_rate, bucket)
         return result
 

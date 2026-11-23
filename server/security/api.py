@@ -39,6 +39,10 @@ class Refresh(Input):
     refresh_token: SecretStr = Field(min_length=32, max_length=128)
 
 
+class DesktopLogin(Login):
+    device_id: UUID
+
+
 class Password(Input):
     current_password: SecretStr = Field(min_length=1, max_length=128)
     new_password: SecretStr = Field(min_length=12, max_length=128)
@@ -146,6 +150,15 @@ async def me(request: Request):
     return request.state.principal.public()
 
 
+@router.post("/api/v1/auth/desktop-login")
+async def desktop_login(request: Request, body: DesktopLogin):
+    if request.cookies.get(ACCESS_COOKIE) or request.cookies.get(REFRESH_COOKIE):
+        raise AuthError("csrf_failed", "Gebruik de browserlogin voor een browsersessie.", 403)
+    credentials = await service(request).login(body.username, body.password.get_secret_value(), body.device_name,
+                                             request.client.host, str(body.device_id), desktop=True)
+    return credentials.native()
+
+
 @router.post("/api/v1/auth/refresh")
 async def refresh_browser(request: Request):
     await public_rate(request, "refresh")
@@ -180,6 +193,21 @@ async def logout(request: Request):
     await asyncio.to_thread(service(request).store.revoke_session, principal.session_id, principal, "logout")
     response = JSONResponse({"status": "logged_out"})
     clear_credentials(response, request)
+    return response
+
+
+@router.get("/api/v1/auth/device")
+async def own_device(request: Request):
+    return await asyncio.to_thread(service(request).store.own_device, request.state.principal)
+
+
+@router.post("/api/v1/auth/disconnect")
+async def disconnect_device(request: Request):
+    principal = request.state.principal
+    await asyncio.to_thread(service(request).store.change_device, principal.device_id, principal)
+    response = JSONResponse({"status": "revoked"})
+    if request.state.auth_via_cookie:
+        clear_credentials(response, request)
     return response
 
 
