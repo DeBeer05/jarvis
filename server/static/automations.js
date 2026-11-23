@@ -61,6 +61,59 @@ function renderCalendarEvents(data) {
  el("calendar-status").textContent=items.length?`${items.length} afspraken gevonden. Tijden worden getoond in ${zone}.`:"Geen afspraken gevonden in de gekozen agenda en periode.";
  if(data.nextPageToken)el("calendar-status").textContent+=" Er zijn meer resultaten. Kies een kortere periode of gebruik een zoekterm.";
 }
+let emailSequence=0;
+const messageField=name=>el("message").elements.namedItem(name);
+function mailHeaders(message) {
+ const headers=Object.create(null);for(const header of message.payload?.headers||[])headers[header.name.toLowerCase()]=header.value;
+ return headers;
+}
+function mailTextPart(part) {
+ if(!part)return "";
+ if(part.mimeType==="text/plain" && part.body?.data) {
+  try {const raw=atob(part.body.data.replace(/-/g,"+").replace(/_/g,"/"));return new TextDecoder().decode(Uint8Array.from(raw,char=>char.charCodeAt(0)));}
+  catch{return "Berichttekst kon niet worden gelezen.";}
+ }
+ const values=(part.parts||[]).map(mailTextPart).filter(Boolean);
+ // Prefer the readable plain-text alternative; never execute received markup.
+ return part.mimeType==="multipart/alternative"?(values[0]||""):values.join("\n\n");
+}
+function renderMail(message,includeBody) {
+ const headers=mailHeaders(message),panel=el("email-message");panel.replaceChildren();
+ const title=document.createElement("h3");title.textContent=headers.subject||"Bericht zonder onderwerp";panel.append(title);
+ for(const [label,value] of [["Van",headers.from],["Aan",headers.to],["Datum",headers.date]]) {
+  if(value){const text=document.createElement("p");text.textContent=`${label}: ${value}`;panel.append(text);}
+ }
+ const text=document.createElement("p");
+ text.textContent=includeBody?(mailTextPart(message.payload)||("Dit bericht heeft geen gewone tekstversie. "+(message.snippet?"Korte weergave: "+message.snippet+". ":"")+"Open het bericht in Gmail voor de volledige opmaak.")):"Alleen berichtgegevens geladen. Vink Inhoud lezen aan en open het bericht opnieuw om de tekst te bekijken.";
+ text.style.whiteSpace="pre-wrap";panel.append(text);
+}
+async function openMail(id,includeBody) {
+ const sequence=++emailSequence;el("email-message").replaceChildren();el("email-status").textContent="Bericht ophalen…";
+ messageField("id").value=id;el("email-reopen").disabled=false;
+ try {const data=await api("/email/"+encodeURIComponent(id)+"?include_body="+includeBody);if(sequence===emailSequence){renderMail(data,includeBody);el("email-status").textContent="Bericht geopend.";}}
+ catch(error){if(sequence===emailSequence){el("email-status").textContent=error.message;throw error;}}
+}
+async function searchMail(query) {
+ const sequence=++emailSequence;el("email-results").replaceChildren();el("email-message").replaceChildren();messageField("id").value="";el("email-reopen").disabled=true;el("email-status").textContent="E-mail zoeken…";
+ try {
+  const data=await api("/email/search","POST",{query}),items=(data.messages||[]).slice(0,10);
+  if(sequence!==emailSequence)return;
+  for(let start=0;start<items.length;start+=5) {
+   const batch=items.slice(start,start+5);
+   const results=await Promise.allSettled(batch.map(item=>api("/email/"+encodeURIComponent(item.id))));
+   if(sequence!==emailSequence)return;
+   for(let index=0;index<batch.length;index++) {
+    const result=results[index],headers=result.status==="fulfilled"?mailHeaders(result.value):{};
+    const card=document.createElement("section"),title=document.createElement("h3"),from=document.createElement("p"),button=document.createElement("button");
+    title.textContent=headers.subject||(result.status==="fulfilled"?"Bericht zonder onderwerp":"Berichtgegevens niet beschikbaar");from.textContent=headers.from||"Onbekende afzender";
+    button.type="button";button.textContent="Bericht openen";button.onclick=run(()=>openMail(batch[index].id,messageField("body").checked));
+    card.append(title,from,button);el("email-results").append(card);
+   }
+  }
+  el("email-status").textContent=items.length?`${items.length} berichten getoond. Kies Bericht openen om een bericht te bekijken.`:"Geen berichten gevonden voor deze zoekopdracht.";
+  if(data.nextPageToken||(data.messages||[]).length>10)el("email-status").textContent+=" Er zijn meer resultaten. Verfijn je zoekopdracht.";
+ }catch(error){if(sequence===emailSequence){el("email-status").textContent=error.message;throw error;}}
+}
 const run=fn=>async event=>{event?.preventDefault();try{await fn(event);el("status").textContent="Bijgewerkt.";}catch(error){el("status").textContent=error.message;}};
 const bind=(id,fn)=>el(id).addEventListener("submit",run(event=>fn(new FormData(event.target))));
 async function refresh(){
@@ -81,8 +134,8 @@ async function refresh(){
 const submit=(tool,input,extra={})=>api("/jobs","POST",{tool,input,idempotency_key:crypto.randomUUID(),...extra});
 bind("reminder",async f=>{await submit("ReminderCreate",{text:f.get("text"),at:new Date(f.get("at")).toISOString(),repeat:f.get("repeat"),timezone:zone});await refresh();});
 bind("calendar",async f=>calendarRequest("Afspraken ophalen…",()=>api("/calendar/search","POST",{calendar_id:f.get("calendar_id"),start:new Date(f.get("start")).toISOString(),end:new Date(f.get("end")).toISOString(),query:f.get("query")}),renderCalendarEvents));
-bind("mail",async f=>show(await api("/email/search","POST",{query:f.get("query")})));
-bind("message",async f=>show(await api("/email/"+encodeURIComponent(f.get("id"))+"?include_body="+f.has("body"))));
+bind("mail",async f=>searchMail(f.get("query")));
+bind("message",async f=>openMail(f.get("id"),f.has("body")));
 bind("plan",async f=>{const p=await api("/plan","POST",{instruction:f.get("instruction")});show(p);if(p.tool){el("tool-name").value=p.tool;el("tool-input").value=JSON.stringify(p.input,null,2);}});
 bind("tool",async f=>{const input=JSON.parse(f.get("input"));if(!confirm("Deze actie indienen?\n"+f.get("tool")+"\n"+JSON.stringify(input,null,2)))return;show(await submit(f.get("tool"),input,{repeat:f.get("repeat"),timezone:zone,...(f.get("due")?{due:new Date(f.get("due")).toISOString()}:{})}));await refresh();});
 bind("policy",async f=>{await api("/notifications","PUT",{quiet_start:Number(f.get("quiet_start")),quiet_end:Number(f.get("quiet_end")),max_hour:Number(f.get("max_hour")),timezone:zone,categories:["urgent","appointments","important","news"]});await refresh();});

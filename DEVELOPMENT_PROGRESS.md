@@ -2,6 +2,14 @@
 
 ## Huidige opdracht
 
+Aanvullende melding e-mail meegenomen in dezelfde weergavefix: zoekresultaten
+tonen nu afzender/onderwerp onder E-mail, met leesknoppen en een lokale reader.
+Alleen metadata wordt automatisch opgehaald (maximaal tien, batches van vijf).
+Berichttekst vereist de expliciete Inhoud lezen-keuze. UTF-8/base64url-tekst wordt
+leesbaar; HTML en externe afbeeldingen worden niet geladen. HTML-only mail toont
+een duidelijk benoemde korte weergave. Geen handmatig kopiëren van bericht-ID's
+nodig. Nieuwe gedragstest dekt reader, opt-in, Unicode/injectietekst en late data.
+
 Agendaweergave hersteld na gebruikersmelding: CalendarList en zoekresultaten
 kwamen onterecht als JSON onder Actie voorbereiden terecht. Agenda's vullen nu
 een keuzelijst met namen/hoofdagenda; afspraken staan leesbaar onder Agenda met

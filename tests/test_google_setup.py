@@ -97,3 +97,10 @@ def test_calendar_results_stay_in_calendar_panel():
     root=Path(__file__).resolve().parents[1]
     result=subprocess.run([shutil.which("node"),str(root/"tests/js/calendar_view.cjs"),str(root/"server/static/automations.js")],capture_output=True,text=True,timeout=10)
     assert result.returncode==0,result.stderr
+
+
+@pytest.mark.skipif(not shutil.which("node"),reason="Optional JavaScript runtime")
+def test_mail_results_stay_in_mail_panel_and_body_is_opt_in():
+    root=Path(__file__).resolve().parents[1]
+    result=subprocess.run([shutil.which("node"),str(root/"tests/js/mail_view.cjs"),str(root/"server/static/automations.js")],capture_output=True,text=True,timeout=10)
+    assert result.returncode==0,result.stderr
