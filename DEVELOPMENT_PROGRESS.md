@@ -22,17 +22,25 @@ mailbody naar de planner; samenvatting zonder executor. Nederlandse daggrenzen
 en numerieke relatieve herinneringen gecontroleerd. CalendarSummary-validatie
 hersteld; CalendarList toegevoegd zonder opslag van accountdata in jobresultaten.
 
-23 gerichte tests geslaagd, inclusief echte geauthenticeerde SSE met gemockte
+26 gerichte tests geslaagd, inclusief echte geauthenticeerde SSE met gemockte
 Google, synthetische STT→toolchat→TTS, revoke/refresh/cancel, ongeldige/injectie-
 plannen, metadata/bodykeuze, concept-snapshot en externe approval. Echte lokale
 Qwen2.5 3B-proef met tijdelijke database en gemockte Google: agenda, mail en
 herinnering geslaagd; modelverwarring CalendarList/Read gevonden en afgeschermd.
 Geen echte accounttests of microfoonproef uitgevoerd. Volledige regressiesuite:
-225 servertests en 75 Windows-clienttests geslaagd; pip check, repository-/
+228 servertests en 75 Windows-clienttests geslaagd; pip check, repository-/
 whitespacecontrole schoon; Bandit nul middel/hoge bevindingen. De server is met
 de bestaande helpers gecontroleerd herstart op loopback:8765; accounts, settings
 en Google-credentials behouden. Geen nieuwe APK nodig. Remote CI en integratie
 via feature-PR naar develop; main blijft ongewijzigd. Stop na fase 7.
+
+Aanvullende screenshots: onnodige leesbevestiging en verlies van ‘de 1e’ als
+mailreferentie. Planner vraagt geen herbevestiging voor expliciete leesvragen;
+complete dagopvraag heeft een gevalideerde fallback. Korte verduidelijkings-
+antwoorden blijven bij de oorspronkelijke leesvraag. Ordinale mailverwijzingen
+worden vanuit de echte recente lijst opgelost, niet met verzonnen IDs. Drie
+regressietests en echte Groq/GPT-OSS 120B-proef met exact de screenshotzinnen,
+synthetische Google en tijdelijke SQLite geslaagd. Geen echte accountdata opgehaald.
 
 Aanvullende melding e-mail meegenomen in dezelfde weergavefix: zoekresultaten
 tonen nu afzender/onderwerp onder E-mail, met leesknoppen en een lokale reader.

@@ -12,6 +12,7 @@ Voorbeelden:
 - `Toon de afspraken morgen in agenda "Werk".`
 - `Toon mijn laatste e-mails.`
 - Daarna in hetzelfde gesprek: `Lees de inhoud van de eerste e-mail.`
+- Kort kan ook: `Wat staat er in de 1e?`
 - Of: `Vat de inhoud van de eerste e-mail samen.`
 - `Herinner me morgen om 18:00 aan planten water geven.`
 - `Herinner me over 5 minuten aan pauze.`

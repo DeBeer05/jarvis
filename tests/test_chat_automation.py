@@ -333,3 +333,40 @@ def test_voice_transcript_uses_same_tool_chat_then_synthesis(tools_chat):
     done=[json.loads(line[6:]) for line in response.text.splitlines() if line.startswith("data: ")][-1]
     audio=c.post("/api/v1/mobile/speech/synthesize",json={"text":done["message"]})
     assert audio.status_code==200 and audio.content==wav() and operations==["stt","tts"]
+
+
+def test_screenshot_agenda_question_does_not_require_redundant_confirmation(tools_chat):
+    app,c,router=tools_chat;calls=[]
+    router.plans=[{"clarification":"Wil je morgen van 00:00 tot 23:59 zien?"}]
+    async def events(payload):calls.append(payload);return {"items":[example_event()]}
+    app.state.automation.integrations.events=events
+    result=call(c,"wat staat er voor morgen in mijn agenda").json()
+    assert "Tandarts" in result["message"] and len(calls)==1
+    assert datetime.fromisoformat(calls[0]["start"]).hour==0
+
+
+def test_screenshot_numeric_followup_reads_selected_mail_without_another_model(tools_chat):
+    app,c,router=tools_chat;calls=[]
+    router.plans=[{"tool":"EmailSearch","input":{}}]
+    async def search(query):return {"messages":[{"id":"first-mail"},{"id":"second-mail"}]}
+    async def read(identifier,include_body=False):
+        calls.append((identifier,include_body))
+        return {"id":identifier,"payload":{"headers":[],"mimeType":"text/plain","body":{"data":base64.urlsafe_b64encode(b'Synthetic first message content').decode()}}}
+    app.state.automation.integrations.mail_search=search;app.state.automation.integrations.mail_read=read
+    result=call(c,"wat zijn mijn laatste mails").json()
+    follow=call(c,"wat staat er in de 1e",result["conversation_id"]).json()
+    assert "Synthetic first message content" in follow["message"] and calls[-1]==("first-mail",True)
+    assert len(router.planning_calls)==1
+
+
+def test_read_clarification_keeps_context_for_short_answer(tools_chat):
+    app,c,router=tools_chat;calls=[]
+    router.plans=[{"clarification":"Bedoel je de Werkagenda?"}]
+    result=call(c,"Welke afspraken staan er in mijn andere agenda?").json()
+    router.plans=[{"tool":"CalendarRead","input":calendar_plan()["input"]}]
+    async def events(payload):calls.append(payload);return {"items":[]}
+    app.state.automation.integrations.events=events
+    answer=call(c,"ja",result["conversation_id"]).json()
+    assert "geen afspraken" in answer["message"] and len(calls)==1
+    assert "andere agenda" in router.planning_calls[-1][0][1]["content"]
+    assert "Gewone chat" not in answer["message"]

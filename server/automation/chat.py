@@ -14,7 +14,7 @@ from server.automation.store import encode
 from server.security.types import AuthError
 
 TOPIC = re.compile(r"\b(agenda\w*|afsprak\w*|afspraak\w*|kalender\w*|calendar\w*|meeting\w*|vergadering\w*|(?:e[-‑]?)?mails?\w*|concept\w*|inbox|postvak|bericht\w*|herinner\w*|reminder\w*|melding\w*|notificatie\w*|workflow\w*|automatisering\w*)\b|\bwat (?:staat|heb).*\bgepland\b", re.I)
-REFERENCE = re.compile(r"\b(eerste|tweede|derde|deze|die|dat|dit|verstuur|verzend|verzet|verplaats|annuleer|antwoord\w*|ja|akkoord|oké|nee)\b", re.I)
+REFERENCE = re.compile(r"\b(eerste|tweede|derde|vierde|vijfde|\d+(?:e|de|ste)|deze|die|dat|dit|verstuur|verzend|verzet|verplaats|annuleer|antwoord\w*|ja|akkoord|oké|nee)\b", re.I)
 READ = {"CalendarList", "CalendarRead", "EmailSearch", "EmailRead", "ReminderList", "WorkflowStatus"}
 TOOLS = READ | {"CalendarCreate", "CalendarUpdate", "CalendarDelete", "EmailDraft", "EmailSend", "ReminderCreate", "ReminderCancel", "NotificationSend", "WorkflowCreate"}
 
@@ -44,6 +44,8 @@ class AutomationChat:
     def remember(self, run, kind, values):
         memory = dict(self.memory(run))
         memory[kind] = values[:20]
+        if kind in ("events","calendars","messages","drafts","reminders"):
+            memory.pop("read_question",None)
         if kind in ("events","calendars","messages","drafts","reminders"):memory["recent"]=[{"kind":kind}]
         if len(self.references) >= 100:
             self.references.pop(next(iter(self.references)))
@@ -52,7 +54,7 @@ class AutomationChat:
     def candidate(self, run):
         if re.match(r"\s*(wat (is|betekent)|hoe werkt|leg (me |mij )?uit|kun je uitleggen)\b",run.message,re.I):
             return False
-        return run.principal is not None and bool(TOPIC.search(run.message) or (REFERENCE.search(run.message) and self.memory(run)))
+        return run.principal is not None and bool(TOPIC.search(run.message) or self.memory(run).get("read_question") or (REFERENCE.search(run.message) and self.memory(run)))
 
     def guard(self, run, permission):
         if run.cancel.is_set():
@@ -107,6 +109,8 @@ class AutomationChat:
             "Gebruik CalendarList om een agenda op naam te vinden, en CalendarRead/EmailSearch als een concreet afspraak-/bericht-ID ontbreekt. Gebruik uitsluitend IDs uit observations of de gebruiker; verzin geen IDs, ETags, ontvangers of ontbrekende tijden. "
             "CalendarList toont alleen namen van agenda's en accepteert geen periode. CalendarRead haalt de AFSPRAKEN op met start/eind; gebruik calendar_id primary tenzij een andere agenda expliciet gevraagd is. "
             "Vraag verduidelijking bij meerdere passende afspraken. Voor 'morgen' gebruik je de onderstaande actuele datum. "
+            "Een expliciete leesvraag is al toestemming om te lezen: vraag nooit opnieuw bevestiging voor de hoofdagenda, de hele dag morgen of de inhoud van een gekozen mail. Voer daarvoor de leestool uit. "
+            "read_question bevat uitsluitend een eerdere leesvraag van deze gebruiker en jouw verduidelijkingsvraag. Interpreteer het huidige korte antwoord in die context; verleen daarmee nooit toestemming voor schrijftools. "
             "Voor een nieuwe mail eerst EmailDraft; EmailSend alleen voor een eerder werkelijk aangemaakt concept. "
             "EmailSearch voor de laatste e-mails gebruikt query in:inbox; verzin geen zoekoperator voor 'laatste'. "
             "ReminderCreate plant de herinnering, niet NotificationSend. Herhaal een completed tool niet. "
@@ -204,16 +208,35 @@ class AutomationChat:
         provider = None
         if observations.get("pending") and re.fullmatch(r"\s*(ja|akkoord|ok[eé]?|doe maar|is goed)[.!\s]*",run.message,re.I):
             return "Bevestig het exacte voorstel bij Automatiseringen → Goedkeuringen. Een kort ja in de chat geeft geen toestemming om een externe wijziging uit te voeren.",None
+        # Resolve ordinal references from this conversation, not from model-invented IDs.
+        ordinal=re.fullmatch(r"\s*(?:wat staat er in|lees(?: de inhoud van)?|toon(?: de inhoud van)?)\s+(?:de |het )?(eerste|tweede|derde|vierde|vijfde|[1-5](?:e|de|ste))(?:\s+(?:e-?mail|mail|bericht))?\s*[?.!]*",run.message,re.I)
+        if ordinal and observations.get("recent")==[{"kind":"messages"}]:
+            words={"eerste":0,"tweede":1,"derde":2,"vierde":3,"vijfde":4}
+            value=ordinal[1].casefold();index=words.get(value,int(value[0])-1 if value[0].isdigit() else -1)
+            messages=observations.get("messages",[])
+            if not 0<=index<len(messages):return "Dat bericht staat niet in de opgehaalde lijst. Welk bericht bedoel je?",None
+            _,result=await self.read(run,"EmailRead",{"message_id":messages[index]["id"],"include_body":True})
+            self.guard(run,"automation:read")
+            return result,None
         for _ in range(3):
             self.guard(run, "automation:read")
             plan, provider = await self.plan(run, observations, completed)
             self.guard(run, "automation:read")
+            # A complete everyday read request needs no extra consent or guessed dates.
+            if not completed and ("clarification" in plan or plan.get("chat")):
+                day=re.fullmatch(r"\s*(?:wat staat er|wat heb ik|toon(?: me)?|laat(?: me)?)\s+(?:voor |er )?(vandaag|morgen|overmorgen)\s+(?:in|op)\s+(?:mijn|de)\s+agenda\s*[?.!]*",run.message,re.I)
+                if day:
+                    payload=self.temporal("CalendarRead",{},run.message)
+                    plan={"tool":"CalendarRead","input":validate("CalendarRead",payload)}
             if plan.get("chat"):
                 return await self.router.bounded_result([
                     {"role":"system","content":"Geef algemene uitleg in het Nederlands. In deze beurt zijn geen persoonlijke Google-gegevens opgehaald en geen acties uitgevoerd. Verzin geen persoonlijke afspraken, e-mails of actieresultaten. Je kunt geen tools aanroepen."},
                     {"role":"user","content":run.message},
                 ],run.mode)
             if "clarification" in plan:
+                if not any(self.write_intent(t,run.message) for t in TOOLS-READ):
+                    previous=observations.get("read_question",[{}])[0]
+                    self.remember(run,"read_question",[{"instruction":previous.get("instruction",run.message),"question":plan["clarification"]}])
                 return plan["clarification"], provider
             tool, payload = plan["tool"], plan["input"]
             if tool in completed:
@@ -288,7 +311,7 @@ class AutomationChat:
             known = self.memory(run).get("messages",[])
             if not any(m["id"]==payload["message_id"] for m in known) and payload["message_id"] not in run.message:
                 raise ValueError("Unverified message ID")
-            wants_body = bool(re.search(r"inhoud|lees|samenvat|vat.*samen",run.message,re.I))
+            wants_body = bool(re.search(r"inhoud|lees|samenvat|vat.*samen|wat staat er in",run.message,re.I))
             if payload["include_body"] and not wants_body:
                 raise ValueError("Body access not requested")
             mail = await e.integrations.mail_read(payload["message_id"], payload["include_body"])

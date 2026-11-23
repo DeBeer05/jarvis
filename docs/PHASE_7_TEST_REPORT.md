@@ -2,19 +2,25 @@
 
 ## AI-chat en spraakbediening
 
-23 nieuwe tests voor geregistreerde tools via de bestaande geauthenticeerde
+26 nieuwe tests voor geregistreerde tools via de bestaande geauthenticeerde
 chat/SSE, providerkeuze/fallback, actuele scopes, tokenrefresh/revoke, annulering,
 concept-snapshots, externe goedkeuring, verval/isolatie van referenties, ongeldige
 plannen en e-mailinhoud zonder executor. De synthetische mobiele spraakproef dekt
 STT→toolchat→TTS; geen nieuwe echte microfoonproef of Google-accounttest.
 
-Volledige serversuite: **225 geslaagd**. Windows-client: **75 geslaagd**.
+Volledige serversuite: **228 geslaagd**. Windows-client: **75 geslaagd**.
 Server pip check, repository-/whitespacecontrole geslaagd; Bandit nul middel/hoge
 bevindingen. Echte lokale Ollama Qwen2.5 3B met tijdelijke SQLite en gemockte
 Google geeft agenda-/mailresultaten en een opgeslagen herinnering. De proef vond
 CalendarList/Read-verwarring: beschikbare tools zijn nu per vraag beperkt; een
 ondubbelzinnig alternatief JSON-formaat wordt gevalideerd geaccepteerd. Nederlandse
 daggrenzen worden serverzijdig berekend. Geen aannames over live Google-resultaten.
+
+Gebruikersscreenshots reproduceerden onnodige agenda-bevestiging en een verloren
+‘de 1e’-mailreferentie. Gerichte regressies dekken directe dagopvraag, ordinale
+mailinhoud en behoud van een korte leesverduidelijking. Een echte Groq/GPT-OSS
+120B-proef met tijdelijke database en gemockte Google slaagt met beide exacte
+formuleringen en de vervolgverwijzing. Geen echte accountdata of berichten gebruikt.
 
 De bestaande server is gecontroleerd herstart op 127.0.0.1:8765, met behoud van
 accounts, config en Google-credentials. Geen clientwijziging, build of APK nodig.
