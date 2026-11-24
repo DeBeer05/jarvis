@@ -90,6 +90,24 @@ microfoonacceptatie geclaimd. Native Android-koppeling is de volgende stap;
 barge-in/DSP, uitgebreidere intentlaag, overige GUI/diagnostiek en documentatie
 blijven open. Zie docs/CONVERSATION_STATE_MACHINE.md.
 
+Android-instellingencentrum aangesloten: dezelfde servercategorieën/labels,
+typed invoer/sliders, zoeken, dirty-state/CAS, annuleren/reset/import/export en
+geheugen-CRUD/filter/gevoelige toestemming/verouderd/wissen/samenvattingen.
+Privégegevens verdwijnen bij originwissel/uitloggen; echte audioapparaten blijven
+in lokale DataStore. Niet-ondersteunde TTS-providers zijn niet beschikbaar;
+ontbrekende Whisper-/Piperkeuzes zijn uitgegrijsd en server-side geweigerd.
+Android unit/lint/debug/release-build geslaagd; uitsluitend afzonderlijke
+nieuwe headless AVD met hostaudio uit gebruikt. Drie instrumented tests werkelijk
+geslaagd (JUnit XML: 3, fouten 0): volledig instellingencontract/typen, echte Compose-
+invoer/annuleren, en echte TCP met synthetische auth voor globale voorkeuren,
+apparaatisolatie, geheugen wissen en expliciete sessieoverdracht/stale-audioafwijzing.
+Tijdelijke fixture op 127.0.0.1:18765 via adb reverse in alleen deze test-AVD;
+de echte server:8765, telefoon, accounts en gesprekken zijn niet vervangen.
+Volledige serverregressie **311 geslaagd**, 135,16 s. Windows-regressie 87 geslaagd.
+Resterend: Android-spraaklus/foregroundherstel, barge-in/echo/adaptieve detectie,
+uitgebreidere intent-/slotlaag, overige instellingen/retentie/diagnostiek, definitieve
+builds/meting/documentatie/CI en hardwareacceptatie. Geen fase-7.5-voltooiing geclaimd.
+
 ### Eén gesproken ja voor mail en agenda — 24 november 2026
 
 Nieuwe expliciete opdracht vervangt de eerdere beperking op een korte ja:

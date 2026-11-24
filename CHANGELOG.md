@@ -13,6 +13,10 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
   AutomationEngine. Geen herstel van oude goedkeuringsgeheimen of auto-uitvoering.
 - Audiohelper blijft geladen tussen aanvragen; gedeelde procesbewaking,
   annulering en idle-unload. Android-/barge-in-uitbreiding volgt nog.
+- Android: centrale instellingen-/geheugeninterface, typed controls en CAS,
+  import/export via Android-bestandsdialoog, lokale hardwarekeuze apart gehouden.
+  Alleen ondersteunde/geïnstalleerde spraakkeuzes aangeboden. Drie nieuwe echte
+  emulatorproeven dekken UI, geheugen/synchronisatie en expliciete audio-overdracht.
 
 - Op gebruikersverzoek volstaat één gesproken/getypte ja na de volledige actuele
   mail-/agendapreview; nee weigert. Een mail wordt na het geverifieerde concept

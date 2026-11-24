@@ -41,7 +41,7 @@ class JarvisApi(val endpoint: Endpoint, private val vault: SecretVault) {
             if (code in setOf("authorization_pending", "slow_down")) throw MobileError(code!!, response.code, "Wacht op goedkeuring door de eigenaar")
         }
         if (response.code == 401) forget()
-        val message = when(response.code) { 401 -> "Log opnieuw in of koppel dit apparaat opnieuw"; 403 -> "Dit apparaat heeft geen toestemming"; 429 -> "Te veel verzoeken; wacht even"; 503 -> "Server of spraakengine niet beschikbaar"; else -> "Serververzoek mislukt (${response.code})" }
+        val message = when(response.code) { 401 -> "Log opnieuw in of koppel dit apparaat opnieuw"; 403 -> "Dit apparaat heeft geen toestemming"; 409 -> "Gegevens of spraaksessie elders gewijzigd. Vernieuw eerst of neem het gesprek expliciet over"; 422 -> "Controleer de invoer en de toegestane waarden"; 429 -> "Te veel verzoeken; wacht even"; 503 -> "Server of spraakengine niet beschikbaar"; else -> "Serververzoek mislukt (${response.code})" }
         throw MobileError("http_${response.code}", response.code, message)
     }
     private fun read(response: Response, limit: Int = 2_000_000): ByteArray {

@@ -68,6 +68,35 @@ class DeviceIntegrationTest {
         cache.put(origin,"late","Should never be stored") {false}
         assertNull(cache.get(origin,"late"))
     }
+    @Test fun naturalSettingsMemoryAndExplicitConversationHandoff() = runBlocking {
+        val first=api();pair(first)
+        val base=first.json("/api/v1/natural/settings")
+        val updated=first.json("/api/v1/natural/settings/personality","PATCH",JSONObject().put("revision",base.getInt("revision")).put("changes",JSONObject().put("humor",81)))
+        val second=api();pair(second)
+        assertEquals(81,second.json("/api/v1/natural/settings").getJSONObject("settings").getJSONObject("personality").getInt("humor"))
+        val device=first.json("/api/v1/natural/device-settings");device.getJSONObject("settings").put("input_device",123)
+        first.json("/api/v1/natural/device-settings","PUT",JSONObject().put("revision",device.getInt("revision")).put("settings",device.getJSONObject("settings")))
+        assertEquals(-1,second.json("/api/v1/natural/device-settings").getJSONObject("settings").getInt("input_device"))
+        val memory=first.json("/api/v1/natural/memory","POST",JSONObject().put("category","project").put("content","Android synthetic lantern preference"))
+        val found=second.json("/api/v1/natural/memory/search","POST",JSONObject().put("query","lantern"))
+        assertEquals(memory.getString("id"),found.getJSONArray("items").getJSONObject(0).getString("id"))
+        second.json("/api/v1/natural/memory/${memory.getString("id")}","DELETE")
+        assertEquals(0,first.json("/api/v1/natural/memory/search","POST",JSONObject().put("query","lantern")).getJSONArray("items").length())
+        val session=first.json("/api/v1/natural/conversations/start","POST",JSONObject())
+        val id=session.getString("conversation_id");val epoch=session.getInt("epoch");val events="/api/v1/natural/conversations/$id/events"
+        first.json(events,"POST",JSONObject().put("event","listening").put("epoch",epoch))
+        first.json(events,"POST",JSONObject().put("event","processing").put("epoch",epoch))
+        val input=JSONObject().put("message","Synthetic Android voice turn").put("provider","ollama").put("channel","voice").put("session_epoch",epoch).put("conversation_id",id)
+        assertEquals("completed",first.json("/api/v1/chat","POST",input).getString("status"))
+        try {second.json("/api/v1/natural/conversations/start","POST",JSONObject().put("conversation_id",id));fail("Silent audio takeover") }catch(error:MobileError){assertEquals(409,error.status)}
+        val taken=second.json("/api/v1/natural/conversations/start","POST",JSONObject().put("conversation_id",id).put("takeover",true))
+        assertTrue(taken.getInt("epoch")>epoch)
+        try {first.json("/api/v1/chat","POST",input);fail("Stale audio accepted") }catch(error:MobileError){assertEquals(409,error.status)}
+        assertEquals(1,second.json("/api/v1/chat/conversations/$id").getJSONArray("turns").length())
+        second.json(events,"POST",JSONObject().put("event","ending").put("epoch",taken.getInt("epoch")))
+        second.json("/api/v1/natural/settings/reset","POST",JSONObject().put("revision",updated.getInt("revision")).put("category","personality"))
+        first.json("/api/v1/auth/disconnect","POST");first.forget();second.json("/api/v1/auth/disconnect","POST");second.forget()
+    }
     @Test fun realTcpPairRefreshChatHistoryPushAndRevocation() = runBlocking {
         val api=api();assertTrue(api.health());pair(api)
         assertEquals("android",api.json("/api/v1/auth/device").getString("type"))

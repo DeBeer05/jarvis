@@ -84,3 +84,17 @@ def test_natural_routes_authentication_and_revoked_devices(natural):
     principal=app.state.security.store.authenticate(c.cookies.get("jarvis_access"))
     with app.state.natural.store.transaction(principal,write=True) as (db,user):db.execute("UPDATE auth_devices SET revoked_at=1 WHERE id=?",(principal.device_id,))
     assert c.get("/api/v1/natural/settings").status_code==401
+
+
+def test_settings_offer_only_supported_voice_providers_and_installed_choices(natural,monkeypatch):
+    app,c=natural
+    capabilities={"runtime_installed":False,"whisper_models":{"whisper-small":True,"whisper-base":False,"whisper-tiny":False},"voices":{"ronnie":True,"mls":False}}
+    monkeypatch.setattr("server.natural.capabilities.voice_capabilities",lambda:capabilities)
+    schema=c.get("/api/v1/natural/settings/schema").json()
+    voice=schema["user"]["$defs"]["Voice"]["properties"]
+    assert voice["tts_provider"]["const"]=="piper"
+    assert voice["whisper_model"]["x-unavailable"]==["whisper-base","whisper-tiny"]
+    assert c.patch("/api/v1/natural/settings/voice",json={"revision":0,"changes":{"tts_provider":"xtts"}}).status_code==422
+    assert c.patch("/api/v1/natural/settings/voice",json={"revision":0,"changes":{"whisper_model":"whisper-tiny"}}).status_code==400
+    assert c.patch("/api/v1/natural/settings/voice",json={"revision":0,"changes":{"voice":"mls"}}).status_code==400
+    assert c.patch("/api/v1/natural/settings/voice",json={"revision":0,"changes":{"speed":1.2}}).status_code==200

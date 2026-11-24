@@ -125,10 +125,14 @@ class NaturalSettingsPanel(QWidget):
 
     def field(self,field,value):
         if "const" in field:
+            if type(value) is not bool:
+                control=QLineEdit(str(value));control.setReadOnly(True);return control,lambda:value
             control=QCheckBox("Verplicht uitgeschakeld" if value is False else str(value));control.setChecked(bool(value));control.setEnabled(False);return control,lambda:value
         if "enum" in field:
             control=QComboBox()
-            for item in field["enum"]:control.addItem(VALUES.get(item,str(item)),item)
+            for item in field["enum"]:
+                control.addItem(VALUES.get(item,str(item))+(" · niet geïnstalleerd" if item in field.get("x-unavailable",[]) else ""),item)
+                control.model().item(control.count()-1).setEnabled(item not in field.get("x-unavailable",[]))
             control.setCurrentIndex(control.findData(value));control.currentIndexChanged.connect(self.changed);return control,control.currentData
         kind=field.get("type")
         if kind=="boolean":
@@ -174,6 +178,7 @@ class NaturalSettingsPanel(QWidget):
 
     def reset(self):
         if not self.document:return
+        if self.dirty:self.status.setText("Sla je wijzigingen eerst op of kies Annuleren voordat je standaardwaarden herstelt.");return
         if QMessageBox.question(self,"Standaardwaarden","Deze categorie terugzetten naar de standaardwaarden?",QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.No,QMessageBox.StandardButton.No)==QMessageBox.StandardButton.Yes:
             self.call("POST","/settings/reset",{"revision":self.document["revision"],"category":self.category},self.loaded)
 
@@ -189,6 +194,7 @@ class NaturalSettingsPanel(QWidget):
 
     def import_data(self):
         if not self.document:return
+        if self.dirty:self.status.setText("Sla je wijzigingen eerst op of kies Annuleren voordat je instellingen importeert.");return
         path,_=QFileDialog.getOpenFileName(self,"Instellingen importeren","","JSON (*.json)")
         if not path:return
         try:
@@ -202,6 +208,9 @@ class NaturalSettingsPanel(QWidget):
         page=QWidget();self.tabs.addTab(page,"Geheugen en samenvattingen");body=QVBoxLayout(page)
         body.addWidget(label("Herinneringen zijn je persoonlijke langetermijngeheugen. Wissen verwijdert ook afgeleide context; oorspronkelijke gesprekken blijven apart in Gesprekken staan."))
         search=QHBoxLayout();self.memory_search=QLineEdit();self.memory_search.setPlaceholderText("Herinneringen zoeken…");search.addWidget(self.memory_search)
+        self.memory_category=QComboBox();self.memory_category.addItem("Alle categorieën","")
+        for name in ("preference","person","project","work","activity","hobby","habit","decision","technical","location","instruction","conversation"):self.memory_category.addItem(name,name)
+        search.addWidget(self.memory_category)
         find=QPushButton("Zoeken / vernieuwen");find.clicked.connect(self.load_memory);search.addWidget(find);body.addLayout(search)
         self.memory_list=QListWidget();body.addWidget(self.memory_list,1)
         actions=QHBoxLayout();body.addLayout(actions)
@@ -212,7 +221,9 @@ class NaturalSettingsPanel(QWidget):
         summary=QPushButton("Samenvatting opslaan");summary.clicked.connect(self.save_summary);body.addWidget(summary)
 
     def load_memory(self):
-        self.call("POST","/memory/search",{"query":self.memory_search.text()},self.memory_loaded)
+        body={"query":self.memory_search.text()}
+        if self.memory_category.currentData():body["category"]=self.memory_category.currentData()
+        self.call("POST","/memory/search",body,self.memory_loaded)
         self.call("GET","/summaries",None,self.summaries_loaded)
 
     def memory_loaded(self,data):
@@ -234,6 +245,7 @@ class NaturalSettingsPanel(QWidget):
         if dialog.exec()!=QDialog.DialogCode.Accepted:return
         payload={"content":content.toPlainText(),"category":category.currentText(),"consent_sensitive":consent.isChecked()}
         if item:payload.update(revision=item["revision"],key=item["memory_key"],kind=item["kind"],confidence=item["confidence"],sensitivity=item["sensitivity"],expires_at=item["expires"],status=item["status"])
+        if consent.isChecked():payload["sensitivity"]="sensitive"
         self.call("PUT" if item else "POST","/memory/"+item["id"] if item else "/memory",payload,lambda _:self.load_memory())
 
     def delete_memory(self):

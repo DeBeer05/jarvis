@@ -212,4 +212,6 @@ private fun navigationTitle(screen: String, language: String): String = if(langu
     model.audio.devices(false).forEach {(id,title)->FilterChip(selected=pref.outputDevice==id,onClick={model.save(pref.copy(outputDevice=id))},label={Text(title)})}
     Text("Formulieren en spraak: Nederlands. Wakeword op de achtergrond is nog niet beschikbaar. Er wordt geen ruwe audio opgeslagen. Alleen je transcript en chatcontext gaan naar de gekozen AI-provider; spraakherkenning en Piper draaien op jouw server.",style=MaterialTheme.typography.bodySmall)
     Text("Diagnostiek: ${state.connection.title}\nVersie ${BuildConfig.VERSION_NAME}",style=MaterialTheme.typography.bodySmall)
+    HorizontalDivider(Modifier.padding(vertical=16.dp))
+    NaturalSettingsScreen(state,model)
 }

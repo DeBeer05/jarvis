@@ -1,0 +1,1259 @@
+{
+  "schema": {
+    "schema_version": 1,
+    "categories": {
+      "general": "Algemeen",
+      "conversations": "Gesprekken",
+      "listening": "Luisteren",
+      "voice": "Stem en audio",
+      "personality": "Persoonlijkheid",
+      "ai": "AI en prestaties",
+      "memory": "Geheugen",
+      "calendar": "Agenda",
+      "tasks": "Taken en automatiseringen",
+      "autonomy": "Zelfstandigheid en machtigingen",
+      "notifications": "Meldingen",
+      "privacy": "Privacy",
+      "diagnostics": "Diagnostiek"
+    },
+    "labels": {
+      "actions": "Regels per actie",
+      "activation_sound": "Geluid bij activeren",
+      "ai": "AI en prestaties",
+      "alternatives": "Alternatieven voorstellen",
+      "automatic": "Automatisch onthouden",
+      "automatic_followups": "Automatische follow-ups",
+      "automatic_gain": "Automatische microfoongevoeligheid",
+      "automatic_selection": "Automatische providerselectie",
+      "autonomy": "Zelfstandigheid en machtigingen",
+      "background_filter": "Achtergrondgeluid filteren",
+      "barge_in_sensitivity": "Onderbrekingsgevoeligheid",
+      "brevity": "Beknoptheid",
+      "buffer_minutes": "Buffer tussen afspraken (minuten)",
+      "buffer_ms": "Audiobuffer (ms)",
+      "cache": "Audiocache",
+      "calendar": "Agenda",
+      "cloud_memories": "Gewone herinneringen naar cloud-AI toestaan",
+      "cloud_sensitive": "Gevoelige herinneringen naar cloud",
+      "combine_questions": "Ontbrekende vragen combineren",
+      "conflicts": "Conflicten controleren",
+      "context_items": "Maximaal relevante herinneringen",
+      "context_tokens": "Contextbudget (geschatte tokens)",
+      "conversations": "Gesprekken",
+      "custom_instructions": "Eigen persoonlijkheidsinstructies",
+      "default_calendar": "Standaardagenda",
+      "default_mode": "Standaard gespreksmodus",
+      "diagnostic_days": "Diagnostiek bewaren (dagen)",
+      "diagnostics": "Diagnostiek",
+      "duration_minutes": "Standaard afspraakduur (minuten)",
+      "enabled": "Ingeschakeld",
+      "ending_sound": "Geluid bij afsluiten",
+      "fallback": "Fallback-provider",
+      "followup_hours": "Follow-uptermijn (uren)",
+      "followup_questions": "Vervolgvragen",
+      "formality": "Formaliteit",
+      "friendliness": "Vriendelijkheid",
+      "gemini_model": "Gemini-model",
+      "general": "Algemeen",
+      "groq_model": "Groq-model",
+      "history": "Gespreksgeschiedenis",
+      "history_days": "Gesprekken bewaren (dagen)",
+      "humor": "Humor",
+      "initiative": "Initiatief",
+      "latency": "Latency meten",
+      "listening": "Luisteren",
+      "long_term": "Langetermijngeheugen",
+      "maximum_answer_tokens": "Maximale antwoordlengte (tokens)",
+      "maximum_events": "Maximaal diagnosegebeurtenissen",
+      "maximum_intents": "Maximaal opdrachten per uitspraak",
+      "memory": "Geheugen",
+      "neighboring": "Naburige afspraken controleren",
+      "notifications": "Meldingen",
+      "offline": "Alleen lokale AI",
+      "ollama_model": "Ollama-model",
+      "performance": "Prestatieprofiel",
+      "personality": "Persoonlijkheid",
+      "privacy": "Privacy",
+      "proactivity": "Proactiviteit",
+      "processing": "Audioverwerking",
+      "profile": "Profiel",
+      "provider": "Primaire AI-provider",
+      "prune_expired": "Verlopen herinneringen verwijderen",
+      "quiet_end": "Stil tot (uur)",
+      "quiet_start": "Stil vanaf (uur)",
+      "reminder_minutes": "Standaard herinnering (minuten)",
+      "resources": "Resourcegebruik meten",
+      "resume": "Onafgeronde opdrachten hervatten",
+      "retain_raw_audio": "Ruwe microfoonaudio bewaren",
+      "retention_days": "Bewaartermijn (dagen)",
+      "sarcasm": "Sarcasme",
+      "semantic_search": "Semantisch zoeken",
+      "sensitive": "Gevoelig geheugen lokaal gebruiken",
+      "short_term": "Kortetermijngeheugen",
+      "speaking_style": "Spreekstijl",
+      "streaming": "Streaming",
+      "stt_provider": "Spraakherkenning",
+      "suggestions_per_hour": "Maximaal suggesties per uur",
+      "summaries": "Automatische samenvattingen",
+      "synchronize": "Synchroniseren",
+      "tasks": "Taken en automatiseringen",
+      "technical_detail": "Technisch detailniveau",
+      "temperature": "Creativiteit",
+      "timeout_seconds": "AI-time-out (s)",
+      "tts_provider": "Spraakuitvoer",
+      "unload_after_seconds": "Ongebruikte modellen vrijgeven na (s)",
+      "use_defaults": "Standaardwaarden gebruiken",
+      "use_preferences": "Persoonlijke voorkeuren gebruiken",
+      "voice": "Stemprofiel",
+      "wake_sensitivity": "Wake-wordgevoeligheid",
+      "whisper_model": "Whisper-model",
+      "work_end": "Werkdag eindigt",
+      "work_start": "Werkdag begint",
+      "workdays": "Werkdagen"
+    },
+    "values": {
+      "allow": "Automatisch toestaan",
+      "ask": "Eerst toestemming vragen",
+      "auto": "Automatisch",
+      "balanced": "Gebalanceerd",
+      "block": "Blokkeren",
+      "classic": "Klassieke JARVIS",
+      "concise": "Kort en zakelijk",
+      "continuous": "Doorlopend",
+      "custom": "Aangepast",
+      "friendly": "Vriendelijk",
+      "humorous": "Humoristisch",
+      "informal": "Informeel",
+      "informative": "Uitgebreid en informatief",
+      "latency": "Lage latency",
+      "manual": "Handmatig",
+      "minimal": "Minimaal",
+      "none": "Geen",
+      "normal": "Normaal",
+      "off": "Uitgeschakeld",
+      "proactive": "Proactief",
+      "professional": "Professioneel",
+      "quality": "Hoge kwaliteit",
+      "read_propose": "Alleen lezen en voorstellen",
+      "saving": "Energiebesparend",
+      "very_proactive": "Zeer proactief",
+      "wake": "Wake word",
+      "within_rules": "Zelfstandig binnen regels"
+    },
+    "voice_capabilities": {
+      "runtime_installed": true,
+      "stt_providers": [
+        "whisper"
+      ],
+      "tts_providers": [
+        "piper"
+      ],
+      "whisper_models": {
+        "whisper-small": true,
+        "whisper-base": false,
+        "whisper-tiny": false
+      },
+      "voices": {
+        "ronnie": true,
+        "mls": true
+      },
+      "cuda": "not_verified",
+      "speaker_verification": false
+    },
+    "user": {
+      "$defs": {
+        "AI": {
+          "additionalProperties": false,
+          "properties": {
+            "provider": {
+              "default": "auto",
+              "enum": [
+                "auto",
+                "gemini",
+                "groq",
+                "ollama"
+              ],
+              "title": "Provider",
+              "type": "string"
+            },
+            "fallback": {
+              "default": "ollama",
+              "enum": [
+                "none",
+                "gemini",
+                "groq",
+                "ollama"
+              ],
+              "title": "Fallback",
+              "type": "string"
+            },
+            "automatic_selection": {
+              "default": true,
+              "title": "Automatic Selection",
+              "type": "boolean"
+            },
+            "offline": {
+              "default": false,
+              "title": "Offline",
+              "type": "boolean"
+            },
+            "gemini_model": {
+              "default": "",
+              "pattern": "^[a-zA-Z0-9._:/-]{0,120}$",
+              "title": "Gemini Model",
+              "type": "string"
+            },
+            "groq_model": {
+              "default": "",
+              "pattern": "^[a-zA-Z0-9._:/-]{0,120}$",
+              "title": "Groq Model",
+              "type": "string"
+            },
+            "ollama_model": {
+              "default": "",
+              "pattern": "^[a-zA-Z0-9._:/-]{0,120}$",
+              "title": "Ollama Model",
+              "type": "string"
+            },
+            "context_tokens": {
+              "default": 6000,
+              "maximum": 12000,
+              "minimum": 256,
+              "title": "Context Tokens",
+              "type": "integer"
+            },
+            "maximum_answer_tokens": {
+              "default": 1024,
+              "maximum": 4096,
+              "minimum": 64,
+              "title": "Maximum Answer Tokens",
+              "type": "integer"
+            },
+            "streaming": {
+              "default": true,
+              "title": "Streaming",
+              "type": "boolean"
+            },
+            "temperature": {
+              "default": 0.2,
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Temperature",
+              "type": "number"
+            },
+            "timeout_seconds": {
+              "default": 60,
+              "maximum": 120,
+              "minimum": 5,
+              "title": "Timeout Seconds",
+              "type": "integer"
+            },
+            "performance": {
+              "default": "balanced",
+              "enum": [
+                "saving",
+                "balanced",
+                "latency",
+                "quality",
+                "custom"
+              ],
+              "title": "Performance",
+              "type": "string"
+            }
+          },
+          "title": "AI",
+          "type": "object"
+        },
+        "Autonomy": {
+          "additionalProperties": false,
+          "properties": {
+            "profile": {
+              "default": "ask",
+              "enum": [
+                "ask",
+                "within_rules",
+                "read_propose"
+              ],
+              "title": "Profile",
+              "type": "string"
+            },
+            "actions": {
+              "additionalProperties": {
+                "enum": [
+                  "allow",
+                  "ask",
+                  "block"
+                ],
+                "type": "string"
+              },
+              "maxProperties": 30,
+              "title": "Actions",
+              "type": "object"
+            }
+          },
+          "title": "Autonomy",
+          "type": "object"
+        },
+        "Calendar": {
+          "additionalProperties": false,
+          "properties": {
+            "default_calendar": {
+              "default": "primary",
+              "maxLength": 256,
+              "minLength": 1,
+              "title": "Default Calendar",
+              "type": "string"
+            },
+            "duration_minutes": {
+              "default": 60,
+              "maximum": 1440,
+              "minimum": 5,
+              "title": "Duration Minutes",
+              "type": "integer"
+            },
+            "reminder_minutes": {
+              "default": 30,
+              "maximum": 10080,
+              "minimum": 0,
+              "title": "Reminder Minutes",
+              "type": "integer"
+            },
+            "buffer_minutes": {
+              "default": 15,
+              "maximum": 240,
+              "minimum": 0,
+              "title": "Buffer Minutes",
+              "type": "integer"
+            },
+            "workdays": {
+              "items": {
+                "type": "integer"
+              },
+              "maxItems": 7,
+              "title": "Workdays",
+              "type": "array"
+            },
+            "work_start": {
+              "default": "09:00",
+              "pattern": "^(?:[01]\\d|2[0-3]):[0-5]\\d$",
+              "title": "Work Start",
+              "type": "string"
+            },
+            "work_end": {
+              "default": "17:00",
+              "pattern": "^(?:[01]\\d|2[0-3]):[0-5]\\d$",
+              "title": "Work End",
+              "type": "string"
+            },
+            "conflicts": {
+              "default": true,
+              "title": "Conflicts",
+              "type": "boolean"
+            },
+            "alternatives": {
+              "default": true,
+              "title": "Alternatives",
+              "type": "boolean"
+            },
+            "neighboring": {
+              "default": true,
+              "title": "Neighboring",
+              "type": "boolean"
+            },
+            "use_preferences": {
+              "default": true,
+              "title": "Use Preferences",
+              "type": "boolean"
+            },
+            "use_defaults": {
+              "default": true,
+              "title": "Use Defaults",
+              "type": "boolean"
+            }
+          },
+          "title": "Calendar",
+          "type": "object"
+        },
+        "Conversations": {
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "default": true,
+              "title": "Natuurlijke gesprekken",
+              "type": "boolean"
+            },
+            "continuous": {
+              "default": false,
+              "title": "Doorlopend luisteren na activeren",
+              "type": "boolean"
+            },
+            "auto_listen": {
+              "default": true,
+              "title": "Na antwoord opnieuw luisteren",
+              "type": "boolean"
+            },
+            "wake_word": {
+              "default": "Hé JARVIS",
+              "maxLength": 60,
+              "minLength": 2,
+              "title": "Wake word",
+              "type": "string"
+            },
+            "wake_sensitivity": {
+              "default": 0.6,
+              "maximum": 1,
+              "minimum": 0.1,
+              "title": "Wake-gevoeligheid",
+              "type": "number"
+            },
+            "push_to_talk": {
+              "default": true,
+              "title": "Spreekknop beschikbaar",
+              "type": "boolean"
+            },
+            "automatic_end": {
+              "default": true,
+              "title": "Automatisch afsluiten",
+              "type": "boolean"
+            },
+            "inactivity_seconds": {
+              "default": 90,
+              "maximum": 1800,
+              "minimum": 10,
+              "title": "Inactiviteit (seconden)",
+              "type": "integer"
+            },
+            "maximum_seconds": {
+              "default": 1800,
+              "maximum": 14400,
+              "minimum": 30,
+              "title": "Maximale sessieduur",
+              "type": "integer"
+            },
+            "resume": {
+              "default": true,
+              "title": "Eerdere gesprekken hervatten",
+              "type": "boolean"
+            },
+            "default_mode": {
+              "default": "manual",
+              "enum": [
+                "manual",
+                "wake",
+                "continuous"
+              ],
+              "title": "Default Mode",
+              "type": "string"
+            },
+            "ending_phrases": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 20,
+              "title": "Afsluitzinnen",
+              "type": "array"
+            }
+          },
+          "title": "Conversations",
+          "type": "object"
+        },
+        "Diagnostics": {
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "default": true,
+              "title": "Enabled",
+              "type": "boolean"
+            },
+            "latency": {
+              "default": true,
+              "title": "Latency",
+              "type": "boolean"
+            },
+            "resources": {
+              "default": true,
+              "title": "Resources",
+              "type": "boolean"
+            },
+            "maximum_events": {
+              "default": 100,
+              "maximum": 1000,
+              "minimum": 10,
+              "title": "Maximum Events",
+              "type": "integer"
+            }
+          },
+          "title": "Diagnostics",
+          "type": "object"
+        },
+        "General": {
+          "additionalProperties": false,
+          "properties": {
+            "assistant_name": {
+              "default": "JARVIS",
+              "maxLength": 40,
+              "minLength": 1,
+              "title": "Naam assistent",
+              "type": "string"
+            },
+            "address_name": {
+              "default": "",
+              "maxLength": 60,
+              "title": "Mijn aanspreeknaam",
+              "type": "string"
+            },
+            "language": {
+              "default": "nl",
+              "enum": [
+                "nl",
+                "en"
+              ],
+              "title": "Taal",
+              "type": "string"
+            },
+            "timezone": {
+              "default": "Europe/Amsterdam",
+              "maxLength": 80,
+              "title": "Tijdzone",
+              "type": "string"
+            }
+          },
+          "title": "General",
+          "type": "object"
+        },
+        "Listening": {
+          "additionalProperties": false,
+          "properties": {
+            "vad_threshold": {
+              "default": 0.015,
+              "maximum": 0.2,
+              "minimum": 0.001,
+              "title": "VAD-drempel",
+              "type": "number"
+            },
+            "minimum_silence_ms": {
+              "default": 500,
+              "maximum": 2500,
+              "minimum": 200,
+              "title": "Minimale stilte (ms)",
+              "type": "integer"
+            },
+            "normal_silence_ms": {
+              "default": 900,
+              "maximum": 4000,
+              "minimum": 300,
+              "title": "Normale stilte (ms)",
+              "type": "integer"
+            },
+            "thinking_pause_ms": {
+              "default": 2500,
+              "maximum": 8000,
+              "minimum": 500,
+              "title": "Denkpauze (ms)",
+              "type": "integer"
+            },
+            "adaptive": {
+              "default": true,
+              "title": "Adaptieve spreekbeurten",
+              "type": "boolean"
+            },
+            "maximum_listen_seconds": {
+              "default": 60,
+              "maximum": 60,
+              "minimum": 5,
+              "title": "Maximale opname (s)",
+              "type": "integer"
+            },
+            "barge_in": {
+              "default": false,
+              "title": "Onderbreken met spraak",
+              "type": "boolean"
+            },
+            "barge_in_sensitivity": {
+              "default": 0.7,
+              "maximum": 1,
+              "minimum": 0.1,
+              "title": "Barge In Sensitivity",
+              "type": "number"
+            },
+            "echo_suppression": {
+              "default": true,
+              "title": "Echo-onderdrukking",
+              "type": "boolean"
+            },
+            "noise_suppression": {
+              "default": true,
+              "title": "Ruisonderdrukking",
+              "type": "boolean"
+            },
+            "background_filter": {
+              "default": true,
+              "title": "Background Filter",
+              "type": "boolean"
+            },
+            "automatic_gain": {
+              "default": false,
+              "title": "Automatic Gain",
+              "type": "boolean"
+            },
+            "indicator": {
+              "default": true,
+              "title": "Luisterindicator",
+              "type": "boolean"
+            },
+            "activation_sound": {
+              "default": false,
+              "title": "Activation Sound",
+              "type": "boolean"
+            },
+            "ending_sound": {
+              "default": false,
+              "title": "Ending Sound",
+              "type": "boolean"
+            }
+          },
+          "title": "Listening",
+          "type": "object"
+        },
+        "Memory": {
+          "additionalProperties": false,
+          "properties": {
+            "short_term": {
+              "default": true,
+              "title": "Short Term",
+              "type": "boolean"
+            },
+            "long_term": {
+              "default": true,
+              "title": "Long Term",
+              "type": "boolean"
+            },
+            "automatic": {
+              "default": false,
+              "title": "Automatic",
+              "type": "boolean"
+            },
+            "history": {
+              "default": true,
+              "title": "History",
+              "type": "boolean"
+            },
+            "summaries": {
+              "default": true,
+              "title": "Summaries",
+              "type": "boolean"
+            },
+            "retention_days": {
+              "default": 365,
+              "maximum": 3650,
+              "minimum": 1,
+              "title": "Retention Days",
+              "type": "integer"
+            },
+            "semantic_search": {
+              "default": false,
+              "title": "Semantic Search",
+              "type": "boolean"
+            },
+            "synchronize": {
+              "default": true,
+              "title": "Synchronize",
+              "type": "boolean"
+            },
+            "sensitive": {
+              "default": false,
+              "title": "Sensitive",
+              "type": "boolean"
+            },
+            "prune_expired": {
+              "default": true,
+              "title": "Prune Expired",
+              "type": "boolean"
+            },
+            "context_items": {
+              "default": 8,
+              "maximum": 20,
+              "minimum": 0,
+              "title": "Context Items",
+              "type": "integer"
+            }
+          },
+          "title": "Memory",
+          "type": "object"
+        },
+        "Notifications": {
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "default": true,
+              "title": "Enabled",
+              "type": "boolean"
+            },
+            "proactivity": {
+              "default": "normal",
+              "enum": [
+                "off",
+                "minimal",
+                "normal",
+                "proactive",
+                "very_proactive"
+              ],
+              "title": "Proactivity",
+              "type": "string"
+            },
+            "suggestions_per_hour": {
+              "default": 3,
+              "maximum": 20,
+              "minimum": 0,
+              "title": "Suggestions Per Hour",
+              "type": "integer"
+            },
+            "quiet_start": {
+              "default": 22,
+              "maximum": 23,
+              "minimum": 0,
+              "title": "Quiet Start",
+              "type": "integer"
+            },
+            "quiet_end": {
+              "default": 7,
+              "maximum": 23,
+              "minimum": 0,
+              "title": "Quiet End",
+              "type": "integer"
+            }
+          },
+          "title": "Notifications",
+          "type": "object"
+        },
+        "Personality": {
+          "additionalProperties": false,
+          "properties": {
+            "profile": {
+              "default": "friendly",
+              "enum": [
+                "classic",
+                "professional",
+                "friendly",
+                "informal",
+                "humorous",
+                "concise",
+                "informative",
+                "custom"
+              ],
+              "title": "Profile",
+              "type": "string"
+            },
+            "formality": {
+              "default": 35,
+              "maximum": 100,
+              "minimum": 0,
+              "title": "Formality",
+              "type": "integer"
+            },
+            "humor": {
+              "default": 35,
+              "maximum": 100,
+              "minimum": 0,
+              "title": "Humor",
+              "type": "integer"
+            },
+            "sarcasm": {
+              "default": 5,
+              "maximum": 100,
+              "minimum": 0,
+              "title": "Sarcasm",
+              "type": "integer"
+            },
+            "friendliness": {
+              "default": 75,
+              "maximum": 100,
+              "minimum": 0,
+              "title": "Friendliness",
+              "type": "integer"
+            },
+            "brevity": {
+              "default": 75,
+              "maximum": 100,
+              "minimum": 0,
+              "title": "Brevity",
+              "type": "integer"
+            },
+            "proactivity": {
+              "default": 30,
+              "maximum": 100,
+              "minimum": 0,
+              "title": "Proactivity",
+              "type": "integer"
+            },
+            "initiative": {
+              "default": 30,
+              "maximum": 100,
+              "minimum": 0,
+              "title": "Initiative",
+              "type": "integer"
+            },
+            "followup_questions": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 0,
+              "title": "Followup Questions",
+              "type": "integer"
+            },
+            "technical_detail": {
+              "default": 40,
+              "maximum": 100,
+              "minimum": 0,
+              "title": "Technical Detail",
+              "type": "integer"
+            },
+            "speaking_style": {
+              "default": "Natuurlijk Nederlands",
+              "maxLength": 300,
+              "title": "Speaking Style",
+              "type": "string"
+            },
+            "custom_instructions": {
+              "default": "",
+              "maxLength": 2000,
+              "title": "Custom Instructions",
+              "type": "string"
+            }
+          },
+          "title": "Personality",
+          "type": "object"
+        },
+        "Privacy": {
+          "additionalProperties": false,
+          "properties": {
+            "cloud_memories": {
+              "default": false,
+              "title": "Cloud Memories",
+              "type": "boolean"
+            },
+            "cloud_sensitive": {
+              "const": false,
+              "default": false,
+              "title": "Cloud Sensitive",
+              "type": "boolean"
+            },
+            "retain_raw_audio": {
+              "const": false,
+              "default": false,
+              "title": "Retain Raw Audio",
+              "type": "boolean"
+            },
+            "history_days": {
+              "default": 365,
+              "maximum": 3650,
+              "minimum": 1,
+              "title": "History Days",
+              "type": "integer"
+            },
+            "diagnostic_days": {
+              "default": 7,
+              "maximum": 30,
+              "minimum": 1,
+              "title": "Diagnostic Days",
+              "type": "integer"
+            }
+          },
+          "title": "Privacy",
+          "type": "object"
+        },
+        "Tasks": {
+          "additionalProperties": false,
+          "properties": {
+            "automatic_followups": {
+              "default": false,
+              "title": "Automatic Followups",
+              "type": "boolean"
+            },
+            "followup_hours": {
+              "default": 48,
+              "maximum": 720,
+              "minimum": 1,
+              "title": "Followup Hours",
+              "type": "integer"
+            },
+            "combine_questions": {
+              "default": true,
+              "title": "Combine Questions",
+              "type": "boolean"
+            },
+            "resume": {
+              "default": true,
+              "title": "Resume",
+              "type": "boolean"
+            },
+            "maximum_intents": {
+              "default": 5,
+              "maximum": 8,
+              "minimum": 1,
+              "title": "Maximum Intents",
+              "type": "integer"
+            }
+          },
+          "title": "Tasks",
+          "type": "object"
+        },
+        "Voice": {
+          "additionalProperties": false,
+          "properties": {
+            "stt_provider": {
+              "const": "whisper",
+              "default": "whisper",
+              "title": "Stt Provider",
+              "type": "string"
+            },
+            "whisper_model": {
+              "default": "whisper-small",
+              "enum": [
+                "whisper-small",
+                "whisper-base",
+                "whisper-tiny"
+              ],
+              "title": "Whisper Model",
+              "type": "string",
+              "x-unavailable": [
+                "whisper-base",
+                "whisper-tiny"
+              ]
+            },
+            "tts_provider": {
+              "const": "piper",
+              "default": "piper",
+              "title": "Tts Provider",
+              "type": "string"
+            },
+            "voice": {
+              "default": "ronnie",
+              "enum": [
+                "ronnie",
+                "mls"
+              ],
+              "title": "Voice",
+              "type": "string",
+              "x-unavailable": []
+            },
+            "speed": {
+              "default": 1,
+              "maximum": 1.5,
+              "minimum": 0.7,
+              "title": "Spreeksnelheid",
+              "type": "number"
+            },
+            "volume": {
+              "default": 0.8,
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Volume",
+              "type": "number"
+            },
+            "buffer_ms": {
+              "default": 120,
+              "maximum": 1000,
+              "minimum": 40,
+              "title": "Buffer Ms",
+              "type": "integer"
+            },
+            "streaming": {
+              "default": true,
+              "title": "Streaming",
+              "type": "boolean"
+            },
+            "processing": {
+              "default": "auto",
+              "enum": [
+                "auto",
+                "cpu",
+                "cuda"
+              ],
+              "title": "Processing",
+              "type": "string"
+            },
+            "cache": {
+              "default": true,
+              "title": "Cache",
+              "type": "boolean"
+            },
+            "unload_after_seconds": {
+              "default": 300,
+              "maximum": 3600,
+              "minimum": 30,
+              "title": "Unload After Seconds",
+              "type": "integer"
+            }
+          },
+          "title": "Voice",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "general": {
+          "$ref": "#/$defs/General"
+        },
+        "conversations": {
+          "$ref": "#/$defs/Conversations"
+        },
+        "listening": {
+          "$ref": "#/$defs/Listening"
+        },
+        "voice": {
+          "$ref": "#/$defs/Voice"
+        },
+        "personality": {
+          "$ref": "#/$defs/Personality"
+        },
+        "ai": {
+          "$ref": "#/$defs/AI"
+        },
+        "memory": {
+          "$ref": "#/$defs/Memory"
+        },
+        "calendar": {
+          "$ref": "#/$defs/Calendar"
+        },
+        "tasks": {
+          "$ref": "#/$defs/Tasks"
+        },
+        "autonomy": {
+          "$ref": "#/$defs/Autonomy"
+        },
+        "notifications": {
+          "$ref": "#/$defs/Notifications"
+        },
+        "privacy": {
+          "$ref": "#/$defs/Privacy"
+        },
+        "diagnostics": {
+          "$ref": "#/$defs/Diagnostics"
+        }
+      },
+      "title": "UserSettings",
+      "type": "object"
+    },
+    "device": {
+      "additionalProperties": false,
+      "properties": {
+        "input_device": {
+          "default": -1,
+          "minimum": -1,
+          "title": "Input Device",
+          "type": "integer"
+        },
+        "output_device": {
+          "default": -1,
+          "minimum": -1,
+          "title": "Output Device",
+          "type": "integer"
+        },
+        "muted": {
+          "default": false,
+          "title": "Muted",
+          "type": "boolean"
+        },
+        "microphone_allowed": {
+          "default": false,
+          "title": "Microphone Allowed",
+          "type": "boolean"
+        },
+        "wake_enabled": {
+          "default": false,
+          "title": "Wake Enabled",
+          "type": "boolean"
+        },
+        "keep_awake": {
+          "default": false,
+          "title": "Keep Awake",
+          "type": "boolean"
+        }
+      },
+      "title": "DeviceSettings",
+      "type": "object"
+    },
+    "actions": [
+      "CalendarCreate",
+      "CalendarDelete",
+      "CalendarList",
+      "CalendarRead",
+      "CalendarSummary",
+      "CalendarUpdate",
+      "EmailCheck",
+      "EmailDraft",
+      "EmailRead",
+      "EmailSearch",
+      "EmailSend",
+      "NotificationSend",
+      "ReminderCancel",
+      "ReminderCreate",
+      "ReminderList",
+      "WaitForReply",
+      "WorkflowCreate",
+      "WorkflowStatus",
+      "MemorySave",
+      "MemoryUpdate"
+    ],
+    "mandatory_approval": [
+      "CalendarCreate",
+      "CalendarUpdate",
+      "CalendarDelete",
+      "EmailSend"
+    ]
+  },
+  "document": {
+    "revision": 1,
+    "settings": {
+      "general": {
+        "assistant_name": "JARVIS",
+        "address_name": "",
+        "language": "nl",
+        "timezone": "Europe/Amsterdam"
+      },
+      "conversations": {
+        "enabled": true,
+        "continuous": false,
+        "auto_listen": true,
+        "wake_word": "Hé JARVIS",
+        "wake_sensitivity": 0.6,
+        "push_to_talk": true,
+        "automatic_end": true,
+        "inactivity_seconds": 90,
+        "maximum_seconds": 1800,
+        "resume": true,
+        "default_mode": "manual",
+        "ending_phrases": [
+          "Bedankt JARVIS",
+          "Dat was alles",
+          "Je mag stoppen",
+          "Tot later",
+          "Ga maar terug naar standby"
+        ]
+      },
+      "listening": {
+        "vad_threshold": 0.015,
+        "minimum_silence_ms": 500,
+        "normal_silence_ms": 900,
+        "thinking_pause_ms": 2500,
+        "adaptive": true,
+        "maximum_listen_seconds": 60,
+        "barge_in": false,
+        "barge_in_sensitivity": 0.7,
+        "echo_suppression": true,
+        "noise_suppression": true,
+        "background_filter": true,
+        "automatic_gain": false,
+        "indicator": true,
+        "activation_sound": false,
+        "ending_sound": false
+      },
+      "voice": {
+        "stt_provider": "whisper",
+        "whisper_model": "whisper-small",
+        "tts_provider": "piper",
+        "voice": "ronnie",
+        "speed": 1.0,
+        "volume": 0.8,
+        "buffer_ms": 120,
+        "streaming": true,
+        "processing": "auto",
+        "cache": true,
+        "unload_after_seconds": 300
+      },
+      "personality": {
+        "profile": "friendly",
+        "formality": 35,
+        "humor": 35,
+        "sarcasm": 5,
+        "friendliness": 75,
+        "brevity": 75,
+        "proactivity": 30,
+        "initiative": 30,
+        "followup_questions": 25,
+        "technical_detail": 40,
+        "speaking_style": "Natuurlijk Nederlands",
+        "custom_instructions": ""
+      },
+      "ai": {
+        "provider": "auto",
+        "fallback": "ollama",
+        "automatic_selection": true,
+        "offline": false,
+        "gemini_model": "",
+        "groq_model": "",
+        "ollama_model": "",
+        "context_tokens": 6000,
+        "maximum_answer_tokens": 1024,
+        "streaming": true,
+        "temperature": 0.2,
+        "timeout_seconds": 60,
+        "performance": "balanced"
+      },
+      "memory": {
+        "short_term": true,
+        "long_term": true,
+        "automatic": false,
+        "history": true,
+        "summaries": true,
+        "retention_days": 365,
+        "semantic_search": false,
+        "synchronize": true,
+        "sensitive": false,
+        "prune_expired": true,
+        "context_items": 8
+      },
+      "calendar": {
+        "default_calendar": "primary",
+        "duration_minutes": 60,
+        "reminder_minutes": 30,
+        "buffer_minutes": 15,
+        "workdays": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "work_start": "09:00",
+        "work_end": "17:00",
+        "conflicts": true,
+        "alternatives": true,
+        "neighboring": true,
+        "use_preferences": true,
+        "use_defaults": true
+      },
+      "tasks": {
+        "automatic_followups": false,
+        "followup_hours": 48,
+        "combine_questions": true,
+        "resume": true,
+        "maximum_intents": 5
+      },
+      "autonomy": {
+        "profile": "ask",
+        "actions": {}
+      },
+      "notifications": {
+        "enabled": true,
+        "proactivity": "normal",
+        "suggestions_per_hour": 3,
+        "quiet_start": 22,
+        "quiet_end": 7
+      },
+      "privacy": {
+        "cloud_memories": false,
+        "cloud_sensitive": false,
+        "retain_raw_audio": false,
+        "history_days": 365,
+        "diagnostic_days": 7
+      },
+      "diagnostics": {
+        "enabled": true,
+        "latency": true,
+        "resources": true,
+        "maximum_events": 100
+      }
+    }
+  }
+}

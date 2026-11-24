@@ -23,7 +23,9 @@ data class ScreenState(
     val busy: Boolean = false, val recording: Boolean = false, val level: Float = 0f, val voiceStatus: String = "Klaar om te luisteren",
     val transcript: String = "", val error: String = "", val pairCode: String = "", val pairUrl: String = "",
     val device: String = "Nog niet gekoppeld", val provider: String = "auto", val model: String = "", val notificationStatus: String = "Lokale testmeldingen",
-    val automations: String = "", val automationResult: String = ""
+    val automations: String = "", val automationResult: String = "",
+    val naturalSettings: String = "", val naturalSchema: String = "", val naturalMemory: String = "",
+    val naturalSummaries: String = "", val naturalStatus: String = ""
 )
 class JarvisViewModel(application: Application): AndroidViewModel(application) {
     private val graph = (application as JarvisApplication).graph
@@ -42,7 +44,7 @@ class JarvisViewModel(application: Application): AndroidViewModel(application) {
             if (changed) {
                 stop(); pairJob?.cancel(); connection.stop()
                 currentApi = try { graph.api(preferences.origin) } catch (_: IllegalArgumentException) { null }
-                mutable.update { it.copy(automations="", automationResult="", messages=emptyList(), history=emptyList(), conversation=null, pairCode="", pairUrl="") }
+                mutable.update { it.copy(naturalSettings="", naturalSchema="", naturalMemory="", naturalSummaries="", naturalStatus="", automations="", automationResult="", messages=emptyList(), history=emptyList(), conversation=null, pairCode="", pairUrl="") }
             }
             mutable.update { it.copy(preferences=preferences, screen=if (!initialized && currentApi?.hasCredential() == true) "Chat" else it.screen) }
             initialized = true
@@ -51,15 +53,54 @@ class JarvisViewModel(application: Application): AndroidViewModel(application) {
         viewModelScope.launch { connection.values.collect { status ->
             val was = mutable.value.connection.authenticated
             mutable.update { it.copy(connection=status) }
-            if (status.authenticated && !was) { history(); device() }
+            if (status.authenticated && !was) { history(); device(); naturalRefresh() }
             if (!status.authenticated && was) stop()
             if (status.online && !status.authenticated && currentApi?.hasCredential() != true) {
                 currentApi?.let { graph.cache.clear(it.endpoint.origin) }
-                mutable.update { it.copy(automations="", automationResult="", messages=emptyList(), history=emptyList(), conversation=null) }
+                mutable.update { it.copy(naturalSettings="", naturalSchema="", naturalMemory="", naturalSummaries="", naturalStatus="", automations="", automationResult="", messages=emptyList(), history=emptyList(), conversation=null) }
             }
         } }
     }
-    fun navigate(screen: String) { mutable.update { it.copy(screen=screen, error="") }; if (screen=="Gesprekken") history(); if (screen=="Apparaten" || screen=="Account") device(); if(screen=="Automatiseringen") automationRefresh() }
+    fun navigate(screen: String) { mutable.update { it.copy(screen=screen, error="") }; if (screen=="Gesprekken") history(); if (screen=="Apparaten" || screen=="Account") device(); if(screen=="Automatiseringen") automationRefresh(); if(screen=="Instellingen") naturalRefresh() }
+
+    fun naturalRequest(path: String, method: String="GET", body: JSONObject?=null, done: ((JSONObject)->Unit)?=null) {
+        val api=currentApi ?: return; val epoch=generation
+        if(!mutable.value.connection.authenticated) return message("Log eerst in en koppel dit apparaat")
+        viewModelScope.launch { try {
+            val data=api.json("/api/v1/natural$path",method,body)
+            if(currentApi===api && epoch==generation && api.hasCredential()) done?.invoke(data)
+        } catch(cancel: CancellationException) { throw cancel }
+          catch(error: Exception) { if(currentApi===api && epoch==generation) {
+            mutable.update {it.copy(naturalStatus="Niet opgeslagen/opgehaald. Controleer de invoer; bij een wijzigingsconflict moet je eerst vernieuwen. Je invoer blijft staan.")};problem(error)
+        } } }
+    }
+    fun naturalRefresh() {
+        if(!mutable.value.connection.authenticated)return
+        if(mutable.value.naturalSchema.isBlank()) naturalRequest("/settings/schema") {data -> mutable.update {it.copy(naturalSchema=data.toString())}}
+        naturalRequest("/settings") {data -> mutable.update {it.copy(naturalSettings=data.toString(),naturalStatus="Gesynchroniseerd · versie ${data.getInt("revision")}")}}
+    }
+    fun saveNaturalSettings(settings: String,revision: Int) {
+        try { naturalRequest("/settings","PUT",JSONObject().put("revision",revision).put("settings",JSONObject(settings))) {data -> mutable.update {it.copy(naturalSettings=data.toString(),naturalStatus="Opgeslagen · versie ${data.getInt("revision")}")}} }
+        catch(_:Exception) {message("Controleer de instellingen")}
+    }
+    fun resetNaturalCategory(category: String,revision: Int) {
+        naturalRequest("/settings/reset","POST",JSONObject().put("revision",revision).put("category",category)) {data -> mutable.update {it.copy(naturalSettings=data.toString(),naturalStatus="Standaardwaarden opgeslagen")}}
+    }
+    fun exportNatural(path: String,done: (String)->Unit) {naturalRequest(path) {data -> done(data.toString(2))}}
+    fun importNatural(text: String,revision: Int) {
+        try { val document=JSONObject(text);require(document.optString("scope")=="user")
+            naturalRequest("/settings/import","POST",JSONObject().put("revision",revision).put("document",document)) {data -> mutable.update {it.copy(naturalSettings=data.toString(),naturalStatus="Instellingen geïmporteerd")}}
+        } catch(_:Exception) {message("Ongeldig instellingenbestand")}
+    }
+    fun naturalMemory(query: String="",category: String="") {
+        val body=JSONObject().put("query",query);if(category.isNotBlank())body.put("category",category)
+        naturalRequest("/memory/search","POST",body) {data -> mutable.update {it.copy(naturalMemory=data.toString())}}
+        naturalRequest("/summaries") {data -> mutable.update {it.copy(naturalSummaries=data.toString())}}
+    }
+    fun naturalMemorySave(data: JSONObject,id: String?=null) {naturalRequest(if(id==null)"/memory" else "/memory/$id",if(id==null)"POST" else "PUT",data) {naturalMemory()}}
+    fun naturalMemoryDelete(id: String) {naturalRequest("/memory/$id","DELETE") {naturalMemory()}}
+    fun naturalMemoryClear() {naturalRequest("/memory/clear","POST",JSONObject().put("confirmed",true)) {naturalMemory()}}
+    fun naturalSummarySave(id: String,text: String,revision: Int) {naturalRequest("/summaries/$id","PUT",JSONObject().put("revision",revision).put("content",text)) {naturalMemory()}}
 
     private var automationJob: Job? = null
     private val seenNotifications=mutableSetOf<String>()
@@ -106,6 +147,7 @@ class JarvisViewModel(application: Application): AndroidViewModel(application) {
     fun active(value: Boolean) { foreground = value; if (value) {
         connection.start(mutable.value.preferences.automatic)
         automationJob?.cancel();automationJob=viewModelScope.launch { while(isActive) {
+            if(mutable.value.connection.authenticated) naturalRefresh()
             if(mutable.value.connection.authenticated && "automation:read" in mutable.value.connection.permissions) automationRefresh()
             delay(30000)
         } }
@@ -116,7 +158,7 @@ class JarvisViewModel(application: Application): AndroidViewModel(application) {
         mutable.update { it.copy(error=if (error is MobileError) error.message ?: "Verzoek mislukt" else if (error is IllegalArgumentException) error.message ?: "Ongeldige instelling" else "Verbinding of audio onderbroken. Controleer server en apparaten.", busy=false, recording=false, level=0f, voiceStatus="Spraak gestopt") }
         if (error is MobileError && error.status == 401) {
             stop(); currentApi?.forget(); currentApi?.let { api -> viewModelScope.launch { graph.cache.clear(api.endpoint.origin) } }
-            mutable.update { it.copy(automations="", automationResult="", connection=Connection(true,false,"Opnieuw koppelen nodig"), messages=emptyList(), history=emptyList(), conversation=null, screen="Inloggen") }
+            mutable.update { it.copy(naturalSettings="", naturalSchema="", naturalMemory="", naturalSummaries="", naturalStatus="", automations="", automationResult="", connection=Connection(true,false,"Opnieuw koppelen nodig"), messages=emptyList(), history=emptyList(), conversation=null, screen="Inloggen") }
         }
     }
     fun message(text: String) { mutable.update { it.copy(error=text) } }
@@ -262,7 +304,7 @@ class JarvisViewModel(application: Application): AndroidViewModel(application) {
     fun logout(revoke: Boolean = false) { val api=currentApi ?: return; stop(); pairJob?.cancel()
         viewModelScope.launch { try { api.json("/api/v1/mobile/push", "DELETE"); api.json(if(revoke) "/api/v1/auth/disconnect" else "/api/v1/auth/logout", "POST") }
             catch (_: Exception) { message("Lokaal uitgelogd. Trek de sessie bij onbereikbare server ook in via de eigenaarinterface.") }
-            finally { api.forget(); graph.vault.drop("fcm-pending"); graph.cache.clear(api.endpoint.origin); mutable.update { it.copy(automations="", automationResult="", messages=emptyList(), history=emptyList(), conversation=null, screen="Inloggen", device="Niet gekoppeld") }; reconnect() } }
+            finally { api.forget(); graph.vault.drop("fcm-pending"); graph.cache.clear(api.endpoint.origin); mutable.update { it.copy(naturalSettings="", naturalSchema="", naturalMemory="", naturalSummaries="", naturalStatus="", automations="", automationResult="", messages=emptyList(), history=emptyList(), conversation=null, screen="Inloggen", device="Niet gekoppeld") }; reconnect() } }
     }
     fun testNotification(category: String) { if(category in mutable.value.preferences.categories) graph.notifications.show(category) }
     fun firebase(enabled: Boolean) {

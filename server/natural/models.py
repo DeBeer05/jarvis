@@ -65,9 +65,9 @@ class Listening(StrictModel):
 
 class Voice(StrictModel):
     stt_provider: Literal["whisper"] = "whisper"
-    whisper_model: str = Field(default="whisper-small", pattern=r"^[a-zA-Z0-9._-]{1,60}$")
-    tts_provider: Literal["piper", "system", "xtts", "hybrid"] = "piper"
-    voice: str = Field(default="ronnie", pattern=r"^[a-zA-Z0-9._-]{1,60}$")
+    whisper_model: Literal["whisper-small","whisper-base","whisper-tiny"] = "whisper-small"
+    tts_provider: Literal["piper"] = "piper"
+    voice: Literal["ronnie","mls"] = "ronnie"
     speed: float = Field(default=1, ge=.7, le=1.5, title="Spreeksnelheid")
     volume: float = Field(default=.8, ge=0, le=1, title="Volume")
     buffer_ms: int = Field(default=120, ge=40, le=1000)

@@ -32,6 +32,11 @@ class SettingsManager:
 
     def replace(self, principal, data, revision, scope="user"):
         model=self.model(scope);validated=model.model_validate(data).model_dump(mode="json")
+        if scope=="user":
+            from server.natural.capabilities import voice_capabilities
+            before=self.get(principal)["settings"]["voice"];voice=validated["voice"];available=voice_capabilities()
+            for key,choices in (("whisper_model",available["whisper_models"]),("voice",available["voices"])):
+                if voice[key]!=before[key] and not choices.get(voice[key],False):raise ValueError("Kies een geïnstalleerd spraakmodel of stemprofiel")
         payload=self.store.safe_content(encode(validated));device=principal.device_id if scope=="device" else ""
         with self.store.transaction(principal,write=True) as (db,user):
             row=db.execute("SELECT revision FROM natural_settings WHERE user_id=? AND scope=? AND device_id=?",(user,scope,device)).fetchone()
@@ -69,4 +74,9 @@ class SettingsManager:
     @staticmethod
     def schema():
         from server.automation.models import REGISTRY
-        return {"schema_version":SCHEMA_VERSION,"categories":CATEGORIES,"user":UserSettings.model_json_schema(),"device":DeviceSettings.model_json_schema(),"actions":[*sorted(REGISTRY),"MemorySave","MemoryUpdate"],"mandatory_approval":[name for name,(_,required) in REGISTRY.items() if required]}
+        from server.natural.labels import LABELS,VALUES
+        from server.natural.capabilities import voice_capabilities
+        capabilities=voice_capabilities();user=UserSettings.model_json_schema()
+        for key,choices in (("whisper_model",capabilities["whisper_models"]),("voice",capabilities["voices"])):
+            user["$defs"]["Voice"]["properties"][key]["x-unavailable"]=[name for name,present in choices.items() if not present]
+        return {"schema_version":SCHEMA_VERSION,"categories":CATEGORIES,"labels":LABELS,"values":VALUES,"voice_capabilities":capabilities,"user":user,"device":DeviceSettings.model_json_schema(),"actions":[*sorted(REGISTRY),"MemorySave","MemoryUpdate"],"mandatory_approval":[name for name,(_,required) in REGISTRY.items() if required]}
