@@ -2,6 +2,13 @@
 
 ## Huidige opdracht
 
+AI-prestatieprofielen daadwerkelijk aangesloten op contextbudget, antwoordlimiet
+en request-time-out. Eigen tegelijk gewijzigde waarden blijven behouden; geen
+modeldownloads/-vervanging of beveiligingswijziging. Gerichte policytest plus
+volledige serverregressie: **356 geslaagd**, 189,65 s. Lint/typechecks en pip check
+geslaagd. Instellingenhandleiding bevat nu de exacte presets. Overige instellingen,
+definitieve builds/installatie en hardwareacceptatie blijven open voor fase 7.5.
+
 Android adaptieve opname aangesloten op speculatieve STT: normale stilte start
 herkenning terwijl opname doorgaat; nieuwe spraak maakt het fragment ongeldig.
 Een geldige transcriptie wordt hergebruikt; voorlopige tekst voert niets uit.

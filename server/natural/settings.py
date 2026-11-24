@@ -36,6 +36,11 @@ class SettingsManager:
             from server.natural.capabilities import voice_capabilities
             from server.natural.personality import PROFILES
             previous=self.get(principal)["settings"]
+            from server.natural.performance import PROFILES as PERFORMANCE
+            ai=validated["ai"]
+            if ai["performance"]!=previous["ai"]["performance"]:
+                for key,value in PERFORMANCE[ai["performance"]].items():
+                    if ai[key]==previous["ai"][key]:ai[key]=value
             personality=validated["personality"]
             if personality["profile"]!=previous["personality"]["profile"]:
                 for key,value in PROFILES[personality["profile"]][1].items():

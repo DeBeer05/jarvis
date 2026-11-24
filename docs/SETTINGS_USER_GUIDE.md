@@ -67,3 +67,11 @@ Oorspronkelijke gesprekken verwijderen en geheugen wissen zijn aparte keuzes.
 De extra tab **Diagnostiek** toont echte beschikbare metingen. Ververs of exporteer
 de cijfers zonder gespreksinhoud. Niet beschikbare GPU-/audiometingen blijven als
 onbekend zichtbaar. Een responstijd van 1–3 seconden is een doel, geen garantie.
+
+Een prestatieprofiel past bij opslaan het contextbudget, de maximale antwoordlengte
+en de AI-time-out toe. Energiebesparend gebruikt 2048/512 tokens en 60 seconden;
+Gebalanceerd 6000/1024 en 60 seconden; Lage latency 4000/512 en 45 seconden;
+Hoge kwaliteit 10000/2048 en 90 seconden. Aangepast behoudt je eigen waarden.
+Waarden die je tegelijk expliciet wijzigt blijven behouden. Een kleiner budget
+beperkt context/antwoordlengte, maar garandeert geen bepaalde snelheid. Er wordt
+geen model gedownload of automatisch door een groter model vervangen.
