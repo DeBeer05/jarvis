@@ -37,6 +37,14 @@ Open JARVIS op de telefoon en kies `http://127.0.0.1:8765` als ontwikkeladres.
 De tunnel moet na een USB-/ADB-herstart zo nodig opnieuw worden ingesteld.
 `adb reverse --remove tcp:8765` verwijdert alleen deze tunnel.
 
+**Wel rechten, maar Offline?** Rechten en verbinding zijn aparte controles. De
+huidige lokale ontwikkelserver is niet rechtstreeks via wifi/mobiele data
+bereikbaar. Houd USB aangesloten en stel de bovenstaande reverse-tunnel opnieuw
+in als die verdwenen is. Zijn zowel emulator als telefoon verbonden, kies dan
+expliciet het echte telefoon-ID met `-s`. Een tunnel op de emulator herstelt de
+telefoon niet. Tik daarna op de verbindingsstatus in JARVIS of wacht op de
+automatische herverbinding. Je account, Google-koppeling en APK blijven behouden.
+
 ## Inloggen en koppelen
 
 Voer je bestaande gebruikersnaam/wachtwoord in bij Inloggen. Het wachtwoord wordt

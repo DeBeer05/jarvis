@@ -8,6 +8,8 @@ De server moet draaien en Google moet gekoppeld zijn voor agenda en e-mail.
 Voorbeelden:
 
 - `Wat staat er morgen in mijn agenda?`
+- Spraakvariant: `Wat stond er voor vandaag in mijn agenda?`
+- Na een agenda-opvraag: `En morgen?`
 - `Welke agenda's heb ik?`
 - `Toon de afspraken morgen in agenda "Werk".`
 - `Toon mijn laatste e-mails.`
@@ -62,6 +64,11 @@ en ‘morgen om 18:00’ worden door de server berekend. Controleer het teruggeg
 tijdstip, vooral bij andere formuleringen of tijdzones. Houd de server aan voor
 aflevering van herinneringen. De bestaande spraaktoestemming en spreekknop blijven
 gelden; deze uitbreiding schakelt geen permanente opname in.
+
+Complete dagvragen worden rechtstreeks naar de gecontroleerde agendaleestool
+geleid. De AI hoeft niet eerst toestemming te bedenken of te zeggen of toegang
+mogelijk is. Hoofdletters, een vraagteken en ‘staat’/‘stond’ veranderen de toegang
+niet. Bij een complexere onduidelijke persoonlijke vraag volgt verduidelijking.
 
 Ontwikkeltests gebruiken tijdelijke databases, synthetische accounts en gemockte
 Google-antwoorden. De Ollama-proef gebruikt het werkelijk geïnstalleerde lokale
