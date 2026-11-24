@@ -116,7 +116,7 @@ class Memory(StrictModel):
     history: bool = True
     summaries: bool = True
     retention_days: int = Field(default=365, ge=1, le=3650)
-    semantic_search: bool = False
+    semantic_search: bool = Field(default=False,description="Breidt FTS5 uit met een kleine Nederlandse woordenlijst. Geen embeddings of algemeen semantisch model.")
     synchronize: bool = True
     sensitive: bool = False
     prune_expired: bool = True

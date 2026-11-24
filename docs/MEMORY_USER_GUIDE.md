@@ -59,3 +59,9 @@ bij inactiviteit/herstart. Android wist de offline Room-cache en schrijft geen
 nieuwe gesprekstekst naar die cache. Oudere servergesprekken blijven afzonderlijk
 bestaan tot verwijderen of de bewaartermijn. Noodzakelijke open taakparameters,
 expliciete herinneringen en request-idempotentiemetadata zijn afzonderlijke gegevens.
+
+**Verwante trefwoorden (licht)** is een optionele uitbreiding op FTS5. Een kleine
+Nederlandse woordenlijst koppelt bijvoorbeeld kalender/agenda/afspraken en
+fietsen/wielrennen. Dit is geen algemeen semantisch zoekmodel: onbekende begrippen
+krijgen geen verzonnen verbanden. Zonder deze optie blijft gewone trefwoordretrieval
+actief. Gebruikers-, status-, verval- en gevoeligheidsfilters blijven gelden.

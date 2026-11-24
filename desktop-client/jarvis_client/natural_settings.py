@@ -21,7 +21,7 @@ LABELS={"general":"Algemeen","conversations":"Gesprekken","listening":"Luisteren
     "technical_detail":"Technisch detailniveau","speaking_style":"Spreekstijl","custom_instructions":"Eigen persoonlijkheidsinstructies",
     "short_term":"Kortetermijngeheugen","long_term":"Langetermijngeheugen","automatic":"Automatisch onthouden",
     "history":"Gespreksgeschiedenis","summaries":"Automatische samenvattingen","retention_days":"Bewaartermijn (dagen)",
-    "semantic_search":"Semantisch zoeken","synchronize":"Synchroniseren","sensitive":"Gevoelig geheugen lokaal gebruiken",
+    "semantic_search":"Verwante trefwoorden (licht)","synchronize":"Synchroniseren","sensitive":"Gevoelig geheugen lokaal gebruiken",
     "prune_expired":"Verlopen herinneringen verwijderen","context_items":"Maximaal relevante herinneringen",
     "cloud_memories":"Gewone herinneringen naar cloud-AI toestaan","cloud_sensitive":"Gevoelige herinneringen naar cloud",
     "retain_raw_audio":"Ruwe microfoonaudio bewaren","history_days":"Gesprekken bewaren (dagen)","diagnostic_days":"Diagnostiek bewaren (dagen)",

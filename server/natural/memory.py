@@ -1,10 +1,12 @@
 """Small SQLite/FTS5 memory; source-aware forgetting and no background vector service."""
 import hashlib
+import json
 import re
 import uuid
 
 from server.natural.models import MemoryInput
 from server.natural.store import Conflict
+from server.natural.search_terms import expand
 
 SENSITIVE=re.compile(r"\b(?:wachtwoord|password|api.?key|token|bankrekening|iban|bsn|diagnose|medisch|medicatie|seksueel|huisadres|adres is|ik woon op|creditcard)\b",re.I)
 SECRET=re.compile(r"(?:-----BEGIN .*PRIVATE KEY|\b(?:sk-|gsk_)[A-Za-z0-9]{16,}|\bAIza[A-Za-z0-9_-]{20,})")
@@ -88,6 +90,9 @@ class MemoryManager:
         for word in sorted(words)[:12]:terms.append('"afspr"*' if word in ("afspraak","afspraken") else '"'+word+'"')
         if not terms:return []
         with self.store.transaction(principal) as (db,user):
+            saved=db.execute("SELECT payload FROM natural_settings WHERE user_id=? AND scope='user' AND device_id=''",(user,)).fetchone()
+            if saved and json.loads(saved["payload"])["memory"]["semantic_search"]:
+                terms=['"afspr"*' if word in ("afspraak","afspraken") else '"'+word+'"' for word in expand(words)]
             rows=db.execute("SELECT m.*,bm25(natural_memory_fts) AS relevance FROM natural_memory_fts JOIN natural_memories m ON m.id=natural_memory_fts.id WHERE natural_memory_fts MATCH ? AND natural_memory_fts.user_id=? AND m.user_id=? AND m.status='active' AND (m.expires IS NULL OR m.expires>?) AND (? OR m.sensitivity='normal') ORDER BY relevance,m.updated DESC LIMIT 100",(" OR ".join(terms),user,user,now,include_sensitive)).fetchall()
             candidates=[dict(row) for row in rows]
         def score(item):

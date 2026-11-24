@@ -2,6 +2,14 @@
 
 ## Huidige opdracht
 
+Optionele lichte trefwoordverwantschap aangesloten op geheugenretrieval. Kleine
+Nederlandse woordenlijst, maximaal 24 zoektermen; geen embeddings/modeldownloads
+of algemene semantische claims. Menu hernoemd naar ‘Verwante trefwoorden (licht)’.
+Gebruikers-, status-, verval- en gevoeligheidsfilters blijven ongewijzigd.
+Volledige serverregressie **363 geslaagd**, 174,39 s; Windows **105 geslaagd**,
+6,38 s. Lint/typechecks, pip/repositorycontrole geslaagd. Algemene semantische
+retrieval en overige resterende fase-7.5-onderdelen blijven expliciet open.
+
 Streaminginstellingen aangesloten: AI-streaming uit buffert begrensd tot een
 succesvolle generatie; mislukte deeltekst wordt niet zichtbaar en fallback blijft
 vóór zichtbare tekst. Interne providerstream blijft annuleerbaar. Spraakstreaming
