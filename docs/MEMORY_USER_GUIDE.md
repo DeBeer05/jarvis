@@ -48,9 +48,9 @@ kunnen gewone voorkeuren meteen actief worden; gevoelige feiten worden niet
 automatisch verzameld. Je kunt ook altijd zelf een ruimere herinnering toevoegen.
 
 Samenvattingen worden lokaal en extractief gemaakt en zijn zichtbaar/bewerkbaar.
-De huidige implementatie kan bij vergeten conservatief alle samenvattingen van
-de gebruiker invalideren. Bewaar belangrijke eigen notities daarom ook als
-afzonderlijke expliciete herinnering. Algemene semantische retrieval is nog in
+Bij vergeten vervallen samenvattingen die de herinnering, de oorspronkelijke
+bronbeurt of een daarvan afhankelijke gespreksturn bevatten. Onverwante
+samenvattingen en bewerkte notities blijven behouden. Algemene semantische retrieval is nog in
 uitvoering; nu gebruikt JARVIS FTS5 en metadata/ranking, zonder embeddingdownload.
 
 Met **Gespreksgeschiedenis uit** bevatten nieuwe chatbeurten geen gewone tekst

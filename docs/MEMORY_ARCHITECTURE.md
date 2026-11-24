@@ -15,6 +15,9 @@ revision voor compare-and-swap. `natural_memory_fts` is de bijbehorende zoekinde
 
 `natural_summaries` bevat per gesprek een extractieve of handmatig bewerkte notitie
 met revision/through_sequence. `natural_summary_sources` koppelt geheugenbronnen.
+Deze koppelingen volgen de bronbeurten en het werkelijk gebruikte geheugen van
+het samengevatte gespreksdeel. Vergeten controleert ook bronbeurten van herinneringen
+die pas na de samenvatting zijn opgeslagen. Onverwante samenvattingen blijven staan.
 `natural_pending` bewaart begrensde taakreferenties uit de bestaande AutomationEngine;
 goedkeuringsnonces, oude previewautoriteit en uitvoeringscredentials ontbreken.
 Authenticatie, refreshgeheimen en OAuth blijven in de bestaande beveiligingsopslag.

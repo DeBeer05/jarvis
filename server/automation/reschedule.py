@@ -21,7 +21,9 @@ class SmartRescheduleEngine:
         start=datetime.fromisoformat(p["start"]).astimezone(zone); end=datetime.fromisoformat(p["end"]).astimezone(zone)
         start_utc,end_utc=start.astimezone(UTC),end.astimezone(UTC)
         if end_utc<=start_utc: raise ValueError("Ongeldige tijden")
-        data=await self.integrations.events({"calendar_id":p["calendar_id"],"start":(start-timedelta(days=1)).isoformat(),"end":(end+timedelta(days=1)).isoformat(),"query":""})
+        checked_start=start_utc-timedelta(days=1)
+        checked_end=end_utc+timedelta(days=1)
+        data=await self.integrations.events({"calendar_id":p["calendar_id"],"start":checked_start.isoformat(),"end":checked_end.isoformat(),"query":""})
         if data.get("nextPageToken"): raise ValueError("Te veel afspraken voor volledige conflictcontrole; kies een kleiner bereik")
         buffer=preferences["buffer_minutes"] if preferences else self.store.preference("calendar_buffer_minutes",15)
         conflicts=[]; neighbours=[];occupied=[]
@@ -41,6 +43,12 @@ class SmartRescheduleEngine:
         for _ in range(32):
             if preferences and not preferences["alternatives"]:break
             proposed_end=(candidate.astimezone(UTC)+duration).astimezone(zone)
+            # An empty result only proves availability inside the fetched range.
+            # Include the complete buffer, including across DST transitions.
+            if proposed_end.astimezone(UTC)+timedelta(minutes=buffer)>checked_end:break
+            if candidate.astimezone(UTC)-timedelta(minutes=buffer)<checked_start:
+                candidate=(candidate.astimezone(UTC)+timedelta(minutes=30)).astimezone(zone)
+                continue
             work_start=preferences["work_start"] if preferences else "08:00"
             work_end=preferences["work_end"] if preferences else "19:00"
             allowed_day=not preferences or candidate.weekday() in preferences["workdays"]

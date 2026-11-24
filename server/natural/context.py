@@ -132,7 +132,13 @@ class ContextManager:
             identifier=old["id"] if old else str(uuid.uuid4());now=self.store.clock()
             db.execute("INSERT INTO natural_summaries VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(user_id,conversation_id) DO UPDATE SET content=excluded.content,through_sequence=excluded.through_sequence,updated=excluded.updated,revision=natural_summaries.revision+1",(identifier,user,conversation,content,through,old["created"] if old else now,now,1))
             db.execute("DELETE FROM natural_summary_sources WHERE summary_id=?",(identifier,))
-            for row in db.execute("SELECT id FROM natural_memories WHERE user_id=? AND status='active' LIMIT 100",(user,)).fetchall():
+            for row in db.execute("""SELECT DISTINCT m.id FROM natural_memories m
+                WHERE m.user_id=? AND (m.source_turn IN
+                    (SELECT id FROM chat_turns WHERE conversation_id=? AND sequence<=?)
+                    OR m.id IN (SELECT j.value FROM natural_pending p,json_each(p.payload) j
+                        JOIN chat_turns t ON t.id=p.id WHERE p.user_id=?
+                        AND p.kind='memory_context' AND t.conversation_id=? AND t.sequence<=?))""",
+                (user,conversation,through,user,conversation,through)).fetchall():
                 db.execute("INSERT INTO natural_summary_sources VALUES (?,?)",(identifier,row["id"]))
             self.store.audit(db,user,principal.device_id,"conversation_summarized",identifier)
             return dict(db.execute("SELECT * FROM natural_summaries WHERE id=?",(identifier,)).fetchone())

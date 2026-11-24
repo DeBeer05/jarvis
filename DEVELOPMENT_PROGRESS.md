@@ -2,6 +2,17 @@
 
 ## Huidige opdracht
 
+Brongebonden samenvattinginvalidatie hersteld: vergeten/corrigeren behoudt
+onverwante notities en volgt bronbeurten en werkelijk gebruikt geheugen.
+Agenda-alternatieven en hun buffertijd blijven binnen het opgehaalde bereik.
+Android-instellingencontract bijgewerkt, generator en CI-driftcontrole toegevoegd.
+Volledige serverregressie **365 geslaagd**, 157,06 s; Windows **105 geslaagd**,
+4,41 s; Android **14 instrumentatietests geslaagd**, unit/lint/debug-build geslaagd
+(84 s), uitsluitend emulator-5556. Lint/typechecks, pip/repository/diffcontrole
+geslaagd. Geen gebruikersservermigratie, echte accounttest of telefooninstallatie.
+Fase 7.5 blijft in uitvoering; overige instellingen, vervolgtaaklogica,
+definitieve builds/installatie en echte audioacceptatie blijven open.
+
 Optionele lichte trefwoordverwantschap aangesloten op geheugenretrieval. Kleine
 Nederlandse woordenlijst, maximaal 24 zoektermen; geen embeddings/modeldownloads
 of algemene semantische claims. Menu hernoemd naar ‘Verwante trefwoorden (licht)’.

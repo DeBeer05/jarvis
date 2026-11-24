@@ -87,7 +87,7 @@
       "retain_raw_audio": "Ruwe microfoonaudio bewaren",
       "retention_days": "Bewaartermijn (dagen)",
       "sarcasm": "Sarcasme",
-      "semantic_search": "Semantisch zoeken",
+      "semantic_search": "Verwante trefwoorden (licht)",
       "sensitive": "Gevoelig geheugen lokaal gebruiken",
       "short_term": "Kortetermijngeheugen",
       "speaking_style": "Spreekstijl",
@@ -652,6 +652,7 @@
             },
             "semantic_search": {
               "default": false,
+              "description": "Breidt FTS5 uit met een kleine Nederlandse woordenlijst. Geen embeddings of algemeen semantisch model.",
               "title": "Semantic Search",
               "type": "boolean"
             },
@@ -936,6 +937,13 @@
               "type": "string",
               "x-unavailable": []
             },
+            "speaker": {
+              "default": 0,
+              "maximum": 51,
+              "minimum": 0,
+              "title": "Piper-stemnummer (MLS 0–51)",
+              "type": "integer"
+            },
             "speed": {
               "default": 1,
               "maximum": 1.5,
@@ -1103,7 +1111,7 @@
     ]
   },
   "document": {
-    "revision": 1,
+    "revision": 0,
     "settings": {
       "general": {
         "assistant_name": "JARVIS",
@@ -1153,6 +1161,7 @@
         "whisper_model": "whisper-small",
         "tts_provider": "piper",
         "voice": "ronnie",
+        "speaker": 0,
         "speed": 1.0,
         "volume": 0.8,
         "buffer_ms": 120,

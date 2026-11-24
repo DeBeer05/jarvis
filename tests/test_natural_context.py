@@ -114,6 +114,23 @@ def test_forgotten_memory_cannot_reenter_through_history_or_summary(settings,cle
         assert "Wat heet het project?" not in str(providers["ollama"].calls[-1])
 
 
+def test_forgetting_preserves_unrelated_edited_summary(settings):
+    app,_=build(settings)
+    with client(app) as c:
+        first=c.post("/api/v1/chat",json={"message":"We bespreken sterrenkunde","provider":"ollama"}).json()
+        principal=app.state.security.store.authenticate(c.cookies.get("jarvis_access"))
+        summary=app.state.natural.context.summarize(principal,first["conversation_id"],force=True)
+        edited=c.put("/api/v1/natural/summaries/"+summary["id"],json={"revision":summary["revision"],"content":"Bewaar mijn notities over sterrenkunde"}).json()
+        memory=c.post("/api/v1/natural/memory",json={"content":"Mijn fiets is groen"}).json()
+        second=c.post("/api/v1/chat",json={"message":"Welke kleur heeft mijn fiets?","provider":"ollama"}).json()
+        related=app.state.natural.context.summarize(principal,second["conversation_id"],force=True)
+        assert related["id"]!=summary["id"]
+        assert c.delete("/api/v1/natural/memory/"+memory["id"]).status_code==200
+        remaining=c.get("/api/v1/natural/summaries").json()["items"]
+        assert len(remaining)==1 and remaining[0]["id"]==summary["id"]
+        assert remaining[0]["content"]==edited["content"]
+
+
 def test_summary_versions_and_voice_personality_are_real_context(settings):
     app,providers=build(settings)
     with client(app) as c:

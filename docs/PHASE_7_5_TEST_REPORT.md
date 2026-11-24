@@ -74,7 +74,7 @@ nieuwste werkboom niet. Geen force-push, directe main-push of beschermde merge.
 Echte microfoon-/echo-/onderbrekingsacceptatie op Windows en telefoon; uitgebreidere
 adaptieve end-of-turn-analyse; overige nog niet aangesloten instellingen;
 volledigere contextuele mail-/taakfollow-ups; alle agenda-alternatiefvoorkeuren;
-algemene semantische retrieval en fijnmaziger samenvattinginvalidatie;
+algemene semantische retrieval;
 definitieve versies/builds/installatie, echte gecontroleerde schemaomzetting en
 het volledige handmatige protocol. Er is geen sprekerbiometrie, publieke toegang,
 telefonie, WebRTC-infrastructuur of servermigratie toegevoegd.

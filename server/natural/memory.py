@@ -55,9 +55,19 @@ class MemoryManager:
 
     @staticmethod
     def invalidate_summaries(db,user,identifier):
-        # Conservative invalidation includes summaries containing an earlier source
-        # utterance, even if that memory was created after the summary itself.
-        db.execute("DELETE FROM natural_summaries WHERE user_id=?",(user,))
+        # Follow provenance, including memories created after a summary. Preserve
+        # unrelated conversations and manually edited notes belonging to the user.
+        db.execute("""DELETE FROM natural_summaries WHERE user_id=? AND (
+            id IN (SELECT summary_id FROM natural_summary_sources WHERE memory_id=?)
+            OR EXISTS (SELECT 1 FROM natural_memories m WHERE m.id=? AND m.user_id=?
+                AND instr(lower(natural_summaries.content),lower(m.content))>0)
+            OR EXISTS (SELECT 1 FROM chat_turns t WHERE
+                t.conversation_id=natural_summaries.conversation_id
+                AND t.sequence<=natural_summaries.through_sequence AND (
+                    t.id IN (SELECT source_turn FROM natural_memories WHERE id=? AND user_id=?)
+                    OR t.id IN (SELECT p.id FROM natural_pending p,json_each(p.payload) j
+                        WHERE p.user_id=? AND p.kind='memory_context' AND j.value=?))))""",
+            (user,identifier,identifier,user,identifier,user,user,identifier))
 
     def forget_source(self,db,user,row):
         if row["source_turn"]:

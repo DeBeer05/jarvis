@@ -4,6 +4,11 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Brongebonden invalidatie bewaart onverwante samenvattingen bij vergeten.
+  Agenda-alternatieven blijven met volledige buffer binnen het gecontroleerde
+  bereik. Android-instellingencontract wordt reproduceerbaar uit de backend
+  gegenereerd en in CI gecontroleerd.
+
 - Geschiedenis uit houdt nieuwe gewone gesprekstekst alleen tijdelijk in RAM;
   Android schakelt caching uit. Retentie, conservatieve automatische voorkeuren,
   echte profielpresets en brongebonden ‘onthou dit’/‘vergeet dat’ aangesloten.
