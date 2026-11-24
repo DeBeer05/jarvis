@@ -61,6 +61,7 @@ class AutomationChat:
         if re.match(r"\s*(wat (is|betekent)|hoe werkt|leg (me |mij )?uit|kun je uitleggen)\b",run.message,re.I):
             return False
         memory=self.memory(run)
+        if (memory.get("pending") or memory.get("decision")) and self.approvals.is_answer(run.message):return True
         if memory.get("write_question") and (CONTINUE_WRITE.match(run.message) or re.fullmatch(r"\s*(nee|laat maar|annuleer)[.!\s]*",run.message,re.I)):return True
         day_followup=memory.get("recent")==[{"kind":"events"}] and re.fullmatch(r"\s*(?:en\s+)?(?:vandaag|morgen|overmorgen)(?:\s+dan)?\s*[?.!]*",run.message,re.I)
         return bool(TOPIC.search(run.message) or day_followup or memory.get("read_question") or (REFERENCE.search(run.message) and memory))
@@ -80,7 +81,7 @@ class AutomationChat:
             "CalendarCreate": r"\b(maak|plan|boek|voeg|zet|create|schedule)\b",
             "CalendarUpdate": r"\b(verzet\w*|verschuif\w*|wijzig\w*|verplaats\w*|update|reschedule)\b",
             "CalendarDelete": r"\b(verwijder\w*|annuleer\w*|schrap\w*|delete|cancel)\b",
-            "EmailDraft": r"\b(concept\w*|schrijf\w*|antwoord\w*|stuur\w*|verstuur\w*|verzend\w*|draft|reply)\b|\bstel\b.*\bop\b",
+            "EmailDraft": r"\b(maak\w*|concept\w*|schrijf\w*|antwoord\w*|stuur\w*|verstuur\w*|verzend\w*|draft|reply)\b|\bstel\b.*\bop\b",
             "EmailSend": r"\b(stuur\w*|verstuur\w*|verzend\w*|send)\b",
             "ReminderCreate": r"\bherinner\w*\s+(me|mij|ons)\b|\b(maak|plan|zet)\b.*\bherinnering\w*\b|\bremind me\b",
             "ReminderCancel": r"\b(verwijder\w*|annuleer\w*|schrap\w*|stop|cancel)\b",
@@ -410,6 +411,10 @@ class AutomationChat:
             drafts = [d for d in memory.get("drafts",[]) if d.get("draft_id")==payload["draft_id"]]
             if len(drafts)!=1 or any(payload[k]!=drafts[0][k] for k in ("message_hash","preview")):
                 raise ValueError("Verified draft required")
+            with self.engine.store.db() as db:
+                existing=db.execute("SELECT * FROM automation_jobs WHERE device_id=? AND tool='EmailSend' AND payload=? AND status NOT IN ('denied','cancelled','deleted') ORDER BY created DESC LIMIT 1",(run.principal.device_id,encode(payload))).fetchone()
+            if existing:
+                return self.approvals.show(run,dict(existing))
         if tool == "ReminderCreate" and datetime.fromisoformat(payload["at"]).timestamp() < time.time():
             return "Dat herinneringstijdstip ligt in het verleden. Welke toekomstige datum en tijd bedoel je?"
         if tool == "ReminderCancel":
@@ -426,7 +431,7 @@ class AutomationChat:
                 if step["tool"] not in READ:
                     return "Een workflow met wijzigingen vraagt een afzonderlijk gecontroleerd voorstel via Automatiseringen. Ik heb deze workflow niet ingepland."
         self.guard(run,"automation:write")
-        key = "chat:"+run.principal.device_id+":"+run.request_id
+        key = "chat:"+run.principal.device_id+":"+run.request_id+(":send" if tool=="EmailSend" else "")
         row = self.engine.submit(run.principal.device_id,tool,payload,key)
         self.remember(run,"jobs",[{"id":row["id"],"tool":tool,"status":row["status"]}])
         self.engine.audit.record("chat_tool_proposed",row["id"],run.principal.device_id)
@@ -445,7 +450,9 @@ class AutomationChat:
                     if current["status"] == "completed":
                         result = json.loads(current["result"])
                         self.remember(run,"drafts",[result])
-                        return "Het concept is bij Gmail aangemaakt, nog niet verzonden.\n"+result["preview"]+"\nVraag expliciet om dit concept te versturen als de inhoud klopt; daarna volgt nog de beveiligde goedkeuring."
+                        if re.search(r"\b(?:alleen|enkel|uitsluitend)\s+(?:(?:een|het)\s+)?concept|\bniet\s+(?:stuur|stur|verstuur|verstur|verzend)|\b(?:bewaar|sla op)\b.*\bconcept",run.message,re.I):
+                            return "Het concept is bij Gmail aangemaakt, nog niet verzonden.\n"+result["preview"]
+                        return await self.write(run,"EmailSend",{key:result[key] for key in ("draft_id","message_hash","preview")})
                     if current["status"] in ("uncertain","failed","blocked"):
                         return "Het aanmaken van het concept is niet bevestigd. Controleer de taak bij Automatiseringen en Gmail voordat je het opnieuw probeert."
                     await asyncio.sleep(.5)

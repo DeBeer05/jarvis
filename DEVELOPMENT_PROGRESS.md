@@ -2,6 +2,32 @@
 
 ## Huidige opdracht
 
+### Eén gesproken ja voor mail en agenda — 24 november 2026
+
+Nieuwe expliciete opdracht vervangt de eerdere beperking op een korte ja:
+mail/agenda voorbereiden en voorlezen, één ja voert het actuele voorstel uit;
+nee weigert. Op bestaande feature/chat-approvals / PR #24 voortgezet, omdat de
+onderliggende wijziging nog door GitHub Actions geblokkeerd is. Geen merge of
+omzeiling van checks. Alle bestaande preview-/sessie-/payload-/vervalguards en
+actuele automation:approve blijven gelden. De bevestiging komt niet bij de AI.
+
+Mailopdracht maakt een geverifieerd Gmail-concept en automatisch een afzonderlijk
+verzendvoorstel. De sendjob heeft een eigen idempotencykey; dezelfde geverifieerde
+snapshot hergebruikt een bestaande sendjob. Geen dubbele verzending bij herhaling.
+‘Alleen een concept’ of ‘niet versturen’ blijft concept-only. Ja zonder voorstel
+in hetzelfde gesprek bevestigt niets; een dubbele ja na succes leest de status.
+
+51 gerichte tests geslaagd, inclusief synthetische STT→chat→TTS→STT ‘Ja, graag’
+→eenmalige executor voor zowel mail als agenda; nee, ontbrekend approverrecht,
+ander/onderbroken gesprek en alleen-concept. Geen echte accountmutatie uitgevoerd.
+Volledige regressiesuite: 255 servertests geslaagd. Echte Groq/GPT-OSS 120B met
+tijdelijke SQLite en gemockte Google: mail maken→preview→één ja→eenmalig verzonden,
+en afspraak→preview→één ja→aangemaakt geslaagd. Extra ja voert niet opnieuw uit.
+Geen echte accountmutatie. Pip check, repository-/whitespacecontrole geslaagd;
+Bandit nul middel/hoge signalen. Geen actieve chat-/externe taken bij de
+gecontroleerde serverherstart op loopback:8765; credentials/voorstellen behouden.
+Windows/Android gebruiken dezelfde spraak-/chatroute; geen client-/APK-rebuild.
+
 ### Goedkeuren in chat en vervolggegevens — 24 november 2026
 
 PR #23 met spraak-/dagvragen na tien groene jobs gemerged naar develop 436bb2b.

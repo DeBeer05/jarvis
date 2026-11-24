@@ -93,7 +93,7 @@ def test_read_request_cannot_become_a_write_even_with_model_injection(tools_chat
     assert not app.state.automation.store.items()
 
 
-def test_calendar_change_is_only_an_approval_proposal_and_ja_is_not_approval(tools_chat):
+def test_calendar_change_requires_preview_then_one_ja_queues_approval(tools_chat):
     app,c,router=tools_chat
     change={"event_id":"event1","etag":"version1","summary":"Tandarts","start":"2026-11-25T16:00:00+01:00","end":"2026-11-25T17:00:00+01:00"}
     router.plans=[calendar_plan(),{"tool":"CalendarUpdate","input":change}]
@@ -103,7 +103,7 @@ def test_calendar_change_is_only_an_approval_proposal_and_ja_is_not_approval(too
     assert "wijzigingsvoorstel" in result["message"]
     rows=app.state.automation.store.items();assert len(rows)==1 and rows[0]["status"]=="approval"
     response=call(c,"ja",result["conversation_id"]).json()
-    assert "Goedkeuren" in response["message"] and app.state.automation.store.get(rows[0]["id"])["status"]=="approval"
+    assert "goedgekeurd" in response["message"] and app.state.automation.store.get(rows[0]["id"])["status"]=="queued"
 
 
 def test_ambiguous_calendar_selection_is_not_silently_changed(tools_chat):
@@ -196,12 +196,13 @@ def test_draft_is_verified_before_send_proposal_and_hash_is_not_model_generated(
     router.plans=[{"tool":"EmailDraft","input":{"to":"example@example.com","subject":"Test","text":"Hallo"}}]
     first=call(c,"Schrijf een conceptmail aan example@example.com met onderwerp Test en tekst Hallo").json()
     background.result(timeout=10)
-    assert "aangemaakt" in first["message"] and actual["preview"] in first["message"]
+    assert "wijzigingsvoorstel" in first["message"] and actual["preview"] in first["message"]
     router.plans=[{"tool":"EmailSend","input":{"draft_id":"draft1"}}]
     sent=call(c,"Verstuur dit concept",first["conversation_id"]).json()
     assert "wijzigingsvoorstel" in sent["message"]
     proposal=next(x for x in e.store.items() if x["tool"]=="EmailSend")
     assert proposal["status"]=="approval" and json.loads(proposal["payload"])==actual
+    assert sum(row["tool"]=="EmailSend" for row in e.store.items())==1
 
 
 def test_cancel_during_draft_wait_cancels_unstarted_job(tools_chat):
@@ -421,7 +422,7 @@ def complete_after_decision(app,c,row,calls):
 def test_chat_approves_exact_shown_calendar_and_executes_once(tools_chat):
     app,c,router=tools_chat;shown,row=create_proposal(tools_chat);calls=[]
     assert "01-01-2030 23:00" in shown["message"] and "02-01-2030 00:00" in shown["message"]
-    assert "Goedkeuren" in shown["message"] and row["status"]=="approval"
+    assert "Zeg ‘ja’" in shown["message"] and row["status"]=="approval"
     background=complete_after_decision(app,c,row,calls)
     answer=call(c,"Goedkeuren",shown["conversation_id"]).json();background.result(timeout=5)
     assert "afspraak is aangemaakt" in answer["message"] and calls==[row["id"]]
@@ -452,7 +453,7 @@ def test_changed_or_old_preview_is_shown_again_before_decision(tools_chat):
     assert "Gewijzigde titel" in refreshed["message"] and app.state.automation.store.get(row["id"])["status"]=="approval"
     app.state.chat.automation_chat.clock=lambda:__import__('time').monotonic()+301
     expired=call(c,"Goedkeuren",shown["conversation_id"]).json()
-    assert "Goedkeuren" in expired["message"] and app.state.automation.store.get(row["id"])["status"]=="approval"
+    assert "Zeg ‘ja’" in expired["message"] and app.state.automation.store.get(row["id"])["status"]=="approval"
 
 
 def test_intervening_chat_and_other_conversation_do_not_approve_unseen_proposal(tools_chat):
@@ -552,3 +553,89 @@ def test_calendar_delete_without_full_date_cannot_be_approved_from_incomplete_pr
     assert "datum en tijd ontbreken" in shown["message"]
     call(c,"Goedkeuren",shown["conversation_id"])
     assert e.store.get(row["id"])["status"]=="approval"
+
+
+@pytest.mark.parametrize("kind",["mail","calendar"])
+def test_spoken_request_preview_then_one_spoken_ja_executes_once(tools_chat,kind):
+    from tests.test_mobile import wav
+    app,c,router=tools_chat;e=app.state.automation;executed=[]
+    if kind=="mail":
+        instruction="Maak een mail aan example@example.invalid met onderwerp Test en tekst Hallo"
+        plan={"tool":"EmailDraft","input":{"to":"example@example.invalid","subject":"Test","text":"Hallo"}}
+        actual={"draft_id":"one-yes-draft","message_hash":"c"*64,"preview":"Aan: example@example.invalid\nOnderwerp: Test\nHallo"}
+        async def draft(payload):return actual
+        e.integrations.draft=draft
+        async def finish_draft():
+            for _ in range(200):
+                if any(row["tool"]=="EmailDraft" for row in e.store.items()):await e.tick();return
+                await asyncio.sleep(.01)
+            raise AssertionError("Expected draft job")
+        draft_done=c.portal.start_task_soon(finish_draft)
+    else:
+        instruction="Maak een afspraak in mijn agenda op 1 januari 2030 van 11:00 tot 12:00 met titel Test"
+        plan={"tool":"CalendarCreate","input":{"summary":"Test","start":"2030-01-01T11:00:00+01:00","end":"2030-01-01T12:00:00+01:00"}}
+    texts=iter([instruction,"Ja, graag."]);operations=[]
+    class Bridge:
+        async def request(self,operation,payload):
+            operations.append(operation)
+            if operation=="stt":return {"text":next(texts),"seconds":.1}
+            assert "Zeg ‘ja’" in payload["text"]
+            return {"audio":base64.b64encode(wav()).decode()}
+    app.state.speech=Bridge();router.plans=[plan]
+    def transcribe():
+        response=c.post("/api/v1/mobile/speech/transcribe",content=wav(),headers={"Content-Type":"audio/wav"})
+        assert response.status_code==200
+        return response.json()["text"]
+    def stream(message,conversation=None):
+        response=call(c,message,conversation,stream=True)
+        return [json.loads(line[6:]) for line in response.text.splitlines() if line.startswith("data: ")][-1]
+    first=stream(transcribe());conversation=first["conversation_id"]
+    if kind=="mail":draft_done.result(timeout=5)
+    assert "Zeg ‘ja’" in first["message"]
+    assert c.post("/api/v1/mobile/speech/synthesize",json={"text":first["message"]}).status_code==200
+    proposal=next(row for row in e.store.items() if row["status"]=="approval")
+    completed=complete_after_decision(app,c,proposal,executed)
+    result=stream(transcribe(),conversation);completed.result(timeout=5)
+    assert ("e-mail is verzonden" if kind=="mail" else "afspraak is aangemaakt") in result["message"]
+    assert executed==[proposal["id"]] and operations==["stt","tts","stt"]
+    again=call(c,"ja",conversation).json()
+    assert executed==[proposal["id"]] and again["status"]=="completed"
+    assert len(router.planning_calls)==1,"The spoken ja must not invoke a model"
+    if kind=="mail":assert json.loads(proposal["payload"])==actual
+
+
+def test_spoken_nee_refuses_exact_preview(tools_chat):
+    app,c,router=tools_chat;shown,row=create_proposal(tools_chat)
+    result=call(c,"Nee.",shown["conversation_id"]).json()
+    assert "geweigerd" in result["message"] and app.state.automation.store.get(row["id"])["status"]=="denied"
+
+
+def test_ja_without_preview_in_this_conversation_does_not_approve_other_job(tools_chat):
+    app,c,router=tools_chat;shown,row=create_proposal(tools_chat)
+    assert call(c,"ja").json()["message"]=="Gewone chat."
+    assert app.state.automation.store.get(row["id"])["status"]=="approval"
+    call(c,"Hallo",shown["conversation_id"])
+    refreshed=call(c,"Ja.",shown["conversation_id"]).json()
+    assert "Zeg ‘ja’" in refreshed["message"] and app.state.automation.store.get(row["id"])["status"]=="approval"
+
+
+def test_one_ja_still_requires_explicit_device_approval_permission(tools_chat):
+    app,c,router=tools_chat;shown,row=create_proposal(tools_chat)
+    with app.state.automation.store.db(True) as db:db.execute("DELETE FROM auth_permissions WHERE permission='automation:approve'")
+    result=call(c,"Ja.",shown["conversation_id"]).json()
+    assert "automation:approve" in result["message"] and app.state.automation.store.get(row["id"])["status"]=="approval"
+
+
+def test_explicit_draft_only_does_not_offer_send_approval(tools_chat):
+    app,c,router=tools_chat;e=app.state.automation
+    actual={"draft_id":"draft-only","message_hash":"d"*64,"preview":"Aan: example@example.invalid\nOnderwerp: Test\nHallo"}
+    async def draft(payload):return actual
+    e.integrations.draft=draft
+    async def finish():
+        for _ in range(200):
+            if e.store.items():await e.tick();return
+            await asyncio.sleep(.01)
+    background=c.portal.start_task_soon(finish)
+    router.plans=[{"tool":"EmailDraft","input":{"to":"example@example.invalid","subject":"Test","text":"Hallo"}}]
+    first=call(c,"Maak alleen een conceptmail aan example@example.invalid, niet versturen").json();background.result(timeout=5)
+    assert "aangemaakt" in first["message"] and all(row["tool"]!="EmailSend" for row in e.store.items())

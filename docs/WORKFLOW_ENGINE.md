@@ -4,8 +4,9 @@ Deze functies zijn ook bereikbaar via de normale AI-chat en spraak.
 Zie [voorbeelden, rechten en goedkeuring](AI_CHAT_AUTOMATIONS.md).
 
 Op gebruikersverzoek kun je agenda- en mailvoorstellen ook direct in de chat
-goedkeuren. Controleer de volledige preview en typ **Goedkeuren** of **Weigeren**.
-Het apparaat moet expliciet het recht Goedkeuren hebben. Een losse ja doet niets;
+goedkeuren. Controleer/beluister de volledige preview en zeg één keer **Ja** of **Nee**.
+**Goedkeuren** en **Weigeren** typen mag ook. Het apparaat moet expliciet het recht
+Goedkeuren hebben. Een ja zonder voorafgaand voorstel voert niets uit;
 een gewijzigd of verlopen voorstel wordt eerst opnieuw getoond. Openstaande
 voorstellen terugvinden kan met **Toon mijn voorstellen**.
 

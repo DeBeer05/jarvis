@@ -21,7 +21,8 @@ Voorbeelden:
 - `Toon mijn herinneringen.` Vervolgens: `Annuleer die herinnering.`
 - `Verzet mijn afspraak Tandarts van 14:00 naar 16:00 op 25 november 2026.`
 - `Schrijf een conceptmail aan naam@example.com met onderwerp Test en tekst Hallo.`
-- Na controle van het aangemaakte concept: `Verstuur die conceptmail.`
+- JARVIS maakt de mail en vraagt na het voorlezen: `Zal ik dit uitvoeren?`
+- Zeg één keer `Ja` om te verzenden of `Nee` om af te wijzen.
 
 Geef ontbrekende datums, tijden, ontvangers of een onduidelijke afspraak concreet
 aan. De AI kan om verduidelijking vragen. Grote of ingewikkelde afspraken en
@@ -40,11 +41,17 @@ Google-consent en de apparaatrechten zijn twee afzonderlijke controles.
 
 Agenda aanmaken/wijzigen/verwijderen en e-mail verzenden leveren eerst een
 voorstel op. De chat toont titel, volledige datums/tijden, agenda, genodigden en
-gevolgen of de volledige e-mail. Controleer die en antwoord in hetzelfde gesprek
-**Goedkeuren** of **Weigeren**. Een getypt of gesproken `ja` geeft geen goedkeuring.
+gevolgen of de volledige e-mail. Controleer die en zeg in hetzelfde gesprek één
+keer **Ja** om uit te voeren of **Nee** om af te wijzen. Typen mag ook; de eerdere
+commando's **Goedkeuren** en **Weigeren** blijven werken.
 **Automatiseringen → Goedkeuringen** blijft ook beschikbaar. Een concept wordt
 wel in Gmail aangemaakt, maar niet verzonden.
 Een opgeslagen taak is pas uitgevoerd wanneer de engine dit heeft bevestigd.
+
+Bij een mailopdracht wordt na het geverifieerde Gmail-concept direct het volledige
+verzendvoorstel getoond/voorgelezen. Je hoeft niet eerst apart ‘Verstuur dit concept’
+te zeggen en daarna nog eens te bevestigen. ‘Maak alleen een concept, niet versturen’
+bewaart uitsluitend het concept. Een dubbele ja verstuurt de mail niet opnieuw.
 
 Goedkeuren vereist het apparaatrecht `automation:approve` (**Goedkeuren** in de
 eigenaarinterface). Zonder dat recht worden geen rechten bijgegeven. De preview

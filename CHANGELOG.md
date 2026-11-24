@@ -4,6 +4,11 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Op gebruikersverzoek volstaat één gesproken/getypte ja na de volledige actuele
+  mail-/agendapreview; nee weigert. Een mail wordt na het geverifieerde concept
+  direct als verzendvoorstel klaargezet. Geen extra verstuur-opdracht of dubbele
+  verzending; expliciet alleen-concept blijft behouden. Dezelfde approvalbinding.
+
 - Agenda- en mailvoorstellen in dezelfde chat goedkeuren/weigeren, met volledige
   serverpreview, actuele approverrechten en eenmalige payloadbinding. Verlopen,
   gewijzigde of niet als laatste getoonde previews vragen opnieuw controle.

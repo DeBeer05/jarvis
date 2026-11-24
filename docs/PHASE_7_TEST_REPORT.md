@@ -1,5 +1,20 @@
 # Testverslag fase 7
 
+## Eén gesproken ja — 24 november 2026
+
+Op expliciet vervolgverzoek is ja nu een bevestiging van alleen het voorafgaande,
+volledig getoonde/voorgelezen ongewijzigde mail-/agendavoorstel; nee wijst het af.
+Mailconcepten krijgen automatisch een verzendvoorstel, behalve expliciet alleen-
+concept. Bestaande payload-/sessie-/tijd-/preview-/approverguards blijven gelden.
+
+255 volledige servertests en 51 gerichte chat-/automatiseringstests geslaagd.
+De synthetische STT→chat→TTS→STT ‘Ja, graag’→engine-proef slaagt voor mail en
+agenda. Ook geen tweede uitvoering, geen bevestiging in een ander gesprek,
+onderbroken preview, ontbrekende approverrechten en concept-only gecontroleerd.
+Echte Groq met gemockte Google en tijdelijke SQLite bevestigt beide volledige
+flows inclusief één ja en het ontbreken van dubbele acties. Geen echte mail of
+afspraak namens de gebruiker uitgevoerd. Geen APK-/clientwijziging nodig.
+
 ## Goedkeuringen in de chat — 24 november 2026
 
 249 volledige servertests en 45 gerichte chat-/automatiseringstests geslaagd.

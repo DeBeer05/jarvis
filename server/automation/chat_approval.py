@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 from server.automation.store import fingerprint
 
 DECISION = re.compile(r"\s*(goedkeuren|keur (?:dit |het )?voorstel goed|weiger(?:en)?(?: (?:dit |het )?voorstel)?)\s*[.!]?\s*", re.I)
+YES_NO = re.compile(r"\s*(ja(?:,?\s+(?:graag|doe maar|verstuur(?: hem)?|verzend(?: hem)?|goedkeuren))?|nee(?:,?\s+(?:niet doen|annuleren))?)\s*[.!?]?\s*", re.I)
 SHOW = re.compile(r"\s*(?:toon|bekijk|laat zien)(?: mij)?(?: mijn| het| de)?(?: openstaande)? voorstel(?:len)?\s*([0-9a-f-]{36})?\s*[?.!]?\s*", re.I)
 STATUS = re.compile(r"\s*(?:is (?:het|dit) voorstel klaar|wat is de status van (?:het|dit) voorstel)\s*[?.!]?\s*", re.I)
 
@@ -16,6 +17,8 @@ class ChatApprovals:
     def __init__(self, chat): self.chat = chat
 
     def candidate(self, message): return bool(DECISION.fullmatch(message) or SHOW.fullmatch(message) or STATUS.fullmatch(message))
+
+    def is_answer(self, message): return bool(YES_NO.fullmatch(message))
 
     def show(self, run, row):
         c = self.chat; c.guard(run, "automation:read")
@@ -39,7 +42,7 @@ class ChatApprovals:
             text += "\nHerhaling: " + ("; ".join(payload.get("recurrence", [])) or "Geen")
             if payload.get("attendees"): text += "\nGoogle Calendar stuurt updates aan de genodigden."
         text = "Ik heb een wijzigingsvoorstel klaargezet.\n"+text
-        text += "\nVoorstel-ID: " + row["id"] + "\n\nTyp ‘Goedkeuren’ om dit exacte voorstel uit te voeren, of ‘Weigeren’."
+        text += "\nVoorstel-ID: " + row["id"] + "\n\nZal ik dit uitvoeren? Zeg ‘ja’ om dit voorstel te bevestigen, of ‘nee’ om het af te wijzen."
         if c.clean(text)!=text or len(text) > min(16000, c.router.settings.max_response_chars):
             c.remember(run, "pending", [])
             return "Dit voorstel kan niet volledig in de chat worden getoond. Open Automatiseringen → Goedkeuringen voor de volledige controle."
@@ -63,6 +66,12 @@ class ChatApprovals:
     async def handle(self, run):
         c = self.chat; message = run.message; memory = c.memory(run)
         show = SHOW.fullmatch(message); decision = DECISION.fullmatch(message)
+        spoken = YES_NO.fullmatch(message)
+        if spoken and memory.get("pending"):decision=spoken
+        elif spoken and memory.get("decision"):
+            previous=run.history[-1] if run.history else {}
+            if fingerprint(previous.get("content",""))==memory["decision"][0].get("response_hash"):
+                return self.status(c.engine.store.get(memory["decision"][0]["id"]))
         if STATUS.fullmatch(message):
             last = memory.get("decision", [])
             return self.status(c.engine.store.get(last[0]["id"])) if last else "Er is in dit gesprek nog geen voorstel goedgekeurd. Vraag ‘Toon mijn voorstellen’."
@@ -92,7 +101,7 @@ class ChatApprovals:
         challenge = c.engine.approvals.challenge(row["id"],run.principal)
         if challenge["fingerprint"]!=actual: return self.show(run,c.engine.store.get(row["id"]))
         c.guard(run, "automation:approve")
-        approved = not decision[1].casefold().startswith("weiger")
+        approved = not decision[1].casefold().startswith(("weiger","nee"))
         result = c.engine.approvals.decide(row["id"],run.principal,challenge["token"],approved,expected_fingerprint=actual)
         c.remember(run,"pending",[]);c.remember(run,"decision",[{"id":row["id"]}])
         if approved:
@@ -101,4 +110,6 @@ class ChatApprovals:
                 result=c.engine.store.get(row["id"])
                 if result["status"] not in ("queued","running"):break
                 await asyncio.sleep(.25)
-        return self.status(result)
+        text=self.status(result)
+        c.remember(run,"decision",[{"id":row["id"],"response_hash":fingerprint(c.clean(text))}])
+        return text
