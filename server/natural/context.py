@@ -20,9 +20,9 @@ def units(text):
 
 
 class ContextManager:
-    def __init__(self,store,settings,memory,bootstrap):
+    def __init__(self,store,settings,memory,bootstrap,responses=None):
         self.store,self.settings,self.memory,self.bootstrap=store,settings,memory,bootstrap
-        self.private=PrivateContext()
+        self.private=PrivateContext();self.responses=responses
 
     def private_turns(self,principal,conversation,config):
         with self.store.transaction(principal) as (db,user):
@@ -46,7 +46,7 @@ class ContextManager:
     def prepare(self,run):
         version=self.memory_version(run.principal)
         document=self.settings.get(run.principal)
-        config=document["settings"]
+        config=self.responses.apply(run.principal,run.conversation_id,document["settings"]) if self.responses else document["settings"]
         policy=RequestPolicy.from_document(document)
         order=policy.order(run.mode,self.bootstrap.preferred_provider) if policy else ([run.mode] if run.mode!="auto" else [self.bootstrap.preferred_provider,"gemini" if self.bootstrap.preferred_provider=="ollama" else "ollama"])
         local=order==["ollama"]
@@ -76,6 +76,8 @@ class ContextManager:
         config=prepared["settings"]
         voice=getattr(run,"channel","text")=="voice"
         system=self.bootstrap.system_prompt+("\n"+VOICE_PROMPT if voice else "")
+        from server.natural.responses import response_prompt
+        system+=response_prompt(config,run.message,voice)
         notes={"now":datetime.now(ZoneInfo(config["general"]["timezone"])).isoformat(),"timezone":config["general"]["timezone"]}
         notes["assistant_name"]=config["general"]["assistant_name"]
         if voice:notes["speaking_preferences"]=describe(config["personality"])

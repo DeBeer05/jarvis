@@ -101,6 +101,7 @@ def create_app(
     chat.automation_chat = AutomationChat(app.state.automation, security, chat.router, store.clean)
     chat.automation_chat.task_memory = app.state.natural.tasks
     chat.automation_chat.contacts = app.state.natural.contacts
+    chat.automation_chat.response_manager = app.state.natural.responses
     app.add_middleware(SecurityGate, service=security)
     app.add_middleware(RequestGuard, port=settings.port, allowed_origins=settings.allowed_origins)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(settings.trusted_hosts))

@@ -50,6 +50,8 @@ class Generation:
     started_at:float=field(default_factory=time.perf_counter,repr=False)
     first_token_seconds:float|None=field(default=None,repr=False)
     persist_history:bool=True
+    speech_message:str=""
+    response_data:dict|None=field(default=None,repr=False)
 
     def public(self) -> dict:
         return {"request_id": self.request_id, "conversation_id": self.conversation_id,
@@ -146,13 +148,15 @@ class ChatService:
         memory_command=bool(self.natural and run.natural_context and self.natural.is_command(run))
         cancellation = asyncio.create_task(run.cancel.wait())
         try:
-            yield {"type": "meta", "request_id": run.request_id, "conversation_id": run.conversation_id}
+            yield {"type": "meta", "request_id": run.request_id, "conversation_id": run.conversation_id, **({"speech_protocol":1} if run.channel=="voice" and self.natural else {})}
             if run.cancel.is_set():
                 raise GenerationCancelled
             if memory_command:
                 source=self.natural.stream_command(run)
             else:
                 source = self.automation_chat.stream(run) if self.automation_chat and self.automation_chat.candidate(run) else self.router.stream(self.context(run), run.mode)
+            if self.natural and run.channel=="voice" and run.natural_context:
+                source=self.natural.responses.stream(run,source,tool=bool(self.automation_chat and self.automation_chat.candidate(run)))
             async with aclosing(source) as stream:
                 try:
                     async with asyncio.timeout(run.ai_policy.timeout_seconds if run.ai_policy else self.settings.ai_timeout_seconds):

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Request, HTTPException
 from typing import Literal
 from pydantic import Field, ValidationError
 
-from server.natural.models import StrictModel, MemoryInput, Personality
+from server.natural.models import StrictModel, MemoryInput, Personality, Voice
 from server.natural.store import Conflict
 
 router=APIRouter(prefix="/api/v1/natural")
@@ -256,3 +256,31 @@ def edit_contact(request:Request,identifier:UUID,body:ContactUpdate):
 @router.delete("/contacts/{identifier}")
 def delete_contact(request:Request,identifier:UUID,revision:int):
     return result(lambda:service(request).contacts.delete(request.state.principal,str(identifier),revision))
+
+
+class VoicePreview(StrictModel):
+    text:str=Field(min_length=1,max_length=350)
+    voice:Voice
+
+
+@router.get("/voice-studio")
+def voice_studio(request:Request):return service(request).tts.catalogue()
+
+
+@router.post("/voice-studio/preview")
+async def voice_preview(request:Request,body:VoicePreview):
+    import asyncio,base64,time
+    from copy import deepcopy
+    from providers.speech_format import format_speech
+    natural=service(request);principal=request.state.principal
+    await asyncio.to_thread(natural.security.store.rate,"voice-preview:"+principal.device_id,20)
+    voice=body.voice
+    config=deepcopy((await asyncio.to_thread(natural.settings.get,principal))["settings"])
+    config["voice"]=voice.model_dump(mode="json")
+    config["voice"]["cache"]=False
+    text=natural.store.safe_content(body.text);started=time.perf_counter()
+    audio=await natural.tts.synthesize(request,format_speech(text,config["general"]["timezone"]),config)
+    if not natural.security.store.live(principal):raise HTTPException(401,"Sessie niet meer geldig")
+    raw=base64.b64decode(audio["audio"],validate=True)
+    if len(raw)>5_000_000:raise HTTPException(413,"Stemvoorbeeld te groot; gebruik een kortere tekst")
+    return {"audio":audio["audio"],"provider":audio["selected_provider"],"voice":audio["selected_voice"],"seconds":time.perf_counter()-started,"runtime_stats":audio.get("runtime_stats",{}),"saved":False,"microphone_used":False}

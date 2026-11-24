@@ -1,5 +1,7 @@
 """Style presets; backend permissions and action truth remain authoritative."""
-PROFILES={
+from typing import Any
+PROFILES:dict[str,tuple[str,dict[str,Any]]]={
+    "classic_butler":("Classic Butler",{"formality":80,"humor":30,"sarcasm":20,"friendliness":75,"brevity":90,"confidence":90,"proactivity":65,"followup_questions":5,"honorific":"meneer","honorific_frequency":"occasionally"}),
     "classic":("Klassieke JARVIS",{"formality":70,"humor":35,"sarcasm":20,"friendliness":60,"brevity":65}),
     "professional":("Professioneel",{"formality":85,"humor":10,"sarcasm":0,"friendliness":60,"brevity":70}),
     "friendly":("Vriendelijk",{"formality":35,"humor":35,"sarcasm":5,"friendliness":85,"brevity":65}),

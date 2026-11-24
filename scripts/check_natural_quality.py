@@ -5,7 +5,7 @@ import subprocess
 import sys
 
 ROOT=Path(__file__).resolve().parents[1]
-SERVER=["server/natural","server/ai/policy.py","providers/voice_pipe.py"]
+SERVER=["server/natural","server/ai/policy.py","providers/voice_pipe.py","providers/speech_format.py"]
 CLIENT=["desktop-client/jarvis_client/voice/echo.py","desktop-client/jarvis_client/voice/manager.py",
         "desktop-client/jarvis_client/voice/audio.py","desktop-client/jarvis_client/voice/server_worker.py",
         "desktop-client/jarvis_client/voice/session.py"]

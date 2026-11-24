@@ -120,3 +120,9 @@ VALUES = {'allow': 'Automatisch toestaan',
  'very_proactive': 'Zeer proactief',
  'wake': 'Wake word',
  'within_rules': 'Zelfstandig binnen regels'}
+
+
+LABELS.update({"responses":"Antwoordgedrag","mode":"Standaardmodus","spoken":"Gesproken antwoordlengte","written":"Geschreven antwoordlengte","progressive":"Eerst de kern, details op verzoek","background":"Hoeveelheid achtergrondinformatie","avoid_repetition":"Herhalingen voorkomen","prioritize":"Belangrijke informatie eerst","brief_confirmations":"Korte taakbevestigingen","email":"E-mails samenvatten","calendar":"Agenda samenvatten","news":"Nieuws samenvatten","messages":"Berichten samenvatten","details_on_request":"Uitgebreide informatie op verzoek","honorific":"Aanspreekvorm (leeg = uit)","honorific_frequency":"Frequentie aanspreekvorm","confidence":"Zelfverzekerde spreekstijl","supertonic_voice":"Supertonic-mannenstem","steps":"Supertonic kwaliteitsstappen","pause_ms":"Pauze tussen tekstblokken (ms)"})
+VALUES.update({"classic_butler":"Classic Butler","modern_butler":"Modern Butler","deep_butler":"Deep Butler (configuratie)","cinematic":"Cinematic Assistant","automatic":"Automatisch","fast":"Snel","offline":"Alleen lokaal","ultrashort":"Ultrakort","short":"Kort","balanced":"Gebalanceerd","extended":"Uitgebreid","full":"Volledig","occasionally":"Af en toe","supertonic":"Supertonic 3","piper":"Piper"})
+
+VALUES.update({"daily":"Dagelijks gesprek","technical":"Technische uitleg","briefing":"Korte briefing"})

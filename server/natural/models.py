@@ -66,7 +66,13 @@ class Listening(StrictModel):
 class Voice(StrictModel):
     stt_provider: Literal["whisper"] = "whisper"
     whisper_model: Literal["whisper-small","whisper-base","whisper-tiny"] = "whisper-small"
-    tts_provider: Literal["piper"] = "piper"
+    tts_provider: Literal["auto","piper","supertonic"] = "auto"
+    mode: Literal["automatic","quality","fast","offline","manual"] = "automatic"
+    profile: Literal["classic_butler","modern_butler","deep_butler","cinematic","professional","friendly","fast","custom"] = "classic_butler"
+    supertonic_voice: Literal["M1","M2","M3","M4","M5"] = "M1"
+    steps:int=Field(default=8,ge=2,le=12,title="Supertonic kwaliteitsstappen")
+    pause_ms:int=Field(default=180,ge=0,le=1000,title="Pauze tussen tekstblokken (ms)")
+    fallback:bool=True
     voice: Literal["ronnie","mls"] = "ronnie"
     speaker: int = Field(default=0,ge=0,le=51,title="Piper-stemnummer (MLS 0–51)")
     speed: float = Field(default=1, ge=.7, le=1.5, title="Spreeksnelheid")
@@ -79,7 +85,10 @@ class Voice(StrictModel):
 
 
 class Personality(StrictModel):
-    profile: Literal["classic", "professional", "friendly", "informal", "humorous", "concise", "informative", "custom"] = "friendly"
+    profile: Literal["classic_butler", "classic", "professional", "friendly", "informal", "humorous", "concise", "informative", "custom"] = "friendly"
+    honorific: str=Field(default="",max_length=30,title="Aanspreekvorm (leeg = uit)")
+    honorific_frequency: Literal["off","occasionally"]="off"
+    confidence:int=Field(default=90,ge=0,le=100,title="Zelfverzekerde spreekstijl")
     formality: int = Field(default=35, ge=0, le=100)
     humor: int = Field(default=35, ge=0, le=100)
     sarcasm: int = Field(default=5, ge=0, le=100)
@@ -186,7 +195,28 @@ class Diagnostics(StrictModel):
     maximum_events: int = Field(default=100, ge=10, le=1000)
 
 
+class ResponseSettings(StrictModel):
+    profile:Literal["auto","daily","technical","briefing","custom"]="auto"
+    mode:Literal["auto","ultrashort","short","balanced","extended","full"]="auto"
+    spoken:Literal["auto","ultrashort","short","balanced","extended","full"]="short"
+    written:Literal["auto","ultrashort","short","balanced","extended","full"]="balanced"
+    summaries:bool=True
+    progressive:bool=True
+    technical_detail:int=Field(default=40,ge=0,le=100)
+    background:int=Field(default=20,ge=0,le=100)
+    avoid_repetition:bool=True
+    followup_questions:int=Field(default=10,ge=0,le=100)
+    prioritize:bool=True
+    brief_confirmations:bool=True
+    email:bool=True
+    calendar:bool=True
+    news:bool=True
+    messages:bool=True
+    details_on_request:bool=True
+
+
 class UserSettings(StrictModel):
+    responses: ResponseSettings=Field(default_factory=ResponseSettings)
     general: General = Field(default_factory=General)
     conversations: Conversations = Field(default_factory=Conversations)
     listening: Listening = Field(default_factory=Listening)

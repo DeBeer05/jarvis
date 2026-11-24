@@ -9,6 +9,7 @@ from server.natural.tasks import TaskMemory
 from server.natural.diagnostics import DiagnosticsManager
 from server.natural.retention import RetentionManager
 from server.natural.preferences import preference,automatic_preference
+from server.natural.responses import IntelligentResponseManager
 import re
 import json
 import uuid
@@ -23,11 +24,14 @@ class NaturalService:
         self.store=NaturalStore(database,security,chat.store.clean)
         self.settings=SettingsManager(self.store)
         self.memory=MemoryManager(self.store)
+        from server.natural.tts import TTSRouter
+        self.tts=TTSRouter()
+        self.responses=IntelligentResponseManager(self)
         from server.natural.contacts import ContactManager
         self.contacts=ContactManager(self.store)
         self.security,self.chat,self.automation=security,chat,automation
         self.conversations=NaturalConversationManager(self.store,self.settings,chat)
-        self.context=ContextManager(self.store,self.settings,self.memory,chat.settings)
+        self.context=ContextManager(self.store,self.settings,self.memory,chat.settings,self.responses)
         self.tasks=TaskMemory(self.store,self.settings,automation)
         self.diagnostics=DiagnosticsManager(self.store,self.settings)
         self.retention=RetentionManager(self)
@@ -69,6 +73,8 @@ class NaturalService:
             return await self.conversations.transition(run.principal,run.conversation_id,state,run.session_epoch)
 
     def command(self,run):
+        response=self.responses.command(run)
+        if response is not None:return response
         """Explicit memory commands are executed locally, never by generated code."""
         message=run.message.strip();config=run.natural_context["settings"]
         if CAPABILITIES.fullmatch(message):
@@ -174,4 +180,4 @@ class NaturalService:
 
     @staticmethod
     def is_command(run):
-        return bool(CAPABILITIES.fullmatch(run.message.strip()) or OPEN_TASKS.fullmatch(run.message.strip()) or re.match(r"^(?:jarvis[, ]+)?(?:onthou(?:d)?\b|vergeet\b|wat (?:weet|onthoud) je (?:nog )?(?:over|van) mij[?.!]*$)",run.message.strip(),re.I))
+        return bool((run.natural_context and IntelligentResponseManager.preference(run.message,run.natural_context["settings"])) or CAPABILITIES.fullmatch(run.message.strip()) or OPEN_TASKS.fullmatch(run.message.strip()) or re.match(r"^(?:jarvis[, ]+)?(?:onthou(?:d)?\b|vergeet\b|wat (?:weet|onthoud) je (?:nog )?(?:over|van) mij[?.!]*$)",run.message.strip(),re.I))

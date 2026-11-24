@@ -6,6 +6,7 @@ from server.natural.store import Conflict, encode
 
 SCHEMA_VERSION=1
 CATEGORIES={
+    "responses":"Antwoordgedrag",
     "general":"Algemeen", "conversations":"Gesprekken", "listening":"Luisteren",
     "voice":"Stem en audio", "personality":"Persoonlijkheid", "ai":"AI en prestaties",
     "memory":"Geheugen", "calendar":"Agenda", "tasks":"Taken en automatiseringen",
@@ -36,6 +37,11 @@ class SettingsManager:
             from server.natural.capabilities import voice_capabilities
             from server.natural.personality import PROFILES
             previous=self.get(principal)["settings"]
+            from server.natural.responses import RESPONSE_PROFILES
+            response=validated['responses']
+            if response['profile']!=previous['responses']['profile']:
+                for key,value in RESPONSE_PROFILES[response['profile']].items():
+                    if response[key]==previous['responses'][key]:response[key]=value
             notification=validated["notifications"];old_notification=previous["notifications"]
             levels={"off":3,"minimal":1,"normal":3,"proactive":5,"very_proactive":10}
             if notification["proactivity"]!=old_notification["proactivity"] and notification["suggestions_per_hour"]==old_notification["suggestions_per_hour"]==levels[old_notification["proactivity"]]:
@@ -50,6 +56,11 @@ class SettingsManager:
                 for key,value in PROFILES[personality["profile"]][1].items():
                     if personality[key]==previous["personality"][key]:personality[key]=value
             before=previous["voice"];voice=validated["voice"];available=voice_capabilities()
+            from server.natural.tts import PROFILES as VOICE_PROFILES
+            if voice["profile"]!=before["profile"]:
+                for key,value in VOICE_PROFILES[voice["profile"]].items():
+                    if voice[key]==before[key]:voice[key]=value
+            if voice["mode"]=="manual" and voice["tts_provider"] not in available.get("tts_providers",["piper"]):raise ValueError("Spraakprovider niet geïnstalleerd")
             for key,choices in (("whisper_model",available["whisper_models"]),("voice",available["voices"])):
                 if voice[key]!=before[key] and not choices.get(voice[key],False):raise ValueError("Kies een geïnstalleerd spraakmodel of stemprofiel")
         payload=self.store.safe_content(encode(validated));device=principal.device_id if scope=="device" else ""
@@ -94,4 +105,6 @@ class SettingsManager:
         capabilities=voice_capabilities();user=UserSettings.model_json_schema()
         for key,choices in (("whisper_model",capabilities["whisper_models"]),("voice",capabilities["voices"])):
             user["$defs"]["Voice"]["properties"][key]["x-unavailable"]=[name for name,present in choices.items() if not present]
+        user["$defs"]["Voice"]["properties"]["tts_provider"]["x-unavailable"]=[key for key in ("piper","supertonic") if key not in capabilities.get("tts_providers",["piper"])]
+        user["$defs"]["Voice"]["properties"]["supertonic_voice"]["x-unavailable"]=[key for key in ("M1","M2","M3","M4","M5") if not capabilities.get("supertonic_voices",{}).get(key,False)]
         return {"schema_version":SCHEMA_VERSION,"categories":CATEGORIES,"labels":LABELS,"values":VALUES,"voice_capabilities":capabilities,"user":user,"device":DeviceSettings.model_json_schema(),"actions":[*sorted(REGISTRY),"MemorySave","MemoryUpdate"],"mandatory_approval":[name for name,(_,required) in REGISTRY.items() if required]}

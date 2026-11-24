@@ -126,6 +126,8 @@ class Speak(BaseModel):
     model_config = ConfigDict(extra="forbid")
     text: str = Field(min_length=1, max_length=700)
     speed: float | None = Field(default=None, ge=.7, le=1.5)
+    conversation_id:str|None=Field(default=None,pattern=r"^[0-9a-fA-F-]{36}$")
+    utterance_id:str|None=Field(default=None,pattern=r"^[0-9a-fA-F-]{36}$")
 
 
 @router.post("/speech/synthesize", dependencies=[Depends(require_permission("chat:read"))])
@@ -135,10 +137,17 @@ async def synthesize(request: Request, body: Speak):
     await asyncio.to_thread(request.app.state.security.store.rate, "mobile-tts:" + principal.device_id, 60)
     preferences=await audio_preferences(request)
     if body.speed is not None:preferences["speed"]=body.speed
-    result = await inference_call(request,"tts", {**preferences,"text": body.text})
+    from copy import deepcopy
+    config=deepcopy((await asyncio.to_thread(request.app.state.natural.settings.get,principal))["settings"])
+    if body.conversation_id:
+        await asyncio.to_thread(request.app.state.natural.authorize_conversation,principal,body.conversation_id)
+        config=request.app.state.natural.responses.apply(principal,body.conversation_id,config)
+    if body.speed is not None:config["voice"]["speed"]=body.speed
+    from providers.speech_format import format_speech
+    result=await request.app.state.natural.tts.synthesize(request,format_speech(body.text,config["general"]["timezone"]),config,body.utterance_id)
     await asyncio.to_thread(request.app.state.security.store.own_device, principal)
     await asyncio.to_thread(request.app.state.natural.diagnostics.record,principal,"tts_ms",(time.perf_counter()-started)*1000)
-    return Response(base64.b64decode(result["audio"], validate=True), media_type="audio/wav")
+    return Response(base64.b64decode(result["audio"], validate=True), media_type="audio/wav",headers={"X-JARVIS-TTS-Provider":result.get("selected_provider","piper")})
 
 
 class PushRegistration(BaseModel):

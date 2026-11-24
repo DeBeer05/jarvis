@@ -74,6 +74,13 @@ class AutomationChat:
     def candidate(self, run):
         if run.principal is None:return False
         if REPLY_STATUS.fullmatch(run.message):return True
+        from server.natural.responses import MORE
+        if self.memory(run).get("messages"):
+            recent=(self.memory(run).get("recent") or [{}])[0]
+            previous=run.history[-1] if run.history else {}
+            bound=recent.get("answer_hash")==fingerprint(previous.get("content",""))
+            if (MORE.fullmatch(run.message) and bound) or re.fullmatch(r"\s*(?:vertel meer over|wat staat er in) .+",run.message,re.I):return True
+        if re.fullmatch(r"\s*hoe ziet mijn dag eruit[?.!\s]*",run.message,re.I):return True
         if self.approvals.candidate(run.message):return True
         if re.match(r"\s*(wat (is|betekent)|hoe werkt|leg (me |mij )?uit|kun je uitleggen)\b",run.message,re.I):
             return False
@@ -275,7 +282,16 @@ class AutomationChat:
         memory=self.memory(run)
         if memory.get("pending"):run.wait_state="WAITING_FOR_APPROVAL"
         elif memory.get("write_question") or memory.get("read_question"):run.wait_state="WAITING_FOR_INFORMATION"
+        if run.natural_context and run.natural_context['settings']['responses']['written'] in ('ultrashort','short'):
+            from copy import deepcopy
+            config=deepcopy(run.natural_context)
+            config['settings']['responses']['mode']=config['settings']['responses']['written']
+            rendered=replace(run,natural_context=config)
+            if getattr(self,'response_manager',None):result=self.response_manager.summarize(rendered,result)
         result=self.clean(result)
+        recent=(self.memory(run).get('recent') or [{}])[0]
+        if recent.get('kind')=='messages' and run.response_data and run.response_data['tool'] in ('EmailSearch','EmailRead'):
+            self.remember(run,'recent',[{**recent,'answer_hash':fingerprint(result)}])
         for start in range(0,len(result),160):
             if run.cancel.is_set():raise asyncio.CancelledError()
             yield {"type":"delta","text":result[start:start+160]}
@@ -326,15 +342,32 @@ class AutomationChat:
         # This also keeps STT punctuation/capitalization and past tense equivalent.
         day_question=re.fullmatch(r"\s*(?:wat (?:staat|stond) er|wat (?:heb|had) ik|toon(?: me)?|laat(?: me)?)\s+(?:voor |er )?(vandaag|morgen|overmorgen)\s+(?:in|op)\s+(?:mijn|de)\s+agenda\s*[?.!]*",run.message,re.I)
         day_followup=observations.get("recent")==[{"kind":"events"}] and re.fullmatch(r"\s*(?:en\s+)?(?:vandaag|morgen|overmorgen)(?:\s+dan)?\s*[?.!]*",run.message,re.I)
-        if day_question or day_followup:
+        looks_day=bool(re.fullmatch(r"\s*hoe ziet mijn dag eruit[?.!\s]*",run.message,re.I))
+        if day_question or day_followup or looks_day:
             previous=observations.get("calendar_query",[{}])[0] if day_followup else {}
-            payload=self.temporal("CalendarRead",{"calendar_id":previous.get("calendar_id","primary"),"query":previous.get("query","")},run.message,run=run)
+            payload=self.temporal("CalendarRead",{"calendar_id":previous.get("calendar_id","primary"),"query":previous.get("query","")},"vandaag" if looks_day else run.message,run=run)
             _,result=await self.read(run,"CalendarRead",validate("CalendarRead",payload))
             self.guard(run,"automation:read")
             return result,None
+        from server.natural.responses import MORE
+        detail=re.fullmatch(r"\s*(?:vertel meer over|wat staat er in) (.+?)[?.!\s]*",run.message,re.I)
+        if detail and observations.get("messages"):
+            words=[word[:8] for word in re.findall(r"[a-zA-ZÀ-ÿ]+",detail[1].casefold()) if len(word)>3 and word not in ("mail","e-mail","bericht","mijn","deze")]
+            matches=[item for item in observations["messages"] if words and all(word in item.get("subject","").casefold() for word in words)]
+            if len(matches)==1:
+                _,result=await self.read(run,"EmailRead",{"message_id":matches[0]["id"],"include_body":True})
+                return result,None
+            if len(matches)>1:return "Er passen meerdere berichten. Noem het nummer of het volledige onderwerp.",None
+        if MORE.fullmatch(run.message) and observations.get("messages"):
+            recent=(observations.get("recent") or [{}])[0]
+            focused=recent.get("id") if recent.get("kind")=="messages" else None
+            if not focused and len(observations["messages"])==1:focused=observations["messages"][0]["id"]
+            if not focused:return "Over welk bericht wil je meer weten? Noem het nummer of onderwerp.",None
+            _,result=await self.read(run,"EmailRead",{"message_id":focused,"include_body":True})
+            return result,None
         # Resolve ordinal references from this conversation, not from model-invented IDs.
         ordinal=re.fullmatch(r"\s*(?:wat staat er in|lees(?: de inhoud van)?|toon(?: de inhoud van)?)\s+(?:de |het )?(eerste|tweede|derde|vierde|vijfde|[1-5](?:e|de|ste))(?:\s+(?:e-?mail|mail|bericht))?\s*[?.!]*",run.message,re.I)
-        if ordinal and observations.get("recent")==[{"kind":"messages"}]:
+        if ordinal and (observations.get("recent") or [{}])[0].get("kind")=="messages":
             words={"eerste":0,"tweede":1,"derde":2,"vierde":3,"vijfde":4}
             value=ordinal[1].casefold();index=words.get(value,int(value[0])-1 if value[0].isdigit() else -1)
             messages=observations.get("messages",[])
@@ -484,6 +517,7 @@ class AutomationChat:
                     events[index]={**{k:event[k] for k in ("id","etag","start","end") if k in event},"summary":event.get("summary","Afspraak")[:500],"manual_only":True}
                 events[index]["calendar_id"]=payload["calendar_id"]
             self.guard(run,"automation:read")
+            run.response_data={"tool":"CalendarRead","items":events}
             self.remember(run,"events",events)
             self.remember(run,"calendar_query",[payload])
             zone=run.natural_context["settings"]["general"]["timezone"] if run.natural_context else "Europe/Amsterdam"
@@ -501,19 +535,24 @@ class AutomationChat:
                 headers = {h["name"].lower():h["value"] for h in mail.get("payload",{}).get("headers",[])}
                 messages.append({"id":mail["id"],"subject":headers.get("subject","Zonder onderwerp")[:300],"from":headers.get("from","")[:300]})
             self.guard(run,"automation:read")
+            run.response_data={"tool":"EmailSearch","items":messages}
             self.remember(run,"messages",messages)
             text = "Berichten (alleen afzender en onderwerp):\n"+"\n".join(f"{i+1}. {m['subject']} — {m['from']}" for i,m in enumerate(messages)) if messages else "Geen e-mails gevonden voor je zoekopdracht."
             if found.get("nextPageToken") or len(found.get("messages",[]))>5:
                 text += "\nIk toon maximaal vijf berichten; je kunt de zoekopdracht verfijnen."
             return {"messages":messages},text
         if tool == "EmailRead":
+            run.response_data={"tool":"EmailRead","items":[]}
             known = self.memory(run).get("messages",[])
             if not any(m["id"]==payload["message_id"] for m in known) and payload["message_id"] not in run.message:
                 raise ValueError("Unverified message ID")
-            wants_body = bool(re.search(r"inhoud|lees|samenvat|vat.*samen|wat staat er in",run.message,re.I))
+            from server.natural.responses import MORE
+            wants_body = bool(MORE.fullmatch(run.message) or re.fullmatch(r"\s*vertel meer over .+",run.message,re.I) or re.search(r"inhoud|lees|samenvat|vat.*samen|wat staat er in",run.message,re.I))
             if payload["include_body"] and not wants_body:
                 raise ValueError("Body access not requested")
             mail = await e.integrations.mail_read(payload["message_id"], payload["include_body"])
+            run.response_data={"tool":"EmailRead","items":[],"body":self.mail_text(mail.get("payload",{}))[:5000] if payload["include_body"] else ""}
+            self.remember(run,"recent",[{"kind":"messages","id":payload["message_id"]}])
             headers = {h["name"].lower():h["value"] for h in mail.get("payload",{}).get("headers",[])}
             text = f"Van: {headers.get('from','Onbekend')}\nOnderwerp: {headers.get('subject','Zonder onderwerp')}"
             if payload["include_body"]:
