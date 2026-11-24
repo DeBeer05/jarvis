@@ -4,6 +4,7 @@ import time
 import re
 from copy import deepcopy
 from dataclasses import replace
+from uuid import uuid4
 
 from PySide6.QtCore import QObject, QTimer, Signal, Slot
 
@@ -15,6 +16,7 @@ from jarvis_client.voice.turns import AdaptiveTurn
 
 
 class VoiceConversationManager(QObject):
+    preview_finished = Signal()
     changed = Signal(str)
     transcript = Signal(str)
     answer = Signal(str)
@@ -324,6 +326,8 @@ class VoiceConversationManager(QObject):
             self.recording=self.barge_active=False
             self.output.resume()
             self.problem.emit("Gelijktijdig luisteren lukt niet met dit audioapparaat. Gebruik de spreekknop om te onderbreken.")
+        elif kind == "preview_done":
+            self.responding=False;self.set_state("Stemvoorbeeld voltooid");self.preview_finished.emit()
         elif kind == "drained":
             if self.barge_active:self.input.stop(discard=True)
             self.recording=self.barge_active=False
@@ -357,6 +361,7 @@ class VoiceConversationManager(QObject):
         self.stop(keep_wake=True)
         self.switch_worker()
         self.voice_next = False
+        if hasattr(self.worker,"begin_utterance"):self.worker.begin_utterance(str(uuid4()),None)
         if not speak:
             return
         self.responding = True
@@ -380,10 +385,10 @@ class VoiceConversationManager(QObject):
                     valid = lambda: self.interruptions.valid(generation) and not self.closed
                     key = text, settings.provider, settings.voice, settings.speaker, settings.speed, settings.models
                     with self.cache_lock:
-                        audio = self.cache.get(key) if settings.cache else None
+                        audio = self.cache.get(key) if settings.cache and not getattr(self.worker,"centralized",False) else None
                     if audio is None:
                         audio, _ = self.worker.synthesize(text, settings, valid)
-                        if settings.cache and valid():
+                        if settings.cache and valid() and not getattr(self.worker,"centralized",False):
                             with self.cache_lock:
                                 self.cache.put(key, audio)
                     if valid():
@@ -454,3 +459,17 @@ class VoiceConversationManager(QObject):
         self.set_authorized(False)
         getattr(self.worker,"close",self.worker.cancel)()
         if self.next_worker:getattr(self.next_worker,"close",self.next_worker.cancel)()
+
+
+    def play_preview(self,audio,volume=None):
+        self.stop();self.responding=True
+        generation=self.interruptions.generation;settings=self.effective_settings()
+        if volume is not None:settings=replace(settings,output_gain=max(0,min(1,volume)))
+        self.set_state("Stemvoorbeeld afspelen")
+        def play():
+            valid=lambda:self.interruptions.valid(generation) and not self.closed
+            try:
+                self.output.play(audio,settings,valid)
+                self.delivered.emit((generation,"preview_done",None))
+            except Exception:self.delivered.emit((generation,"error","Stemvoorbeeld afspelen mislukt"))
+        self._thread(play)

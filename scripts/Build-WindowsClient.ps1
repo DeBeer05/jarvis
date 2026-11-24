@@ -1,5 +1,7 @@
+param([ValidatePattern("^[a-z0-9-]{0,30}$")][string]$BuildTag="")
 . (Join-Path $PSScriptRoot 'Client-Common.ps1')
 Assert-JarvisClientEnvironment
+$clientBuildDirectory = if ($BuildTag) { '.local/client-build-' + $BuildTag } else { '.local/client-build' }
 Push-Location $JarvisClientRoot
 $previousClientBuildPath = $env:PATH
 try {
@@ -9,9 +11,9 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Python-installatie bepalen mislukt.' }
     $env:PATH = @((Split-Path -Parent $JarvisClientPython), $clientBasePython,
         (Join-Path $env:SystemRoot 'System32'), $env:SystemRoot) -join ';'
-    & $JarvisClientPython -m PyInstaller --noconfirm --clean --onedir --windowed --noupx --name JARVIS --paths desktop-client --paths . --distpath .local/client-build/dist --workpath .local/client-build/work --specpath .local/client-build --exclude-module tkinter --exclude-module PyQt6 --exclude-module PySide6.QtQml --exclude-module PySide6.QtQuick desktop-client/run_client.py
+    & $JarvisClientPython -m PyInstaller --noconfirm --clean --onedir --windowed --noupx --name JARVIS --paths desktop-client --paths . --distpath ($clientBuildDirectory + "/dist") --workpath ($clientBuildDirectory + "/work") --specpath $clientBuildDirectory --exclude-module tkinter --exclude-module PyQt6 --exclude-module PySide6.QtQml --exclude-module PySide6.QtQuick desktop-client/run_client.py
     if ($LASTEXITCODE -ne 0) { throw 'Windows-build mislukt.' }
-    $clientBundle = Join-Path $JarvisClientRoot '.local\client-build\dist\JARVIS'
+    $clientBundle = Join-Path $JarvisClientRoot ($clientBuildDirectory + '/dist/JARVIS')
     # Python 3.12 carries an older VC runtime. Qt's pinned wheel carries newer
     # redistributables; put that coherent set at the loader's first search path.
     $clientQtDirectory = Join-Path (Split-Path -Parent $JarvisClientPython) '..\Lib\site-packages\PySide6'
@@ -40,9 +42,10 @@ try {
     Copy-Item -LiteralPath (Join-Path $JarvisClientRoot 'desktop-client\voice_worker.py'),(Join-Path $JarvisClientRoot 'desktop-client\voice_runtime') -Destination $voiceSource -Recurse -Force
     Copy-Item -LiteralPath (Join-Path $JarvisClientRoot 'requirements-voice.txt'),(Join-Path $JarvisClientRoot 'constraints-voice.txt') -Destination $voiceSource
     Copy-Item -LiteralPath (Join-Path $JarvisClientRoot 'docs\VOICE_MODELS.md'),(Join-Path $JarvisClientRoot 'docs\VOICE_PRIVACY.md'),(Join-Path $JarvisClientRoot 'docs\VOICE_SETUP.md') -Destination $clientBundle
+    Copy-Item -LiteralPath (Join-Path $JarvisClientRoot 'docs\TTS_PROVIDERS.md') -Destination $clientBundle
     $clientVersion = & $JarvisClientPython -c "import sys; sys.path.insert(0, 'desktop-client'); from jarvis_client import __version__; print(__version__)"
     if ($LASTEXITCODE -ne 0 -or $clientVersion -notmatch '^\d+\.\d+\.\d+$') { throw 'Clientversie bepalen mislukt.' }
-    $clientArchive = Join-Path $JarvisClientRoot ('.local\client-build\JARVIS-Windows-' + $clientVersion + '-x64.zip')
+    $clientArchive = Join-Path $JarvisClientRoot ($clientBuildDirectory + '/JARVIS-Windows-' + $clientVersion + '-x64.zip')
     Compress-Archive -LiteralPath $clientBundle -DestinationPath $clientArchive -Force
     Get-FileHash -LiteralPath (Join-Path $clientBundle 'JARVIS.exe'),$clientArchive -Algorithm SHA256 | Select-Object Path,Hash
     Write-Output ('Portable app: ' + (Join-Path $clientBundle 'JARVIS.exe'))

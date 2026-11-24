@@ -111,3 +111,42 @@ def test_contacts_search_alias_sync_and_logout_clear(qt):
     view.contact_search.setText("onbekend");assert view.contact_list.count()==0
     view.clear();assert not view.contact_items and view.contact_list.count()==0 and not view.tabs.isEnabled()
     window.close()
+
+
+def test_voice_studio_lists_only_available_voices_and_saves_revision(qt):
+    window,view=panel(qt)
+    view.document["settings"]["voice"]={"voice":"ronnie","supertonic_voice":"M1","profile":"classic_butler"}
+    view.load_studio();method,path,body,callback=window.calls[-1]
+    assert method=="GET" and path.endswith("/voice-studio")
+    callback({"providers":[{"id":"supertonic","name":"Supertonic 3","voices":[{"id":"M1","name":"M1","available":True},{"id":"M2","name":"M2","available":False}]}]})
+    assert view.studio_voice.count()==1
+    view.studio_speed.setValue(.9);view.favorite_studio()
+    method,path,body,_=window.calls[-1]
+    assert method=="PATCH" and path.endswith("/settings/voice") and body["revision"]==7
+    assert body["changes"]["tts_provider"]=="supertonic" and body["changes"]["speed"]==.9
+    assert body["changes"]["profile"]=="custom"
+    window.close()
+
+
+def test_voice_studio_uses_cancellable_voice_connection_and_clears_private_text(qt):
+    import base64,json
+    from types import SimpleNamespace
+    window,view=panel(qt);requests=[];played=[]
+    class Worker:
+        centralized=True
+        def request(self,path,body,valid):
+            requests.append((path,body,valid))
+            return json.dumps({"audio":base64.b64encode(b"synthetic").decode(),"provider":"supertonic","voice":"M1","seconds":.1}).encode()
+    class Jobs:
+        def submit(self,work,done,failed):done(work(None))
+    window.voice=SimpleNamespace(worker=Worker(),switch_worker=lambda:None,stop=lambda:None,play_preview=lambda data,volume:played.append((data,volume)))
+    window.jobs=Jobs();window.running=False
+    view.document["settings"]["voice"]={"voice":"ronnie","supertonic_voice":"M1"}
+    view.studio_voice.addItem("Synthetic",("supertonic","M1"));view.studio_text.setPlainText("Synthetische tekst.")
+    view.preview_studio(False)
+    assert requests[0][0].endswith("/voice-studio/preview") and requests[0][2]()
+    assert played==[(b"synthetic",.8)]
+    view.stop_studio();assert not requests[0][2]()
+    view.studio_text.setPlainText("Private synthetic input");view.clear()
+    assert "Private" not in view.studio_text.toPlainText()
+    window.close()

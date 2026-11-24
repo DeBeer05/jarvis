@@ -10,7 +10,7 @@ android {
         applicationId = "nl.jarvis.mobile"
         minSdk = 26
         targetSdk = 36
-        versionCode = 707
+        versionCode = 708
         versionName = "0.7.5"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "FIREBASE_APP_ID", "\"${providers.gradleProperty("firebaseAppId").getOrElse("")}\"")

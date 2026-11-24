@@ -116,8 +116,14 @@ class JarvisApi(val endpoint: Endpoint, private val vault: SecretVault) {
         val call = make("/api/v1/mobile/speech/transcribe", "POST", wav.toRequestBody("audio/wav".toMediaType()), bearer()); transcriptionCall = call
         try { call.execute().use { JSONObject(read(it).toString(Charsets.UTF_8)).getString("text") } } finally { if(transcriptionCall===call)transcriptionCall = null }
     }
-    suspend fun synthesize(text: String, speed: Float): ByteArray = withContext(Dispatchers.IO) {
-        val body = JSONObject().put("text", text).put("speed", speed)
+    suspend fun previewVoice(body:JSONObject):JSONObject=withContext(Dispatchers.IO) {
+        val call=make("/api/v1/natural/voice-studio/preview","POST",body.toString().toRequestBody("application/json".toMediaType()),bearer());synthesisCall=call
+        try {call.execute().use {JSONObject(read(it,8_000_000).toString(Charsets.UTF_8))}}finally{if(synthesisCall===call)synthesisCall=null}
+    }
+    suspend fun synthesize(text: String, speed: Float,utterance: String?=null,conversation:String?=null): ByteArray = withContext(Dispatchers.IO) {
+        val body = JSONObject().put("text", text)
+        if(utterance==null)body.put("speed",speed) else body.put("utterance_id",utterance)
+        conversation?.let {body.put("conversation_id",it)}
         val call = make("/api/v1/mobile/speech/synthesize", "POST", body.toString().toRequestBody("application/json".toMediaType()), bearer()); synthesisCall = call
         try { call.execute().use { read(it, 8_000_000) } } finally { if(synthesisCall===call)synthesisCall = null }
     }

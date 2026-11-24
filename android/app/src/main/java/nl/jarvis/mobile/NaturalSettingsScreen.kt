@@ -97,13 +97,14 @@ internal object SettingsDraft {
     Text(state.naturalStatus.ifBlank {"Globale voorkeuren synchroniseren met Windows. Microfoon en luidspreker blijven lokaal."})
     if(!state.connection.authenticated) { Text("Log in en koppel deze telefoon om je persoonlijke instellingen te openen.");return }
     var page by remember {mutableStateOf("Instellingen")}
-    Row(Modifier.horizontalScroll(rememberScrollState())) {listOf("Instellingen","Geheugen","Adresboek","Diagnostiek").forEach {name ->FilterChip(selected=page==name,onClick={page=name;if(name=="Geheugen")model.naturalMemory();if(name=="Adresboek")model.naturalContacts();if(name=="Diagnostiek")model.naturalDiagnostics()},label={Text(name)})}}
+    Row(Modifier.horizontalScroll(rememberScrollState())) {listOf("Instellingen","Geheugen","Adresboek","Voice Studio","Diagnostiek").forEach {name ->FilterChip(selected=page==name,onClick={page=name;if(name=="Geheugen")model.naturalMemory();if(name=="Adresboek")model.naturalContacts();if(name=="Voice Studio")model.voiceStudio();if(name=="Diagnostiek")model.naturalDiagnostics()},label={Text(name)})}}
     val context=LocalContext.current;val scope=rememberCoroutineScope();var exportText by remember {mutableStateOf("")}
     val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) {uri -> if(uri!=null) scope.launch {
         try { withContext(Dispatchers.IO) { context.contentResolver.openOutputStream(uri)?.use {it.write(exportText.toByteArray(Charsets.UTF_8))} ?: error("Geen uitvoerbestand") };model.message("Export opgeslagen") }
         catch(_:Exception) {model.message("Export kon niet worden opgeslagen")};exportText=""
     } }
     fun exportData(path: String,name: String) {model.exportNatural(path) {text -> exportText=text;export.launch(name)}}
+    if(page=="Voice Studio") {VoiceStudio(state,model);return}
     if(page=="Adresboek") {NaturalContacts(state,model);return}
     if(page=="Geheugen") {NaturalMemory(state,model) {exportData("/memory/export","jarvis-geheugen.json")};return}
     if(page=="Diagnostiek") {NaturalDiagnostics(state,model) {exportData("/diagnostics","jarvis-diagnostiek.json")};return}
@@ -286,4 +287,36 @@ internal object SettingsDraft {
         }){Text("Opslaan")}},dismissButton={TextButton(onClick={editing=null}){Text("Annuleren")}})
     }
     deleting?.let {item ->AlertDialog(onDismissRequest={deleting=null},title={Text("Contact verwijderen?")},text={Text("Bestaande mailvoorstellen blijven ongewijzigd.")},confirmButton={TextButton(onClick={model.naturalContactDelete(item.getString("id"),item.getInt("revision"));deleting=null}){Text("Verwijderen")}},dismissButton={TextButton(onClick={deleting=null}){Text("Annuleren")}})}
+}
+
+
+@Composable private fun VoiceStudio(state:ScreenState,model:JarvisViewModel) {
+    var text by remember {mutableStateOf("Goedemorgen, meneer. Uw agenda is bijgewerkt en u heeft twee belangrijke berichten ontvangen.")}
+    var speed by remember {mutableFloatStateOf(.95f)};var volume by remember {mutableFloatStateOf(.8f)};var selected by remember {mutableIntStateOf(0)}
+    val voices=mutableListOf<Pair<String,String>>()
+    val providers=objectOrEmpty(state.voiceStudio).optJSONArray("providers") ?: JSONArray()
+    (0 until providers.length()).map{providers.getJSONObject(it)}.forEach {provider ->
+        val list=provider.optJSONArray("voices") ?: JSONArray()
+        (0 until list.length()).map{list.getJSONObject(it)}.filter{it.optBoolean("available")}.forEach {voices.add(provider.getString("id") to it.getString("id"))}
+    }
+    fun settings(choice:Pair<String,String>):JSONObject {
+        val voice=JSONObject(JSONObject(state.naturalSettings).getJSONObject("settings").getJSONObject("voice").toString())
+        voice.put("profile","custom").put("mode","manual").put("tts_provider",choice.first).put("speed",speed.toDouble()).put("volume",volume.toDouble())
+        voice.put(if(choice.first=="supertonic")"supertonic_voice" else "voice",choice.second)
+        return voice
+    }
+    Column(Modifier.heightIn(max=650.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+        Text("Vaste lokale stemmen vergelijken. Dit opent de microfoon niet. Profielen zijn instellingen, geen getrainde stemmen. Pitch en expressiviteit zijn niet ondersteund.")
+        Button(onClick=model::voiceStudio){Text("Stemmen ophalen")}
+        voices.forEachIndexed {index,choice->FilterChip(selected=selected==index,onClick={selected=index},label={Text(choice.first+" · "+choice.second)})}
+        OutlinedTextField(text,{text=it},label={Text("Voorbeeldtekst, maximaal 350 tekens")},modifier=Modifier.fillMaxWidth())
+        Text("Spreeksnelheid ${String.format(java.util.Locale.ROOT,"%.2f",speed)}×");Slider(speed,{speed=it},valueRange=.7f..1.5f)
+        Text("Volume ${(volume*100).roundToInt()}%");Slider(volume,{volume=it},valueRange=0f..1f)
+        val ready=voices.isNotEmpty() && selected in voices.indices && text.length in 1..350 && state.naturalSettings.isNotBlank() && !state.busy && !state.recording
+        Button(enabled=ready,onClick={model.voiceStudioCompare(text,listOf(settings(voices[selected])))}){Text("Beluisteren")}
+        OutlinedButton(enabled=ready,onClick={model.voiceStudioCompare(text,voices.map{settings(it)})}){Text("Vergelijk achter elkaar")}
+        OutlinedButton(enabled=ready,onClick={model.voiceStudioSave(settings(voices[selected]))}){Text("Als favoriete stem opslaan")}
+        OutlinedButton(onClick=model::stop){Text("Stop stemvoorbeeld")}
+        Text(state.naturalStatus)
+    }
 }

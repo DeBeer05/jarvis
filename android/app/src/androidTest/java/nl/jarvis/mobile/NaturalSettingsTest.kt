@@ -34,7 +34,7 @@ class NaturalSettingsTest {
         assertEquals(SettingsDraft.canonical(original.getJSONObject("autonomy")),SettingsDraft.canonical(validated.getJSONObject("autonomy")))
         draft.getJSONObject("ai").put("temperature","not-a-number")
         assertThrows(Exception::class.java) {SettingsDraft.validated(draft.toString(),schema)}
-        assertEquals(13,schema.getJSONObject("categories").length())
+        assertEquals(14,schema.getJSONObject("categories").length())
     }
 
     @Test fun nativeSettingsRenderTypedFieldsAndKeepUnsavedInputUntilCancel() {
@@ -66,6 +66,21 @@ class NaturalSettingsTest {
         compose.onNodeWithText("E-mailadres").assertExists()
         compose.onNodeWithText("Annuleren").performClick()
         compose.onNodeWithText("Contact toevoegen").assertDoesNotExist()
+    }
+
+
+    @Test fun voiceStudioShowsInstalledVoicesAndTypedPreviewWithoutRecording() {
+        val data=fixture();val context=InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as JarvisApplication
+        lateinit var model:JarvisViewModel
+        compose.runOnUiThread {model=JarvisViewModel(context);store.put("synthetic-studio",model)}
+        val catalogue="""{"providers":[{"id":"supertonic","voices":[{"id":"M1","available":true},{"id":"M2","available":false}]}]}"""
+        val state=ScreenState(connection=Connection(online=true,authenticated=true),naturalSettings=data.getJSONObject("document").toString(),voiceStudio=catalogue)
+        compose.setContent {JarvisTheme("dark") {Column {NaturalSettingsScreen(state,model)}}}
+        compose.onNodeWithText("Voice Studio").performClick()
+        compose.onNodeWithText("supertonic · M1").assertExists()
+        compose.onNodeWithText("supertonic · M2").assertDoesNotExist()
+        compose.onNodeWithText("Beluisteren").assertExists()
+        compose.onNodeWithText("Voorbeeldtekst, maximaal 350 tekens").assertExists()
     }
 
 }

@@ -13,6 +13,8 @@ from jarvis_client.api import ClientError
 class ServerInferenceWorker:
     def __init__(self,api,*,client_factory=httpx.AsyncClient):
         self.api=api;self.client_factory=client_factory;self.loop=None;self.thread=None;self.client=None
+        self.centralized=True
+        self.utterance_id=None;self.conversation_id=None
         self.lock=threading.RLock();self.serial=threading.Lock();self.future=None;self.closing=False;self.cleanup_threads=[]
 
     @property
@@ -95,10 +97,13 @@ class ServerInferenceWorker:
             return {**result,"device":"server"}
         except (ValueError,TypeError,AttributeError):raise ClientError("invalid_response","Ongeldige spraakherkenning ontvangen.") from None
 
+    def begin_utterance(self,identifier,conversation):
+        self.utterance_id=identifier;self.conversation_id=conversation
+
     def synthesize(self,text,settings,valid):
         if not 1<=len(text)<=700:raise ValueError("Ongeldige lengte voor spraak.")
         start=time.perf_counter()
-        data=self.request("/api/v1/mobile/speech/synthesize",body={"text":text,"speed":settings.speed},valid=valid)
+        data=self.request("/api/v1/mobile/speech/synthesize",body={"text":text,**({"speed":settings.speed} if not self.utterance_id else {}),**({"utterance_id":self.utterance_id} if self.utterance_id else {}),**({"conversation_id":self.conversation_id} if self.conversation_id else {})},valid=valid)
         return data,{"seconds":time.perf_counter()-start,"device":"server"}
 
     def cancel(self):

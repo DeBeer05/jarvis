@@ -2,6 +2,7 @@
   "schema": {
     "schema_version": 1,
     "categories": {
+      "responses": "Antwoordgedrag",
       "general": "Algemeen",
       "conversations": "Gesprekken",
       "listening": "Luisteren",
@@ -32,7 +33,7 @@
       "buffer_minutes": "Buffer tussen afspraken (minuten)",
       "buffer_ms": "Audiobuffer (ms)",
       "cache": "Audiocache",
-      "calendar": "Agenda",
+      "calendar": "Agenda samenvatten",
       "cloud_memories": "Gewone herinneringen naar cloud-AI toestaan",
       "cloud_sensitive": "Gevoelige herinneringen naar cloud",
       "combine_questions": "Ontbrekende vragen combineren",
@@ -109,7 +110,26 @@
       "whisper_model": "Whisper-model",
       "work_end": "Werkdag eindigt",
       "work_start": "Werkdag begint",
-      "workdays": "Werkdagen"
+      "workdays": "Werkdagen",
+      "responses": "Antwoordgedrag",
+      "mode": "Standaardmodus",
+      "spoken": "Gesproken antwoordlengte",
+      "written": "Geschreven antwoordlengte",
+      "progressive": "Eerst de kern, details op verzoek",
+      "background": "Hoeveelheid achtergrondinformatie",
+      "avoid_repetition": "Herhalingen voorkomen",
+      "prioritize": "Belangrijke informatie eerst",
+      "brief_confirmations": "Korte taakbevestigingen",
+      "email": "E-mails samenvatten",
+      "news": "Nieuws samenvatten",
+      "messages": "Berichten samenvatten",
+      "details_on_request": "Uitgebreide informatie op verzoek",
+      "honorific": "Aanspreekvorm (leeg = uit)",
+      "honorific_frequency": "Frequentie aanspreekvorm",
+      "confidence": "Zelfverzekerde spreekstijl",
+      "supertonic_voice": "Supertonic-mannenstem",
+      "steps": "Supertonic kwaliteitsstappen",
+      "pause_ms": "Pauze tussen tekstblokken (ms)"
     },
     "values": {
       "allow": "Automatisch toestaan",
@@ -138,7 +158,24 @@
       "saving": "Energiebesparend",
       "very_proactive": "Zeer proactief",
       "wake": "Wake word",
-      "within_rules": "Zelfstandig binnen regels"
+      "within_rules": "Zelfstandig binnen regels",
+      "classic_butler": "Classic Butler",
+      "modern_butler": "Modern Butler",
+      "deep_butler": "Deep Butler (configuratie)",
+      "cinematic": "Cinematic Assistant",
+      "automatic": "Automatisch",
+      "fast": "Snel",
+      "offline": "Alleen lokaal",
+      "ultrashort": "Ultrakort",
+      "short": "Kort",
+      "extended": "Uitgebreid",
+      "full": "Volledig",
+      "occasionally": "Af en toe",
+      "supertonic": "Supertonic 3",
+      "piper": "Piper",
+      "daily": "Dagelijks gesprek",
+      "technical": "Technische uitleg",
+      "briefing": "Korte briefing"
     },
     "voice_capabilities": {
       "runtime_installed": true,
@@ -733,6 +770,7 @@
             "profile": {
               "default": "friendly",
               "enum": [
+                "classic_butler",
                 "classic",
                 "professional",
                 "friendly",
@@ -744,6 +782,28 @@
               ],
               "title": "Profile",
               "type": "string"
+            },
+            "honorific": {
+              "default": "",
+              "maxLength": 30,
+              "title": "Aanspreekvorm (leeg = uit)",
+              "type": "string"
+            },
+            "honorific_frequency": {
+              "default": "off",
+              "enum": [
+                "off",
+                "occasionally"
+              ],
+              "title": "Honorific Frequency",
+              "type": "string"
+            },
+            "confidence": {
+              "default": 90,
+              "maximum": 100,
+              "minimum": 0,
+              "title": "Zelfverzekerde spreekstijl",
+              "type": "integer"
             },
             "formality": {
               "default": 35,
@@ -862,6 +922,135 @@
           "title": "Privacy",
           "type": "object"
         },
+        "ResponseSettings": {
+          "additionalProperties": false,
+          "properties": {
+            "profile": {
+              "default": "auto",
+              "enum": [
+                "auto",
+                "daily",
+                "technical",
+                "briefing",
+                "custom"
+              ],
+              "title": "Profile",
+              "type": "string"
+            },
+            "mode": {
+              "default": "auto",
+              "enum": [
+                "auto",
+                "ultrashort",
+                "short",
+                "balanced",
+                "extended",
+                "full"
+              ],
+              "title": "Mode",
+              "type": "string"
+            },
+            "spoken": {
+              "default": "short",
+              "enum": [
+                "auto",
+                "ultrashort",
+                "short",
+                "balanced",
+                "extended",
+                "full"
+              ],
+              "title": "Spoken",
+              "type": "string"
+            },
+            "written": {
+              "default": "balanced",
+              "enum": [
+                "auto",
+                "ultrashort",
+                "short",
+                "balanced",
+                "extended",
+                "full"
+              ],
+              "title": "Written",
+              "type": "string"
+            },
+            "summaries": {
+              "default": true,
+              "title": "Summaries",
+              "type": "boolean"
+            },
+            "progressive": {
+              "default": true,
+              "title": "Progressive",
+              "type": "boolean"
+            },
+            "technical_detail": {
+              "default": 40,
+              "maximum": 100,
+              "minimum": 0,
+              "title": "Technical Detail",
+              "type": "integer"
+            },
+            "background": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 0,
+              "title": "Background",
+              "type": "integer"
+            },
+            "avoid_repetition": {
+              "default": true,
+              "title": "Avoid Repetition",
+              "type": "boolean"
+            },
+            "followup_questions": {
+              "default": 10,
+              "maximum": 100,
+              "minimum": 0,
+              "title": "Followup Questions",
+              "type": "integer"
+            },
+            "prioritize": {
+              "default": true,
+              "title": "Prioritize",
+              "type": "boolean"
+            },
+            "brief_confirmations": {
+              "default": true,
+              "title": "Brief Confirmations",
+              "type": "boolean"
+            },
+            "email": {
+              "default": true,
+              "title": "Email",
+              "type": "boolean"
+            },
+            "calendar": {
+              "default": true,
+              "title": "Calendar",
+              "type": "boolean"
+            },
+            "news": {
+              "default": true,
+              "title": "News",
+              "type": "boolean"
+            },
+            "messages": {
+              "default": true,
+              "title": "Messages",
+              "type": "boolean"
+            },
+            "details_on_request": {
+              "default": true,
+              "title": "Details On Request",
+              "type": "boolean"
+            }
+          },
+          "title": "ResponseSettings",
+          "type": "object"
+        },
         "Tasks": {
           "additionalProperties": false,
           "properties": {
@@ -922,10 +1111,82 @@
               ]
             },
             "tts_provider": {
-              "const": "piper",
-              "default": "piper",
+              "default": "auto",
+              "enum": [
+                "auto",
+                "piper",
+                "supertonic"
+              ],
               "title": "Tts Provider",
+              "type": "string",
+              "x-unavailable": [
+                "supertonic"
+              ]
+            },
+            "mode": {
+              "default": "automatic",
+              "enum": [
+                "automatic",
+                "quality",
+                "fast",
+                "offline",
+                "manual"
+              ],
+              "title": "Mode",
               "type": "string"
+            },
+            "profile": {
+              "default": "classic_butler",
+              "enum": [
+                "classic_butler",
+                "modern_butler",
+                "deep_butler",
+                "cinematic",
+                "professional",
+                "friendly",
+                "fast",
+                "custom"
+              ],
+              "title": "Profile",
+              "type": "string"
+            },
+            "supertonic_voice": {
+              "default": "M1",
+              "enum": [
+                "M1",
+                "M2",
+                "M3",
+                "M4",
+                "M5"
+              ],
+              "title": "Supertonic Voice",
+              "type": "string",
+              "x-unavailable": [
+                "M1",
+                "M2",
+                "M3",
+                "M4",
+                "M5"
+              ]
+            },
+            "steps": {
+              "default": 8,
+              "maximum": 12,
+              "minimum": 2,
+              "title": "Supertonic kwaliteitsstappen",
+              "type": "integer"
+            },
+            "pause_ms": {
+              "default": 180,
+              "maximum": 1000,
+              "minimum": 0,
+              "title": "Pauze tussen tekstblokken (ms)",
+              "type": "integer"
+            },
+            "fallback": {
+              "default": true,
+              "title": "Fallback",
+              "type": "boolean"
             },
             "voice": {
               "default": "ronnie",
@@ -999,6 +1260,9 @@
       },
       "additionalProperties": false,
       "properties": {
+        "responses": {
+          "$ref": "#/$defs/ResponseSettings"
+        },
         "general": {
           "$ref": "#/$defs/General"
         },
@@ -1113,6 +1377,25 @@
   "document": {
     "revision": 0,
     "settings": {
+      "responses": {
+        "profile": "auto",
+        "mode": "auto",
+        "spoken": "short",
+        "written": "balanced",
+        "summaries": true,
+        "progressive": true,
+        "technical_detail": 40,
+        "background": 20,
+        "avoid_repetition": true,
+        "followup_questions": 10,
+        "prioritize": true,
+        "brief_confirmations": true,
+        "email": true,
+        "calendar": true,
+        "news": true,
+        "messages": true,
+        "details_on_request": true
+      },
       "general": {
         "assistant_name": "JARVIS",
         "address_name": "",
@@ -1159,7 +1442,13 @@
       "voice": {
         "stt_provider": "whisper",
         "whisper_model": "whisper-small",
-        "tts_provider": "piper",
+        "tts_provider": "auto",
+        "mode": "automatic",
+        "profile": "classic_butler",
+        "supertonic_voice": "M1",
+        "steps": 8,
+        "pause_ms": 180,
+        "fallback": true,
         "voice": "ronnie",
         "speaker": 0,
         "speed": 1.0,
@@ -1172,6 +1461,9 @@
       },
       "personality": {
         "profile": "friendly",
+        "honorific": "",
+        "honorific_frequency": "off",
+        "confidence": 90,
         "formality": 35,
         "humor": 35,
         "sarcasm": 5,

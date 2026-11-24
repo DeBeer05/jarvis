@@ -1,6 +1,7 @@
 """Authenticated settings and memory UI. Network calls use the window's workers."""
 from copy import deepcopy
 import json
+import base64
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QCheckBox,QComboBox,QDialog,QDialogButtonBox,QDoubleSpinBox,
@@ -64,6 +65,7 @@ class NaturalSettingsPanel(QWidget):
         for title,callback in (("Opslaan",self.save),("Annuleren",self.cancel),("Standaardwaarden",self.reset),("Vernieuwen",self.refresh),("Exporteren",self.export),("Importeren",self.import_data)):
             item=QPushButton(title);item.clicked.connect(callback);actions.addWidget(item)
         audio=QPushButton("Microfoon, luidspreker en stem testen");audio.clicked.connect(lambda:self.window.navigate(6));body.addWidget(audio)
+        self.make_studio()
         self.make_contacts()
         self.make_memory()
         self.make_diagnostics()
@@ -74,6 +76,8 @@ class NaturalSettingsPanel(QWidget):
         self.keys=[];self.search.clear();self.memory_search.clear()
         self.categories.clear();self.memory_list.clear();self.memory_items=[];self.summary_list.clear();self.summary_text.clear();self.summary_items=[]
         self.contact_items=[];self.contact_list.clear();self.contact_search.clear()
+        self.studio_queue=[];self.studio_serial=getattr(self,"studio_serial",0)+1
+        self.studio_text.setPlainText("Goedemorgen, meneer. Uw agenda is bijgewerkt en u heeft twee belangrijke berichten ontvangen.")
         self.diagnostic_document=None
         for value in self.diagnostic_labels.values():value.setText("Nog niet gemeten")
         self.scroll.takeWidget();self.status.setText("Log in om je instellingen en geheugen te openen.")
@@ -96,6 +100,7 @@ class NaturalSettingsPanel(QWidget):
         self.call("GET","/settings/schema",None,self.got_schema)
 
     def got_schema(self,data):
+        LABELS.update(data.get("labels",{}));VALUES.update(data.get("values",{}))
         self.schema=data;self.call("GET","/settings",None,self.loaded)
 
     def loaded(self,data):
@@ -385,3 +390,73 @@ class NaturalSettingsPanel(QWidget):
         item=self.visible_contacts[index]
         if QMessageBox.question(self,"Contact verwijderen","Dit contact uit het adresboek verwijderen? Bestaande mailvoorstellen blijven ongewijzigd.",QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.No,QMessageBox.StandardButton.No)==QMessageBox.StandardButton.Yes:
             self.call("DELETE","/contacts/"+item["id"]+"?revision="+str(item["revision"]),None,lambda _:self.load_contacts())
+
+
+    def make_studio(self):
+        page=QWidget();self.tabs.addTab(page,"Voice Studio");body=QVBoxLayout(page)
+        body.addWidget(label("Vergelijk vaste stemmen met dezelfde tekst. Profielen zijn instellingen, geen afzonderlijk getrainde stemmen. Dit opent de microfoon niet. Alle ondersteunde stemmen werken lokaal; pitch en expressiviteit zijn niet beschikbaar."))
+        self.studio_voice=QComboBox();body.addWidget(self.studio_voice)
+        self.studio_text=QPlainTextEdit("Goedemorgen, meneer. Uw agenda is bijgewerkt en u heeft twee belangrijke berichten ontvangen.");self.studio_text.setMaximumHeight(100);body.addWidget(self.studio_text)
+        self.studio_speed=QDoubleSpinBox();self.studio_speed.setRange(.7,1.5);self.studio_speed.setSingleStep(.05);self.studio_speed.setValue(.95)
+        speed=QFormLayout();speed.addRow("Spreeksnelheid",self.studio_speed)
+        self.studio_volume=QDoubleSpinBox();self.studio_volume.setRange(0,1);self.studio_volume.setSingleStep(.1);self.studio_volume.setValue(.8);speed.addRow("Volume",self.studio_volume);body.addLayout(speed)
+        self.studio_metrics=label("Nog niet gemeten");body.addWidget(self.studio_metrics)
+        actions=QHBoxLayout();body.addLayout(actions)
+        for title,callback in (("Stemmen ophalen",self.load_studio),("Beluisteren",lambda:self.preview_studio(False)),("Vergelijk achter elkaar",lambda:self.preview_studio(True)),("Als favoriete stem opslaan",self.favorite_studio),("Stop",self.stop_studio)):
+            button=QPushButton(title);button.clicked.connect(callback);actions.addWidget(button)
+        self.studio_queue=[];self.studio_serial=0;self.studio_connected=False
+        self.tabs.currentChanged.connect(lambda _:self.load_studio() if self.tabs.currentWidget() is page and self.document else None)
+
+    def load_studio(self):
+        if hasattr(self.window,"voice") and not self.studio_connected:
+            self.window.voice.preview_finished.connect(self.next_studio);self.studio_connected=True
+        def loaded(data):
+            self.studio_voice.clear()
+            for provider in data["providers"]:
+                for voice in provider["voices"]:
+                    if voice["available"]:self.studio_voice.addItem(provider["name"]+" · "+voice["name"],(provider["id"],voice["id"]))
+            self.status.setText("Voice Studio: beschikbare lokale stemmen opgehaald.")
+        self.call("GET","/voice-studio",None,loaded)
+
+    def studio_options(self,selection):
+        voice=deepcopy(self.document["settings"]["voice"]);provider,name=selection
+        voice.update(profile="custom",mode="manual",tts_provider=provider,speed=self.studio_speed.value(),volume=self.studio_volume.value())
+        voice["supertonic_voice" if provider=="supertonic" else "voice"]=name
+        return voice
+
+    def favorite_studio(self):
+        if not self.document or not self.studio_voice.currentData():return
+        if self.dirty:self.status.setText("Sla je overige wijzigingen eerst op of annuleer ze.");return
+        voice=self.studio_options(self.studio_voice.currentData())
+        self.call("PATCH","/settings/voice",{"revision":self.document["revision"],"changes":voice},self.loaded)
+
+    def stop_studio(self):
+        self.studio_queue=[];self.studio_serial+=1
+        if hasattr(self.window,"voice"):self.window.voice.stop()
+
+    def preview_studio(self,compare):
+        if not self.document or not hasattr(self.window,"voice") or self.window.running:return
+        self.stop_studio()
+        self.studio_queue=[self.studio_voice.itemData(i) for i in range(self.studio_voice.count())] if compare else [self.studio_voice.currentData()]
+        self.next_studio()
+
+    def next_studio(self):
+        if not self.studio_queue:return
+        selection=self.studio_queue.pop(0)
+        if not selection:return
+        text=self.studio_text.toPlainText().strip()
+        if not 1<=len(text)<=350:self.status.setText("Gebruik 1 tot 350 tekens voor het stemvoorbeeld.");self.stop_studio();return
+        serial=self.studio_serial;voice=self.studio_options(selection);self.status.setText("Stemvoorbeeld genereren…")
+        def ready(data):
+            if serial!=self.studio_serial:return
+            self.studio_metrics.setText(f"{data['provider']} · {data.get('voice',selection[1])} · eerste audio {data['seconds']:.2f} s · RAM helper {data.get('runtime_stats',{}).get('ram_bytes',0)/1048576:.1f} MiB")
+            self.window.voice.play_preview(base64.b64decode(data["audio"],validate=True),voice["volume"])
+        self.window.voice.switch_worker()
+        worker=self.window.voice.worker
+        if not getattr(worker,"centralized",False):self.status.setText("Verbind met de server om Voice Studio te gebruiken.");self.stop_studio();return
+        def generate(_):
+            raw=worker.request(BASE+"/voice-studio/preview",body={"text":text,"voice":voice},valid=lambda:serial==self.studio_serial)
+            return json.loads(raw)
+        def failed(error):
+            if serial==self.studio_serial:self.studio_queue=[];self.failed(error)
+        self.window.jobs.submit(generate,ready,failed)

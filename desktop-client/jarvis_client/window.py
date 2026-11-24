@@ -642,15 +642,19 @@ class MainWindow(QMainWindow):
             return
         kind = event["type"]
         if kind == "meta":
+            self.server_speech=bool(event.get("speech_protocol"))
             self.conversation = event["conversation_id"]
+            if hasattr(self.voice.worker,"begin_utterance"):self.voice.worker.begin_utterance(event["request_id"],self.conversation)
         elif kind == "provider":
             self.model_info.setText(str(event["provider"]) + " · " + str(event["model"]))
         elif kind == "delta":
-            self.voice.delta(event["text"])
+            if not getattr(self,"server_speech",False):self.voice.delta(event["text"])
             self.reply += event["text"]
             self.rows[-1] = ("JARVIS", self.reply)
             if not self.render_timer.isActive():
                 self.render_timer.start(40)
+        elif kind == "speech":
+            if getattr(self,"server_speech",False):self.voice.delta(event["text"])
         elif kind == "fallback":
             self.show_notice("Provider niet beschikbaar. JARVIS schakelt over naar " + event["to"] + ".")
         elif kind == "error":
