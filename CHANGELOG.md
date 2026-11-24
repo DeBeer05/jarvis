@@ -4,6 +4,9 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Handmatige spraakactivatie reserveert de centrale sessie vóór opname op Windows
+  en Android; annuleren maakt late activatie ongeldig.
+
 - Brongebonden invalidatie bewaart onverwante samenvattingen bij vergeten.
   Agenda-alternatieven blijven met volledige buffer binnen het gecontroleerde
   bereik. Android-instellingencontract wordt reproduceerbaar uit de backend

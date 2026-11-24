@@ -33,6 +33,31 @@ class ConversationSession(QObject):
         if not self.current or self.current["conversation_id"]!=self.window.conversation:self.claim(False,self.processing)
         else:self.processing(self.current)
 
+    def prepare_capture(self,done):
+        """Reserve this conversation before manually opening its microphone."""
+        if self.busy:return
+        self.busy=True
+        def ready(_):
+            self.busy=False
+            self.window.voice.activate_session()
+            done()
+        if not self.current or self.current["conversation_id"]!=self.window.conversation:
+            self.claim(False,ready)
+            return
+        expected=dict(self.current)
+        def checked(state):
+            if state["state"] in ("STANDBY","RECONNECTING","ENDING","ERROR"):
+                self.current=None;self.claim(False,ready);return
+            if state["epoch"]!=expected["epoch"] or state["device_id"]!=expected["device_id"]:
+                self.clear();self.window.voice.stop()
+                self.window.voice.problem.emit("Dit gesprek is op een ander apparaat actief. Neem het expliciet over.")
+                return
+            self.current=state
+            if state["state"] in ("PROCESSING","THINKING","ASSISTANT_SPEAKING","EXECUTING_ACTION"):
+                self.send_event("interrupted",lambda _:self.send_event("listening",ready))
+            else:self.send_event("listening",ready)
+        self.request("/"+expected["conversation_id"]+"/state",None,checked,method="GET")
+
     def claim(self,takeover,done):
         body={"takeover":takeover}
         if self.window.conversation:body["conversation_id"]=self.window.conversation

@@ -32,7 +32,7 @@ class ConversationSession(private val scope: CoroutineScope,private val api:()->
         }
     }
 
-    suspend fun prepare(conversation: String?,takeover: Boolean=false): AudioLease = lock.withLock {
+    suspend fun prepare(conversation: String?,takeover: Boolean=false,processing: Boolean=true): AudioLease = lock.withLock {
         check(foreground()) {"Open de app voordat je praat"}
         val client=api() ?: throw MobileError("offline",message="Server niet beschikbaar")
         val expected=serial
@@ -49,7 +49,7 @@ class ConversationSession(private val scope: CoroutineScope,private val api:()->
             lease=send(client,lease,"listening")
         }
         if(lease.state in setOf("PROCESSING","THINKING","ASSISTANT_SPEAKING","EXECUTING_ACTION"))lease=send(client,lease,"interrupted")
-        lease=send(client,lease,"processing")
+        lease=send(client,lease,if(processing)"processing" else "listening")
         check(expected==serial && foreground() && api()===client) {"Gespreksactivatie geannuleerd"}
         session=lease;transport=client;changed(lease);keepAlive();lease
     }

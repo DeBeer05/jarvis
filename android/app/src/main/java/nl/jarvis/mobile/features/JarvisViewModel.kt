@@ -391,6 +391,12 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
         mutable.update {it.copy(recording=true,voiceStatus="Ik luister…",error="")}
         audioJob=viewModelScope.launch {
             try {
+                if(naturalEnabled()) {
+                    mutable.update {it.copy(voiceStatus="Gesprek activeren…")}
+                    val lease=conversationSession.prepare(mutable.value.conversation,processing=false)
+                    if(epoch!=generation)return@launch
+                    mutable.update {it.copy(conversation=lease.conversation,voiceStatus="Ik luister…")}
+                }
                 audio.normalSilenceMs=listening?.optInt("normal_silence_ms",900) ?: 900
                 audio.turnRecognizer=if(listening?.optBoolean("adaptive")==true) {wav -> api.transcribe(wav)} else null
                 val wav=audio.record(mutable.value.preferences.inputDevice,threshold=listening?.optDouble("vad_threshold")?.toFloat() ?: .015f,

@@ -74,3 +74,22 @@ def test_native_session_uses_epoch_and_rejects_late_callbacks(qt,tmp_path,vault)
     callback=calls[-1][3];controller.clear();callback({**session,"state":"PROCESSING","revision":3})
     assert not sent and controller.current is None
     app.closing=True;app.voice_panel.close_voice();app.tray.hide();app.close()
+
+
+def test_manual_capture_waits_for_ownership_and_stop_invalidates_activation(qt,tmp_path,vault):
+    app=window(tmp_path,vault);app.voice.configure_natural(options());app.principal={"permissions":["chat:write"]}
+    calls=[];opened=[]
+    app.call=lambda method,path,body,done,failure=None:calls.append((method,path,deepcopy(body),done))
+    controller=app.voice_session
+    controller.prepare_capture(lambda:opened.append(True))
+    controller.prepare_capture(lambda:opened.append(False))
+    assert len(calls)==1 and not opened
+    session={"conversation_id":"synthetic-conversation","device_id":"synthetic-device","epoch":3,"revision":1,"state":"ACTIVATING"}
+    calls[-1][3](session)
+    assert not opened and calls[-1][2]["event"]=="listening"
+    calls[-1][3]({**session,"state":"LISTENING","revision":2})
+    assert opened==[True] and app.conversation==session["conversation_id"]
+    controller.clear();controller.prepare_capture(lambda:opened.append(False))
+    callback=calls[-1][3];controller.clear();callback(session)
+    assert opened==[True] and controller.current is None
+    app.closing=True;app.voice_panel.close_voice();app.tray.hide();app.close()

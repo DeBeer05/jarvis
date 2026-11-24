@@ -599,6 +599,9 @@ class MainWindow(QMainWindow):
     def voice_ptt(self):
         if self.running and not self.voice.recording:
             self.stop_answer()
+        if not self.voice.recording and self.voice_session.enabled() and self.principal and self.voice.consent:
+            self.voice_session.prepare_capture(self.voice.toggle_recording)
+            return
         self.voice.toggle_recording()
 
     def voice_metrics(self,measurements):

@@ -2,6 +2,16 @@
 
 ## Huidige opdracht
 
+Handmatige spraakactivatie reserveert op Windows en Android de centrale
+gesprekslease vóór microfoonopname. Bij conflict wordt geen opname gestart;
+annuleren negeert late activatiecallbacks. Dezelfde conversation_id blijft
+behouden voor de daaropvolgende transcriptbeurt. Windows **106 geslaagd**, 4,69 s;
+Android **14 instrumentatietests geslaagd**, unit/lint/debug-build geslaagd
+(99 s), uitsluitend emulator-5556. Python-lint/typechecks geslaagd.
+De laatste backendregressie blijft 365 geslaagd; deze stap wijzigt alleen clients.
+Fase 7.5 blijft open voor overige instellingen, vervolgtaaklogica, definitieve
+builds/installatie en menselijke spraak-/echoproeven. Geen fase 8 gestart.
+
 Brongebonden samenvattinginvalidatie hersteld: vergeten/corrigeren behoudt
 onverwante notities en volgt bronbeurten en werkelijk gebruikt geheugen.
 Agenda-alternatieven en hun buffertijd blijven binnen het opgehaalde bereik.

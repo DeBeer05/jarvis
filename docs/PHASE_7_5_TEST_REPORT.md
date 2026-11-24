@@ -8,10 +8,10 @@ de nieuwe versie omgezet. Alle onderstaande nieuwe accountproeven zijn synthetis
 
 | Controle | Laatste resultaat | Bewijs / grens |
 |---|---|---|
-| Volledige serverregressie | 355 geslaagd, 141,84 s | Inclusief fases 1–7 en nieuwe context/privacy/taak-/settingsproeven; tijdelijke databases |
-| Windows-client | 99 geslaagd | Qt offscreen, audiowerkers, instellingen, cancel/TCP en synthetische duplex |
+| Volledige serverregressie | 365 geslaagd, 157,06 s | Inclusief fases 1–7, brongebonden samenvattingen en begrensde agenda-alternatieven; tijdelijke databases |
+| Windows-client | 106 geslaagd, 4,69 s | Qt offscreen; inclusief sessiereservering vóór opname en annulering van late activatie |
 | Python-lint | Geslaagd | Ruff F/E9 op nieuwe natuurlijke-gesprekscode en betrokken adapters/tests |
-| Typechecks | Geslaagd | 23 kernmodules, 5 Windows-voiceadapters; check_untyped_defs en beide platformprofielen |
+| Typechecks | Geslaagd | 25 kernmodules, 5 Windows-voiceadapters; check_untyped_defs |
 | Dependencycontrole | Geslaagd | pip check, geïsoleerde server/clientomgevingen |
 | Android unit/lint/debug/release | Geslaagd | Native Gradle/Kotlin; bestaande lint-/nullable-waarschuwingen blijven onderscheiden van fouten |
 | Android instrumented | 14 tests, 0 fouten | Afzonderlijke headless API-36-AVD, hostmicrofoon/luidspreker uit |

@@ -28,6 +28,11 @@ opslag, vóór generatie en vóór het afleveren van antwoorddelen.
 
 ## Sessies en races
 
+Handmatige spraakactivatie op Windows en Android reserveert eerst de centrale
+lease en wacht op LISTENING voordat opname begint. Een conflict opent geen
+microfoon; stoppen maakt nog onderweg zijnde activatiecallbacks ongeldig.
+Passief wachten op een wake word is lokaal en betekent nog geen gespreksovername.
+
 `POST /api/v1/natural/conversations/start` activeert een nieuw gesprek of hervat
 een bestaand gesprek van dezelfde gebruiker. Een actieve lease op een ander
 apparaat geeft 409; uitsluitend `takeover=true` neemt haar expliciet over.
