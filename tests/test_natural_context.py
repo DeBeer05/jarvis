@@ -79,7 +79,8 @@ def test_offline_covers_internal_automation_calls_and_failed_local_fallback(sett
         assert not providers["gemini"].calls
 
 
-def test_forgotten_memory_cannot_reenter_through_history_or_summary(settings):
+@pytest.mark.parametrize("clear",[False,True])
+def test_forgotten_memory_cannot_reenter_through_history_or_summary(settings,clear):
     app,providers=build(settings)
     with client(app) as c:
         memory=c.post("/api/v1/natural/memory",json={"content":"Het project heet lantaarn"}).json()
@@ -88,7 +89,8 @@ def test_forgotten_memory_cannot_reenter_through_history_or_summary(settings):
         principal=app.state.security.store.authenticate(c.cookies.get("jarvis_access"))
         summary=app.state.natural.context.summarize(principal,cid,force=True)
         assert summary and c.get("/api/v1/natural/summaries").json()["items"]
-        assert c.delete("/api/v1/natural/memory/"+memory["id"]).status_code==200
+        response=c.post("/api/v1/natural/memory/clear",json={"confirmed":True}) if clear else c.delete("/api/v1/natural/memory/"+memory["id"])
+        assert response.status_code==200
         assert not c.get("/api/v1/natural/summaries").json()["items"]
         c.post("/api/v1/chat",json={"message":"Ga verder","provider":"ollama","conversation_id":cid})
         assert "Wat heet het project?" not in str(providers["ollama"].calls[-1])

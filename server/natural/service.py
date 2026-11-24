@@ -5,6 +5,7 @@ from server.natural.memory import MemoryManager
 from server.natural.conversation import NaturalConversationManager
 from server.natural.context import ContextManager
 from server.natural.store import Conflict
+from server.natural.tasks import TaskMemory
 import re
 
 
@@ -16,6 +17,7 @@ class NaturalService:
         self.security,self.chat,self.automation=security,chat,automation
         self.conversations=NaturalConversationManager(self.store,self.settings,chat)
         self.context=ContextManager(self.store,self.settings,self.memory,chat.settings)
+        self.tasks=TaskMemory(self.store,self.settings,automation)
         chat.natural=self
 
     def authorize_conversation(self,principal,conversation):

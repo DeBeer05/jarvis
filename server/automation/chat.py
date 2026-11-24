@@ -6,7 +6,7 @@ import re
 import time
 import httpx
 from dataclasses import replace
-from datetime import datetime, timedelta, UTC
+from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from server.automation.models import REGISTRY, validate
@@ -14,6 +14,7 @@ from server.automation.google import REQUEST_GUARD
 from server.automation.store import encode, fingerprint
 from server.security.types import AuthError
 from server.automation.chat_approval import ChatApprovals
+from server.natural.temporal import resolve, AmbiguousTime
 
 TOPIC = re.compile(r"\b(agenda\w*|afsprak\w*|afspraak\w*|kalender\w*|calendar\w*|meeting\w*|vergadering\w*|(?:e[-‑]?)?mails?\w*|concept\w*|inbox|postvak|bericht\w*|herinner\w*|reminder\w*|melding\w*|notificatie\w*|workflow\w*|automatisering\w*)\b|\bwat (?:staat|heb).*\bgepland\b", re.I)
 REFERENCE = re.compile(r"\b(eerste|tweede|derde|vierde|vijfde|\d+(?:e|de|ste)|deze|die|dat|dit|verstuur|verzend|verzet|verplaats|annuleer|antwoord\w*|ja|akkoord|oké|nee)\b", re.I)
@@ -28,6 +29,7 @@ class AutomationChat:
         self.clock = clock
         self.references = {}
         self.approvals = ChatApprovals(self)
+        self.task_memory=None
 
     def key(self, run):
         return (run.principal.session_id, run.principal.device_id, run.conversation_id)
@@ -35,7 +37,15 @@ class AutomationChat:
     def memory(self, run):
         now = self.clock()
         self.references = {k:v for k,v in self.references.items() if now-v[0] < 900}
-        memory=self.references.get(self.key(run), (now, {}))[1]
+        entry=self.references.get(self.key(run))
+        if entry is None and self.task_memory:
+            try:
+                restored=self.task_memory.load(run)
+                entry=(now,restored)
+                if restored:self.references[self.key(run)]=entry
+            except AuthError:
+                entry=None
+        memory=entry[1] if entry else {}
         for job in memory.get("jobs",[]):
             if job.get("tool")!="EmailDraft":continue
             try:row=self.engine.store.get(job["id"])
@@ -54,6 +64,7 @@ class AutomationChat:
         if len(self.references) >= 100:
             self.references.pop(next(iter(self.references)))
         self.references[self.key(run)] = (self.clock(), memory)
+        if self.task_memory:self.task_memory.save(run,memory)
 
     def candidate(self, run):
         if run.principal is None:return False
@@ -163,29 +174,24 @@ class AutomationChat:
             matching=[d for d in self.memory(run).get("drafts",[]) if d["draft_id"]==data["input"]["draft_id"]]
             if len(matching)!=1:raise ValueError("Unknown draft")
             data["input"]={key:matching[0][key] for key in ("draft_id","message_hash","preview")}
-        payload=self.temporal(data["tool"],data["input"],run.message)
+        if data["tool"] not in READ:self.guard(run,"automation:write")
+        payload=self.temporal(data["tool"],data["input"],run.message,run=run)
         return {"tool":data["tool"],"input":validate(data["tool"],payload)}, provider
 
     @staticmethod
-    def temporal(tool,payload,instruction):
+    def temporal(tool,payload,instruction,*,run=None):
         if not isinstance(payload,dict):raise ValueError("Invalid input")
-        payload=dict(payload);zone=ZoneInfo("Europe/Amsterdam");now=datetime.now(zone)
-        day=next((offset for word,offset in (("overmorgen",2),("morgen",1),("vandaag",0)) if re.search(r"\b"+word+r"\b",instruction,re.I)),None)
-        if tool=="CalendarRead" and day is not None and not re.search(r"\b\d{1,2}[:.]\d{2}\b|\b(?:om|tussen|vanaf|tot)\s+\d",instruction,re.I):
-            start=now.replace(hour=0,minute=0,second=0,microsecond=0)+timedelta(days=day)
-            payload.update(start=start.isoformat(),end=(start+timedelta(days=1)).isoformat())
+        payload=dict(payload)
+        if tool not in ("CalendarRead","ReminderCreate"):return payload
+        config=run.natural_context["settings"] if run and run.natural_context else None
+        timezone=config["general"]["timezone"] if config else "Europe/Amsterdam"
+        hint=resolve(instruction,timezone=timezone)
+        if tool=="CalendarRead" and hint.window_end:
+            payload.update(start=hint.start.isoformat(),end=hint.window_end.isoformat())
         if tool=="ReminderCreate":
-            relative=re.search(r"\b(?:over|binnen)\s+(\d{1,3})\s*(minuten?|min|uur|uren|dagen?)\b",instruction,re.I)
-            clock=re.search(r"\bom\s+(\d{1,2})(?::(\d{2}))?\b",instruction,re.I)
-            if relative:
-                count=int(relative[1]);unit=relative[2].casefold()
-                payload.update(at=(now+timedelta(seconds=count*(60 if unit.startswith('min') else 86400 if unit.startswith('dag') else 3600))).isoformat(),timezone="Europe/Amsterdam")
-            elif day is not None and clock:
-                hour=int(clock[1]);minute=int(clock[2] or 0)
-                if hour<12 and re.search(r"avond|middag",instruction,re.I):hour+=12
-                at=(now+timedelta(days=day)).replace(hour=hour,minute=minute,second=0,microsecond=0)
-                if at.astimezone(UTC).astimezone(zone).replace(tzinfo=None)!=at.replace(tzinfo=None):raise ValueError("Nonexistent local time")
-                payload.update(at=at.isoformat(),timezone="Europe/Amsterdam")
+            if hint.clarification:raise AmbiguousTime(hint.clarification)
+            if hint.start and hint.clock:payload.update(at=hint.start.isoformat(),timezone=timezone)
+            elif hint.date:raise AmbiguousTime("Hoe laat wil je die herinnering ontvangen?")
         return payload
 
     async def stream(self, run):
@@ -196,6 +202,9 @@ class AutomationChat:
         except AuthError:
             result = "Dit apparaat heeft geen geldige toegang tot deze functie. Laat de eigenaar bij Automatiseringen de rechten controleren: automation:read voor lezen, automation:write voor taken en automation:approve voor goedkeuren."
             provider = None
+        except AmbiguousTime as error:
+            result=str(error)
+            provider=None
         except (ValueError, KeyError, TypeError):
             result = "Ik kon geen veilige, eenduidige actie afronden. Geef de afspraak, ontvanger of het tijdstip concreter aan en controleer bij een leesfout je Google-koppeling en rechten. Ik heb geen bevestigde externe wijziging uitgevoerd."
             provider = None
@@ -239,7 +248,7 @@ class AutomationChat:
         day_followup=observations.get("recent")==[{"kind":"events"}] and re.fullmatch(r"\s*(?:en\s+)?(?:vandaag|morgen|overmorgen)(?:\s+dan)?\s*[?.!]*",run.message,re.I)
         if day_question or day_followup:
             previous=observations.get("calendar_query",[{}])[0] if day_followup else {}
-            payload=self.temporal("CalendarRead",{"calendar_id":previous.get("calendar_id","primary"),"query":previous.get("query","")},run.message)
+            payload=self.temporal("CalendarRead",{"calendar_id":previous.get("calendar_id","primary"),"query":previous.get("query","")},run.message,run=run)
             _,result=await self.read(run,"CalendarRead",validate("CalendarRead",payload))
             self.guard(run,"automation:read")
             return result,None

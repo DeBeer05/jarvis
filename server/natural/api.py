@@ -64,6 +64,10 @@ class SummaryUpdate(StrictModel):
 def summaries(request:Request):return service(request).context.summaries(request.state.principal)
 
 
+@router.get("/tasks")
+def pending_tasks(request:Request):return service(request).tasks.list(request.state.principal)
+
+
 @router.put("/summaries/{identifier}")
 def edit_summary(request:Request,identifier:UUID,body:SummaryUpdate):
     return result(lambda:service(request).context.edit_summary(request.state.principal,str(identifier),body.content,body.revision))

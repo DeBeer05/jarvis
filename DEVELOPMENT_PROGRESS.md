@@ -39,6 +39,18 @@ budgetfouten en gelijktijdige request-local providerconfiguratie.
 Nog te doen: uitgebreidere intent-/taakcontext, audio/streaming, beide client-GUI's,
 overige geheugen-/samenvattingsflow, metingen, builds en acceptatietests.
 
+Nederlandse TemporalResolver toegevoegd: relatieve dagen/weken, weekdagen,
+half-/kwarttijden, relatieve minuten/uren, duur en tijdcorrecties op een bekende
+anchor. Ambigue dagdelen en werk-eindtijden vragen verduidelijking. Zomer- en
+wintertijdgaten/dubbele tijden worden afgewezen; relatieve duur rekent in UTC.
+CalendarRead/ReminderCreate hergebruiken deze resolver; uitgebreide afspraak-
+slotextractie volgt nog. TaskMemory bewaart begrensde gevalideerde referenties,
+onafgeronde vragen en job-ID's in bestaande SQLite-tabellen. AutomationEngine
+blijft de enige uitvoerder. Goedkeuringsnonces/previewtijd/decision-authority
+worden nooit hersteld. Geen externe accountmutaties uitgevoerd.
+Volledige regressiesuite na tijd-/taakcontext: **301 geslaagd**, 110,93 s.
+Windows-instellingenmenu is in uitvoering; nog geen nieuwe clientbuild/installatie.
+
 ### Eén gesproken ja voor mail en agenda — 24 november 2026
 
 Nieuwe expliciete opdracht vervangt de eerdere beperking op een korte ja:

@@ -79,7 +79,7 @@ def test_reminder_is_durable_once_and_past_time_rejected(tools_chat):
     assert len(app.state.automation.store.items())==1
     assert c.post("/api/v1/chat",json=body).status_code==409
     router.plans=[{"tool":"ReminderCreate","input":{**payload,"at":"2020-01-01T10:00:00+01:00"}}]
-    assert "verleden" in call(c,"Herinner me morgen aan de auto").json()["message"]
+    assert "verleden" in call(c,"Herinner me op 1 januari 2020 om 10:00 aan de auto").json()["message"]
     assert len(app.state.automation.store.items())==1
 
 

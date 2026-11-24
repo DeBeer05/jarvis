@@ -108,7 +108,7 @@ class MemoryManager:
 
     def clear(self,principal):
         with self.store.transaction(principal,write=True) as (db,user):
-            for row in db.execute("SELECT source_turn,content FROM natural_memories WHERE user_id=? AND source_turn IS NOT NULL",(user,)).fetchall():self.forget_source(db,user,row)
+            for row in db.execute("SELECT * FROM natural_memories WHERE user_id=?",(user,)).fetchall():self.forget_source(db,user,row)
             db.execute("DELETE FROM natural_memory_fts WHERE user_id=?",(user,))
             db.execute("DELETE FROM natural_memories WHERE user_id=?",(user,))
             db.execute("DELETE FROM natural_summaries WHERE user_id=?",(user,))

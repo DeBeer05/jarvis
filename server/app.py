@@ -90,6 +90,7 @@ def create_app(
     app.state.automation = AutomationEngine(database, security)
     app.state.natural = NaturalService(database,security,chat,app.state.automation)
     chat.automation_chat = AutomationChat(app.state.automation, security, chat.router, store.clean)
+    chat.automation_chat.task_memory = app.state.natural.tasks
     app.add_middleware(SecurityGate, service=security)
     app.add_middleware(RequestGuard, port=settings.port, allowed_origins=settings.allowed_origins)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(settings.trusted_hosts))
