@@ -46,6 +46,19 @@ apparaatrechten of verplichte goedkeuringen. Offline forceert Ollama voor AI,
 ook bij interne planners/samenvattingen. Zonder beschikbaar lokaal model wordt
 een fout gemeld en geen cloudfallback gestart.
 
+Bij Persoonlijkheid opent **Voorbeeldgesprek testen** een kort AI-voorbeeld met
+de huidige, eventueel nog niet opgeslagen invoer. Het voorbeeld bewaart geen
+gesprek of instelling en kan geen tools of taken uitvoeren. De bestaande
+AI-provider, offlinekeuze en time-outs blijven gelden.
+
+Bij Taken kun je **Automatische follow-ups** inschakelen en de termijn in uren
+kiezen. Dit volgt uitsluitend nieuw, geverifieerd verzonden mail uit JARVIS.
+De opvolging is een blijvende leestaak, geen automatische nieuwe verzending.
+Zonder de actuele apparaatleesrechten wordt niets opgehaald. Schakel je de optie
+uit, dan stoppen de automatische controles. Expliciet aangemaakte follow-ups
+blijven afzonderlijke taken. Vraag in hetzelfde gesprek: ‘Heb ik daar al antwoord
+op gekregen?’; bij meerdere verzonden berichten vraagt JARVIS om verduidelijking.
+
 Android stopt bij verlaten van de app en hervat de microfoon niet vanzelf. Beide
 clients gebruiken bij Natural Conversation Mode de servermodellen; hardwarekeuze
 en microfoontoestemming blijven lokaal. Android gebruikt beschikbare platform-

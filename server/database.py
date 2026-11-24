@@ -5,7 +5,7 @@ import uuid
 from contextlib import contextmanager
 from pathlib import Path
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 
 class Database:
@@ -76,6 +76,12 @@ class Database:
                 migrate(connection)
                 connection.execute("INSERT INTO schema_migrations(version) VALUES (5)")
                 connection.execute("PRAGMA user_version=5")
+            if version < 6:
+                connection.execute("CREATE TABLE natural_memory_origins(memory_id TEXT PRIMARY KEY REFERENCES natural_memories(id) ON DELETE CASCADE,device_id TEXT NOT NULL)")
+                connection.execute("CREATE INDEX natural_memory_key ON natural_memories(user_id,memory_key,status,updated)")
+                connection.execute("INSERT INTO natural_memory_origins SELECT m.id,a.device_id FROM natural_memories m JOIN natural_audit a ON a.id=(SELECT min(id) FROM natural_audit WHERE target=m.id AND user_id=m.user_id AND event='memory_created')")
+                connection.execute("INSERT INTO schema_migrations(version) VALUES (6)")
+                connection.execute("PRAGMA user_version=6")
             # A process restart must never present an unfinished answer as complete.
             connection.execute("UPDATE chat_turns SET status='interrupted', error_code='server_restarted' WHERE status='running'")
         self.initialized = True

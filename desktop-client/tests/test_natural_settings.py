@@ -84,3 +84,18 @@ def test_diagnostics_show_unknown_measurements_without_inventing_gpu_or_audio(qt
     assert view.diagnostic_labels["audio"].text()=="Nog niet gemeten" and "10.0 MiB" in view.diagnostic_labels["ram"].text()
     view.clear();assert view.diagnostic_document is None and view.diagnostic_labels["memory"].text()=="Nog niet gemeten"
     window.close()
+
+
+def test_personality_preview_uses_unsaved_draft_without_saving(qt):
+    window,view=panel(qt)
+    view.categories.setCurrentRow(1)
+    view.draft["personality"]["humor"]=80
+    # collect() reads the visible controls, so edit through the actual input.
+    from PySide6.QtWidgets import QSpinBox
+    view.scroll.widget().findChild(QSpinBox).setValue(80)
+    view.preview_personality()
+    method,path,body,_=window.calls[-1]
+    assert method=="POST" and path.endswith("/personality/preview")
+    assert body["personality"]["humor"]==80
+    assert view.document["settings"]["personality"]["humor"]==35 and view.dirty
+    window.close()

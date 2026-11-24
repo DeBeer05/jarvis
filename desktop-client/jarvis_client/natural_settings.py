@@ -128,6 +128,21 @@ class NaturalSettingsPanel(QWidget):
             widget.setAccessibleName(title);widget.setToolTip(field.get("description",title))
             form.addRow(label(title),widget)
         self.loading=previous;self.scroll.setWidget(container)
+        if self.category=="personality":
+            preview=QPushButton("Voorbeeldgesprek testen");preview.clicked.connect(self.preview_personality)
+            form.addRow(preview)
+
+    def preview_personality(self):
+        if not self.document:return
+        self.collect()
+        self.status.setText("Voorbeeld genereren met de ingestelde AI-provider…")
+        def show(data):
+            dialog=QDialog(self);dialog.setWindowTitle("Persoonlijkheidsvoorbeeld · niet opgeslagen")
+            layout=QVBoxLayout(dialog);text=QPlainTextEdit(data["message"]);text.setReadOnly(True);layout.addWidget(text)
+            close=QDialogButtonBox(QDialogButtonBox.StandardButton.Close);close.rejected.connect(dialog.reject);layout.addWidget(close)
+            dialog.resize(560,300);dialog.exec()
+            self.status.setText("Voorbeeld voltooid; je wijzigingen zijn nog niet opgeslagen." if self.dirty else "Voorbeeld voltooid; er zijn geen taken uitgevoerd.")
+        self.call("POST","/personality/preview",{"personality":self.draft["personality"]},show)
 
     def field(self,field,value):
         if "const" in field:

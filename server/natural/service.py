@@ -66,6 +66,13 @@ class NaturalService:
     def command(self,run):
         """Explicit memory commands are executed locally, never by generated code."""
         message=run.message.strip();config=run.natural_context["settings"]
+        if re.fullmatch(r"(?:jarvis[, ]+)?(?:welke taken staan (?:er )?nog open|wat zijn mijn openstaande taken|toon mijn openstaande taken)[?.!]*",message,re.I):
+            self.automation.permissions.check(run.principal.device_id,"automation:read")
+            with self.store.transaction(run.principal) as (db,user):
+                rows=db.execute("SELECT j.id,j.tool,j.status FROM automation_jobs j JOIN auth_devices d ON d.id=j.device_id WHERE d.user_id=? AND j.status IN ('approval','queued','waiting','paused','blocked','uncertain') ORDER BY j.updated DESC LIMIT 21",(user,)).fetchall()
+            if not rows:return "Er staan geen openstaande automatiseringstaken klaar."
+            names={"approval":"wacht op jouw toestemming","queued":"ingepland","waiting":"wacht op resultaat","paused":"gepauzeerd","blocked":"geblokkeerd","uncertain":"uitkomst niet bevestigd"}
+            return "Je openstaande taken:\n"+"\n".join(f"- {row['tool']}: {names[row['status']]} (taak {row['id']})." for row in rows[:20])+("\nBekijk Automatiseringen voor de overige taken." if len(rows)>20 else "")
         match=re.fullmatch(r"(?:jarvis[, ]+)?onthou(?:d)?(?: dat)?\s+(.+)",message,re.I|re.S)
         if match:
             if not config["memory"]["long_term"] or config["autonomy"]["actions"].get("MemorySave")=="block":

@@ -27,6 +27,13 @@ lokale backup van een oudere database; tests controleren migratie en herstart.
 De echte gebruikersdatabase wordt pas bij de uiteindelijke gecontroleerde
 serverherstart gemigreerd. Tot die stap blijven nieuwe schema's in testdatabases.
 
+Schema 6 voegt `natural_memory_origins` en een voorkeurssleutelindex toe.
+Oorspronkelijke apparaten worden bij bestaande herinneringen uit de aanwezige
+aanmaakaudit overgenomen. Bij ontbrekende herkomst worden geen apparaten
+gegokt. Met synchronisatie uit worden zulke oude herinneringen niet opgehaald.
+Herkomst blijft bewaard bij bewerken en wordt bij verwijderen via de foreign key
+mee verwijderd. Er komen geen tokens of andere credentials in deze tabel.
+
 ## Retrieval en correcties
 
 FTS rangschikt kandidaten vóór de limiet, zodat een oude specifieke herinnering

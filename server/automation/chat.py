@@ -22,6 +22,7 @@ TOPIC = re.compile(r"\b(agenda\w*|afsprak\w*|afspraak\w*|kalender\w*|calendar\w*
 REFERENCE = re.compile(r"\b(eerste|tweede|derde|vierde|vijfde|\d+(?:e|de|ste)|deze|die|dat|dit|verstuur|verzend|verzet|verplaats|annuleer|antwoord\w*|ja|akkoord|oké|nee)\b", re.I)
 READ = {"CalendarList", "CalendarRead", "EmailSearch", "EmailRead", "ReminderList", "WorkflowStatus"}
 TOOLS = READ | {"CalendarCreate", "CalendarUpdate", "CalendarDelete", "EmailDraft", "EmailSend", "ReminderCreate", "ReminderCancel", "NotificationSend", "WorkflowCreate"}
+REPLY_STATUS=re.compile(r"\s*(?:heb ik|is er|hebben we)\s+(?:daar\s+)?(?:al\s+)?(?:een\s+)?(?:antwoord|reactie)\s*(?:op\s*)?(?:gekregen|ontvangen|binnen)?[?.!\s]*",re.I)
 CONTINUE_WRITE = re.compile(r"\s*(?:ja\b|akkoord\b|nee[, ]+toch\b|(?:maak|zet|plan|doe)\s+(?:hem|die|dat|het)\b|(?:morgen|overmorgen|vandaag|maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag|titel|volgende week|aanstaande|komende)\b|(?:van|om|tussen)\s+(?:\d{1,2}|een|twee|drie|vier|vijf|zes|zeven|acht|negen|tien|elf|twaalf|half|kwart)\b|(?:op|voor)\s+(?:\d{1,2}|morgen|overmorgen|vandaag|maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag)\b|(?:\d{1,3}|een|twee|drie|vier|anderhalf|een half)\s+(?:uur|uren|minuten?)\b|met\s+(?:titel|onderwerp|tekst|ontvanger)\b|\d{1,2}(?:[:.]|\s))",re.I)
 
 
@@ -71,6 +72,7 @@ class AutomationChat:
 
     def candidate(self, run):
         if run.principal is None:return False
+        if REPLY_STATUS.fullmatch(run.message):return True
         if self.approvals.candidate(run.message):return True
         if re.match(r"\s*(wat (is|betekent)|hoe werkt|leg (me |mij )?uit|kun je uitleggen)\b",run.message,re.I):
             return False
@@ -241,6 +243,7 @@ class AutomationChat:
 
     async def answer(self, run):
         observations = dict(self.memory(run))
+        if REPLY_STATUS.fullmatch(run.message):return await self.reply_status(run,observations),None
         completed = []
         last_result = ""
         provider = None
@@ -335,6 +338,38 @@ class AutomationChat:
                 continue
             return last_result, provider
         return last_result or "Geef de gewenste afspraak of het bericht concreter aan.", provider
+
+    async def reply_status(self,run,observations):
+        self.guard(run,"automation:read")
+        if run.allowed_tools is not None and "EmailRead" not in run.allowed_tools:raise ValueError("Tool buiten deze intentie")
+        self.engine.permissions.check_tool(run.principal.device_id,"EmailRead")
+        if "EmailRead" in self.engine.store.preference("disabled_tools",[]):raise ValueError("Lezen uitgeschakeld")
+        jobs=[]
+        for item in observations.get("jobs",[]):
+            if item.get("tool")!="EmailSend":continue
+            row=self.engine.store.get(item["id"])
+            with self.engine.store.db() as db:
+                owner=db.execute("SELECT 1 FROM auth_devices a JOIN auth_devices b ON a.user_id=b.user_id WHERE a.id=? AND b.id=?",(row["device_id"],run.principal.device_id)).fetchone()
+            if owner and row["status"]=="completed" and row["result"]:
+                result=json.loads(row["result"])
+                if result.get("verified") is True and result.get("threadId"):jobs.append((row,result))
+        if len(jobs)!=1:
+            return "Welk verzonden bericht bedoel je? Er is geen uniek gecontroleerd verzonden bericht in dit gesprek." if not jobs else "Er zijn meerdere verzonden berichten in dit gesprek. Noem het onderwerp of open eerst het bedoelde bericht."
+        row,sent=jobs[0]
+        guard=REQUEST_GUARD.set(lambda:self.guard(run,"automation:read"))
+        try:data=await self.engine.integrations.api("gmail_read","/gmail/v1/users/me/threads/"+sent["threadId"],params={"format":"metadata"})
+        finally:REQUEST_GUARD.reset(guard)
+        self.guard(run,"automation:read")
+        replies=[m for m in data.get("messages",[]) if m.get("id")!=sent["id"] and not {"SENT","DRAFT"}.intersection(m.get("labelIds",[]))
+            and str(m.get("internalDate","")).isdigit() and int(m["internalDate"])>row["updated"]*1000]
+        self.engine.audit.record("chat_reply_status_read",device=run.principal.device_id)
+        if not replies:return "Ik zie nog geen ontvangen antwoord na dat verzonden bericht. Er is niets verstuurd of gewijzigd."
+        messages=[]
+        for mail in replies[-5:]:
+            headers={h["name"].lower():h["value"] for h in mail.get("payload",{}).get("headers",[])}
+            messages.append({"id":mail["id"],"subject":headers.get("subject","Zonder onderwerp")[:300],"from":headers.get("from","")[:300]})
+        self.remember(run,"messages",messages)
+        return "Er is een antwoord ontvangen:\n"+"\n".join(f"{i+1}. {m['subject']} — {m['from']}" for i,m in enumerate(messages))+"\nVraag om de inhoud als je het wilt lezen of horen."
 
     async def compound(self,run):
         config=run.natural_context["settings"] if run.natural_context else {}

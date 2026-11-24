@@ -106,9 +106,13 @@ class CalendarSummary(Input):
 class WaitForReply(Input):
     thread_id: str = Field(pattern=r"^[a-zA-Z0-9_-]{1,256}$")
     due: datetime
+    since: datetime | None = None
     @model_validator(mode="after")
     def dates(self):
         aware(self.due)
+        if self.since is not None:
+            aware(self.since)
+            if self.since>self.due:raise ValueError("Opvolging moet na het oorspronkelijke bericht vallen")
         return self
 
 

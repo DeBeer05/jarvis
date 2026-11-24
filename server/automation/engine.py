@@ -126,16 +126,60 @@ class UrgentCallTrigger(Protocol):
 
 class FollowUpManager:
     def __init__(self, engine): self.engine=engine
+
+    def options(self,device):
+        with self.engine.store.db() as db:
+            row=db.execute("SELECT s.payload FROM natural_settings s JOIN auth_devices d ON d.user_id=s.user_id WHERE d.id=? AND s.scope='user' AND s.device_id=''",(device,)).fetchone()
+        return json.loads(row["payload"])["tasks"] if row else {"automatic_followups":False,"followup_hours":48}
+
+    def schedule_automatic(self):
+        """Recover optional read-only follow-ups from confirmed sends, never resend."""
+        e=self.engine
+        with e.store.db() as db:
+            rows=db.execute("""SELECT j.*,s.payload AS settings_payload,s.updated AS settings_updated
+                FROM automation_jobs j JOIN auth_devices d ON d.id=j.device_id
+                JOIN natural_settings s ON s.user_id=d.user_id AND s.scope='user' AND s.device_id=''
+                WHERE j.tool='EmailSend' AND j.status='completed' AND j.result IS NOT NULL
+                AND j.updated>=s.updated AND NOT EXISTS
+                    (SELECT 1 FROM automation_jobs f WHERE f.key='auto-followup:'||j.id)
+                ORDER BY j.updated DESC LIMIT 20""").fetchall()
+        for row in rows:
+            config=json.loads(row["settings_payload"]);tasks=config["tasks"]
+            if not tasks["automatic_followups"]:continue
+            result=json.loads(row["result"])
+            if result.get("verified") is not True or not result.get("threadId"):continue
+            try:
+                e.permissions.check(row["device_id"],"automation:read")
+                e.permissions.check_tool(row["device_id"],"EmailRead")
+                due=row["updated"]+tasks["followup_hours"]*3600
+                e.submit(row["device_id"],"WaitForReply",{
+                    "thread_id":result["threadId"],"since":datetime.fromtimestamp(row["updated"],UTC).isoformat(),
+                    "due":datetime.fromtimestamp(due,UTC).isoformat()},"auto-followup:"+row["id"])
+            except (AuthError,ValueError):
+                # An optional read task cannot invalidate an already verified send.
+                continue
+
     async def check(self):
         e=self.engine
         with e.store.db() as db: rows=db.execute("SELECT * FROM automation_followups WHERE status='waiting' AND due<=? LIMIT 3",(e.store.clock(),)).fetchall()
         for row in rows:
-            try:e.permissions.check(row["device_id"],"automation:write")
+            automatic=False
+            try:
+                if {"EmailRead","WaitForReply"}.intersection(e.store.preference("disabled_tools",[])):
+                    raise AuthError("permission_denied","Opvolging is uitgeschakeld",403)
+                e.permissions.check(row["device_id"],"automation:write")
+                e.permissions.check(row["device_id"],"automation:read")
+                e.permissions.check_tool(row["device_id"],"WaitForReply")
+                e.permissions.check_tool(row["device_id"],"EmailRead")
             except AuthError:
                 with e.store.db(True) as db:db.execute("UPDATE automation_followups SET status='blocked' WHERE id=?",(row["id"],))
                 continue
             try:
                 job=e.store.get(row["id"])
+                automatic=job["key"].startswith("auto-followup:")
+                if automatic and not self.options(row["device_id"])["automatic_followups"]:
+                    with e.store.db(True) as db:db.execute("UPDATE automation_followups SET due=? WHERE id=?",(e.store.clock()+900,row["id"]))
+                    continue
                 if job["parent_id"] and e.store.get(job["parent_id"])["status"]!="waiting":continue
             except ValueError:pass  # standalone follow-up has no workflow job
             with e.store.db(True) as db:db.execute("UPDATE automation_followups SET due=? WHERE id=?",(e.store.clock()+900,row["id"]))
@@ -148,8 +192,9 @@ class FollowUpManager:
             new=[m for m in data.get("messages",[]) if m["id"] not in json.loads(row["baseline"]) and "SENT" not in m.get("labelIds",[]) and "DRAFT" not in m.get("labelIds",[])]
             # Replies never imply permission to change an event. The owner reviews them.
             e.notifications.send("important","Er is een antwoord om te beoordelen." if new else "Nog geen antwoord op je verzoek.","followup:"+row["id"],device=row["device_id"],proactive=True)
+            interval=self.options(row["device_id"])["followup_hours"]*3600 if automatic else 86400
             with e.store.db(True) as db:
-                db.execute("UPDATE automation_followups SET status=?,due=? WHERE id=?",("reply_review" if new else "waiting",e.store.clock()+86400,row["id"]))
+                db.execute("UPDATE automation_followups SET status=?,due=? WHERE id=?",("reply_review" if new else "waiting",e.store.clock()+interval,row["id"]))
                 db.execute("UPDATE automation_jobs SET status=?,result=? WHERE id=? AND tool='WaitForReply' AND status='waiting'",("completed" if new else "blocked",encode({"reply_requires_review":bool(new),"accepted":False}),row["id"]))
                 e.store.event(db,"followup_reply" if new else "followup_reminder",device=row["device_id"])
 
@@ -207,9 +252,18 @@ class ActionExecutor:
                 if priority["priority"] in ("urgent","important"):e.notifications.send("important","Er is een mogelijk belangrijk bericht. Controleer je inbox.","mail:"+message["id"],row["id"],proactive=True)
             return {"checked":len(data.get("messages",[])),"urgency_verified":False}
         if tool=="WaitForReply":
+            e.permissions.check(row["device_id"],"automation:read")
+            e.permissions.check_tool(row["device_id"],"EmailRead")
+            if "EmailRead" in e.store.preference("disabled_tools",[]):raise ValueError("Lezen is uitgeschakeld")
+            if row["key"].startswith("auto-followup:") and not e.followups.options(row["device_id"])["automatic_followups"]:
+                raise ValueError("Automatische opvolging is uitgeschakeld")
             data=await e.integrations.api("gmail_read","/gmail/v1/users/me/threads/"+p["thread_id"],params={"format":"metadata"})
+            since=datetime.fromisoformat(p["since"]).timestamp()*1000 if p.get("since") else None
+            baseline=[m["id"] for m in data.get("messages",[]) if since is None
+                or "SENT" in m.get("labelIds",[]) or "DRAFT" in m.get("labelIds",[])
+                or not str(m.get("internalDate","")).isdigit() or int(m["internalDate"])<=since]
             with e.store.db(True) as db:
-                db.execute("INSERT OR IGNORE INTO automation_followups VALUES (?,?,?,?,?,?)",(row["id"],p["thread_id"],encode([m["id"] for m in data.get("messages",[])]),datetime.fromisoformat(p["due"]).timestamp(),"waiting",row["device_id"]))
+                db.execute("INSERT OR IGNORE INTO automation_followups VALUES (?,?,?,?,?,?)",(row["id"],p["thread_id"],encode(baseline),datetime.fromisoformat(p["due"]).timestamp(),"waiting",row["device_id"]))
             return {"waiting_for_reply":True}
         if tool=="CalendarRead": return await e.integrations.events(p)
         if tool=="CalendarList": return await e.integrations.calendar_list()
@@ -292,6 +346,7 @@ class AutomationEngine:
 
     async def tick(self):
         async with self.lock:
+            self.followups.schedule_automatic()
             self.workflows.advance()
             for row in self.triggers.due():
                 if row["parent_id"] and self.store.get(row["parent_id"])["status"]!="waiting": continue

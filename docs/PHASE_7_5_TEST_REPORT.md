@@ -8,14 +8,21 @@ de nieuwe versie omgezet. Alle onderstaande nieuwe accountproeven zijn synthetis
 
 | Controle | Laatste resultaat | Bewijs / grens |
 |---|---|---|
-| Volledige serverregressie | 365 geslaagd, 157,06 s | Inclusief fases 1–7, brongebonden samenvattingen en begrensde agenda-alternatieven; tijdelijke databases |
-| Windows-client | 106 geslaagd, 4,69 s | Qt offscreen; inclusief sessiereservering vóór opname en annulering van late activatie |
+| Volledige serverregressie | 373 geslaagd, 144,88 s | Inclusief fases 1–7, geheugenafscherming per apparaat, schema-6-back-up/migratie en opvolgingsrechten; tijdelijke databases |
+| Windows-client | 107 geslaagd, 4,90 s | Qt offscreen; sessiereservering, late activatie en persoonlijkheidsvoorbeeld met niet-opgeslagen invoer |
 | Python-lint | Geslaagd | Ruff F/E9 op nieuwe natuurlijke-gesprekscode en betrokken adapters/tests |
 | Typechecks | Geslaagd | 25 kernmodules, 5 Windows-voiceadapters; check_untyped_defs |
 | Dependencycontrole | Geslaagd | pip check, geïsoleerde server/clientomgevingen |
 | Android unit/lint/debug/release | Geslaagd | Native Gradle/Kotlin; bestaande lint-/nullable-waarschuwingen blijven onderscheiden van fouten |
 | Android instrumented | 14 tests, 0 fouten | Afzonderlijke headless API-36-AVD, hostmicrofoon/luidspreker uit |
 | Repository/whitespace | Geslaagd | Structuur-/patrooncontrole is geen applicatie- of volledige geheimenaudit |
+
+Builds: Windows portable 0.7.5 met verpakte helper; smoke bevestigt acht pagina's,
+geen gestart netwerk, microfoon of worker bij de proefstart. Helper importeert
+correct en behandelt ontbrekende modellen zonder download. Android debug en
+release 0.7.5/705 gebouwd; lokale debug-APK heeft dezelfde ondertekenaar als de
+bestaande 0.7.0-debug-APK. Alleen de afzonderlijke emulator is geïnstalleerd/getest.
+De release-APK is niet als publiek ondertekende productie-uitgave aangeboden.
 
 Reproduceerbare Python-check: `python scripts/check_natural_quality.py` met optioneel
 `--client-python` naar de geïsoleerde native omgeving. CI voert de servervariant uit.

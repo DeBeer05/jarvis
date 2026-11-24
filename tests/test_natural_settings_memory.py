@@ -59,6 +59,30 @@ def test_memory_fts_retrieval_correction_forget_and_source_invalidation(natural)
         assert db.execute("SELECT count(*) FROM natural_forgotten WHERE user_id=?",(user,)).fetchone()[0]==2
 
 
+def test_memory_sync_off_scopes_search_edits_and_clear_to_origin_device(natural):
+    app,c=natural
+    first=c.post("/api/v1/natural/memory",json={"content":"Project sterrenlicht gebruikt Python"}).json()
+    config=c.get("/api/v1/natural/settings").json()
+    assert c.patch("/api/v1/natural/settings/memory",json={"revision":config["revision"],"changes":{"synchronize":False}}).status_code==200
+    with client_for(app) as other:
+        login=other.post("/api/v1/auth/desktop-login",json={"username":"owner","password":"synthetic-owner-passphrase","device_name":"Synthetic other","device_id":str(uuid4())})
+        other.headers["Authorization"]="Bearer "+login.json()["access_token"]
+        assert other.get("/api/v1/natural/memory").json()["items"]==[]
+        assert other.post("/api/v1/natural/memory/search",json={"query":"sterrenlicht"}).json()["items"]==[]
+        assert other.delete("/api/v1/natural/memory/"+first["id"]).status_code==400
+        assert other.put("/api/v1/natural/memory/"+first["id"],json={"content":"Changed","revision":first["revision"]}).status_code==400
+        second=other.post("/api/v1/natural/memory",json={"content":"Project vuurtoren gebruikt Kotlin"}).json()
+        principal=app.state.security.store.authenticate(login.json()["access_token"])
+        assert not app.state.natural.memory.retrieve(principal,"sterrenlicht")
+        assert len(app.state.natural.memory.retrieve(principal,"vuurtoren"))==1
+        assert other.put("/api/v1/natural/memory/"+second["id"],json={"content":"Project vuurtoren gebruikt Java","revision":second["revision"]}).status_code==200
+        assert other.post("/api/v1/natural/memory/clear",json={"confirmed":True}).status_code==200
+        assert [m["id"] for m in c.get("/api/v1/natural/memory").json()["items"]]==[first["id"]]
+        config=c.get("/api/v1/natural/settings").json()
+        assert c.patch("/api/v1/natural/settings/memory",json={"revision":config["revision"],"changes":{"synchronize":True}}).status_code==200
+        assert other.get("/api/v1/natural/memory").json()["items"][0]["id"]==first["id"]
+
+
 def test_sensitive_memory_requires_explicit_consent_and_revision(natural):
     app,c=natural
     payload={"content":"Mijn medicatie moet worden besproken","category":"person","sensitivity":"sensitive"}

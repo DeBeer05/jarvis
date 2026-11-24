@@ -48,6 +48,11 @@ kunnen gewone voorkeuren meteen actief worden; gevoelige feiten worden niet
 automatisch verzameld. Je kunt ook altijd zelf een ruimere herinnering toevoegen.
 
 Samenvattingen worden lokaal en extractief gemaakt en zijn zichtbaar/bewerkbaar.
+**Synchroniseren uit** beperkt geheugenlijst, zoeken, AI-retrieval, bewerken en
+wissen tot herinneringen van het huidige apparaat. De opslag blijft op de
+beveiligde centrale server. Gespreksgeschiedenis heeft een afzonderlijke instelling;
+de synchronisatieschakelaar verwijdert geen eerder gedeelde gesprekstekst.
+Met synchroniseren aan zijn de herinneringen weer tussen je apparaten beschikbaar.
 Bij vergeten vervallen samenvattingen die de herinnering, de oorspronkelijke
 bronbeurt of een daarvan afhankelijke gespreksturn bevatten. Onverwante
 samenvattingen en bewerkte notities blijven behouden. Algemene semantische retrieval is nog in

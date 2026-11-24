@@ -173,6 +173,10 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
         naturalRequest("/settings") {data -> mutable.update {it.copy(naturalSettings=data.toString(),naturalStatus="Gesynchroniseerd · versie ${data.getInt("revision")}")}}
     }
     fun naturalDiagnostics() {naturalRequest("/diagnostics") {data -> mutable.update {it.copy(naturalDiagnostics=data.toString())}}}
+    fun previewNaturalPersonality(personality:String,done:(String)->Unit) {
+        try {naturalRequest("/personality/preview","POST",JSONObject().put("personality",JSONObject(personality))) {done(it.getString("message"))}}
+        catch(_:Exception) {message("Controleer de persoonlijkheidsinstellingen")}
+    }
     fun saveNaturalSettings(settings: String,revision: Int) {
         try { naturalRequest("/settings","PUT",JSONObject().put("revision",revision).put("settings",JSONObject(settings))) {data -> mutable.update {it.copy(naturalSettings=data.toString(),naturalStatus="Opgeslagen · versie ${data.getInt("revision")}")}} }
         catch(_:Exception) {message("Controleer de instellingen")}

@@ -16,6 +16,13 @@ class MemoryManager:
     def __init__(self,store):self.store=store
 
     @staticmethod
+    def scope(db,user,principal):
+        row=db.execute("SELECT payload FROM natural_settings WHERE user_id=? AND scope='user' AND device_id=''",(user,)).fetchone()
+        if row and not json.loads(row["payload"])["memory"]["synchronize"]:
+            return " AND m.id IN (SELECT memory_id FROM natural_memory_origins WHERE device_id=?)",[principal.device_id]
+        return "",[]
+
+    @staticmethod
     def public(row):
         result=dict(row);result["explicit"]=bool(result["explicit"])
         return result
@@ -29,12 +36,16 @@ class MemoryManager:
         if value.expires_at is not None and value.expires_at<=now:raise ValueError("Vervaldatum ligt in het verleden")
         identifier=identifier or str(uuid.uuid4())
         with self.store.transaction(principal,write=True) as (db,user):
+            scope,args=self.scope(db,user,principal)
             old=db.execute("SELECT * FROM natural_memories WHERE id=? AND user_id=?",(identifier,user)).fetchone()
+            origin_row=db.execute("SELECT device_id FROM natural_memory_origins WHERE memory_id=?",(identifier,)).fetchone()
+            original_origin=origin_row[0] if origin_row else None
+            if old and not db.execute("SELECT m.id FROM natural_memories m WHERE m.id=? AND m.user_id=?"+scope,(identifier,user,*args)).fetchone():raise ValueError("Herinnering niet gevonden")
             if revision is not None and (not old or old["revision"]!=revision):raise Conflict("Herinnering gewijzigd; ververs eerst")
             if old is None and revision is not None:raise ValueError("Herinnering niet gevonden")
             if db.execute("SELECT count(*) FROM natural_memories WHERE user_id=?",(user,)).fetchone()[0]>=10000 and not old:raise ValueError("Geheugenlimiet bereikt")
             if value.key and value.status=="active":
-                previous=db.execute("SELECT * FROM natural_memories WHERE user_id=? AND memory_key=? AND id!=? AND status='active'",(user,value.key,identifier)).fetchall()
+                previous=db.execute("SELECT m.* FROM natural_memories m WHERE m.user_id=? AND m.memory_key=? AND m.id!=? AND m.status='active'"+scope,(user,value.key,identifier,*args)).fetchall()
                 for entry in previous:
                     self.invalidate_summaries(db,user,entry["id"])
                     self.forget_source(db,user,entry)
@@ -47,6 +58,10 @@ class MemoryManager:
             expires=value.expires_at if value.expires_at is not None else now+days*86400
             fields=(identifier,user,value.category,content,value.key,value.kind,source,source_turn or (old["source_turn"] if old else None),old["created"] if old else now,now,None,value.confidence,"sensitive" if sensitive else "normal",expires,value.status,int(explicit),old["revision"]+1 if old else 1)
             db.execute("INSERT OR REPLACE INTO natural_memories VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",fields)
+            # REPLACE cascades foreign keys; restore the original device binding.
+            if old is None:origin=principal.device_id
+            else:origin=original_origin
+            if origin:db.execute("INSERT INTO natural_memory_origins VALUES (?,?)",(identifier,origin))
             db.execute("DELETE FROM natural_memory_fts WHERE id=?",(identifier,))
             db.execute("INSERT INTO natural_memory_fts VALUES (?,?,?,?)",(identifier,user,content,value.category))
             self.store.audit(db,user,principal.device_id,"memory_updated" if old else "memory_created",identifier)
@@ -80,6 +95,7 @@ class MemoryManager:
     def list(self,principal,*,query="",category=None,status=None,limit=50,offset=0,include_sensitive=True):
         limit=max(1,min(100,int(limit)));offset=max(0,min(10000,int(offset)))
         with self.store.transaction(principal) as (db,user):
+            scope,scope_args=self.scope(db,user,principal)
             clauses=["m.user_id=?"];params=[user]
             if category:clauses.append("m.category=?");params.append(category)
             if status:clauses.append("m.status=?");params.append(status)
@@ -89,7 +105,7 @@ class MemoryManager:
             if terms:
                 clauses.append("m.id IN (SELECT id FROM natural_memory_fts WHERE natural_memory_fts MATCH ? AND user_id=?)")
                 params += [" OR ".join('"'+word.replace('"','')+'"' for word in terms),user]
-            rows=db.execute("SELECT m.* FROM natural_memories m WHERE "+" AND ".join(clauses)+" ORDER BY m.updated DESC LIMIT ? OFFSET ?",(*params,limit+1,offset)).fetchall()
+            rows=db.execute("SELECT m.* FROM natural_memories m WHERE "+" AND ".join(clauses)+scope+" ORDER BY m.updated DESC LIMIT ? OFFSET ?",(*params,*scope_args,limit+1,offset)).fetchall()
         return {"items":[self.public(row) for row in rows[:limit]],"has_more":len(rows)>limit}
 
     def retrieve(self,principal,query,*,limit=8,include_sensitive=False):
@@ -100,11 +116,19 @@ class MemoryManager:
         for word in sorted(words)[:12]:terms.append('"afspr"*' if word in ("afspraak","afspraken") else '"'+word+'"')
         if not terms:return []
         with self.store.transaction(principal) as (db,user):
+            scope,args=self.scope(db,user,principal)
             saved=db.execute("SELECT payload FROM natural_settings WHERE user_id=? AND scope='user' AND device_id=''",(user,)).fetchone()
             if saved and json.loads(saved["payload"])["memory"]["semantic_search"]:
                 terms=['"afspr"*' if word in ("afspraak","afspraken") else '"'+word+'"' for word in expand(words)]
-            rows=db.execute("SELECT m.*,bm25(natural_memory_fts) AS relevance FROM natural_memory_fts JOIN natural_memories m ON m.id=natural_memory_fts.id WHERE natural_memory_fts MATCH ? AND natural_memory_fts.user_id=? AND m.user_id=? AND m.status='active' AND (m.expires IS NULL OR m.expires>?) AND (? OR m.sensitivity='normal') ORDER BY relevance,m.updated DESC LIMIT 100",(" OR ".join(terms),user,user,now,include_sensitive)).fetchall()
+            rows=db.execute("SELECT m.*,bm25(natural_memory_fts) AS relevance FROM natural_memory_fts JOIN natural_memories m ON m.id=natural_memory_fts.id WHERE natural_memory_fts MATCH ? AND natural_memory_fts.user_id=? AND m.user_id=? AND m.status='active' AND (m.expires IS NULL OR m.expires>?) AND (? OR m.sensitivity='normal')"+scope+" ORDER BY relevance,m.updated DESC LIMIT 100",(" OR ".join(terms),user,user,now,include_sensitive,*args)).fetchall()
             candidates=[dict(row) for row in rows]
+            latest={}
+            for item in candidates:
+                key=item["memory_key"]
+                if key and key not in latest:
+                    row=db.execute("SELECT m.id FROM natural_memories m WHERE m.user_id=? AND m.memory_key=? AND m.status='active' AND (m.expires IS NULL OR m.expires>?)"+scope+" ORDER BY m.updated DESC,m.id DESC LIMIT 1",(user,key,now,*args)).fetchone()
+                    latest[key]=row[0] if row else None
+            candidates=[item for item in candidates if not item["memory_key"] or latest[item["memory_key"]]==item["id"]]
         def score(item):
             overlap=len(words & set(re.findall(r"\w{2,}",item["content"].casefold())))
             age=max(0,(now-item["updated"])/86400)
@@ -118,7 +142,8 @@ class MemoryManager:
 
     def delete(self,principal,identifier,revision=None):
         with self.store.transaction(principal,write=True) as (db,user):
-            row=db.execute("SELECT * FROM natural_memories WHERE id=? AND user_id=?",(identifier,user)).fetchone()
+            scope,args=self.scope(db,user,principal)
+            row=db.execute("SELECT m.* FROM natural_memories m WHERE m.id=? AND m.user_id=?"+scope,(identifier,user,*args)).fetchone()
             if not row:raise ValueError("Herinnering niet gevonden")
             if revision is not None and row["revision"]!=revision:raise Conflict("Herinnering gewijzigd; ververs eerst")
             self.forget_source(db,user,row)
@@ -130,10 +155,12 @@ class MemoryManager:
 
     def clear(self,principal):
         with self.store.transaction(principal,write=True) as (db,user):
-            for row in db.execute("SELECT * FROM natural_memories WHERE user_id=?",(user,)).fetchall():self.forget_source(db,user,row)
-            db.execute("DELETE FROM natural_memory_fts WHERE user_id=?",(user,))
-            db.execute("DELETE FROM natural_memories WHERE user_id=?",(user,))
-            db.execute("DELETE FROM natural_summaries WHERE user_id=?",(user,))
+            scope,args=self.scope(db,user,principal)
+            for row in db.execute("SELECT m.* FROM natural_memories m WHERE m.user_id=?"+scope,(user,*args)).fetchall():
+                self.forget_source(db,user,row);self.invalidate_summaries(db,user,row["id"])
+                db.execute("DELETE FROM natural_memory_fts WHERE id=? AND user_id=?",(row["id"],user))
+                db.execute("DELETE FROM natural_memories WHERE id=? AND user_id=?",(row["id"],user))
+            if not scope:db.execute("DELETE FROM natural_summaries WHERE user_id=?",(user,))
             self.store.audit(db,user,principal.device_id,"memory_cleared")
         return {"deleted":True,"original_conversations_retained":True}
 

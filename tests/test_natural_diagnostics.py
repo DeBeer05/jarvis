@@ -50,6 +50,15 @@ def test_response_records_real_timings_without_response_content(natural):
     assert "Synthetische persoonlijke vraag" not in json.dumps(data)
 
 
+def test_disabled_diagnostics_never_probe_hardware(natural,monkeypatch):
+    app,c=natural
+    patch(c,"diagnostics",{"enabled":False,"resources":True})
+    def unexpected(*args,**kwargs):raise AssertionError("Diagnostics are disabled")
+    monkeypatch.setattr(app.state.natural.diagnostics,"resources",unexpected)
+    snapshot=c.get("/api/v1/natural/diagnostics").json()
+    assert snapshot["enabled"] is False and snapshot["resources"] is None
+
+
 def test_optional_gpu_probe_is_bounded_cached_and_does_not_run_user_commands(natural,monkeypatch):
     from types import SimpleNamespace
     app,c=natural;manager=app.state.natural.diagnostics;calls=[]

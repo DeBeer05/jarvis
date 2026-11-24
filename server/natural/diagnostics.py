@@ -101,5 +101,5 @@ class DiagnosticsManager:
                 "active_provider":latest["provider"] if latest and latest["provider"] in ("gemini","groq","ollama","local","jarvis") else None,
                 "voice":{"capabilities":capabilities,"inference_busy":inference_busy},"websocket":"not_configured","microphone":"device_local",
                 "sessions":sessions,"memory_counts":counts,"latency":latency,"events":events,
-                "resources":self.resources(helper) if config["diagnostics"]["resources"] else None,
+                "resources":self.resources(helper) if config["diagnostics"]["enabled"] and config["diagnostics"]["resources"] else None,
                 "contains_conversation_content":False}

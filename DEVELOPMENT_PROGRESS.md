@@ -2,6 +2,22 @@
 
 ## Huidige opdracht
 
+Afrondingsbuild **0.7.5** gemaakt voor server, Windows en Android (versionCode705).
+Toegevoegd: blijvende opt-in mailopvolging, brongebonden antwoordstatus in chat,
+openstaande-takenopdracht, persoonlijkheidsvoorbeeld zonder opslag/toolrechten,
+apparaatgebonden geheugen bij synchronisatie uit, schema-6-migratie met back-up,
+en geen resourceprobes bij diagnostiek uit. Externe schrijfacties behouden hun
+exacte goedkeuring; opvolging kan alleen lezen en controleert actuele rechten.
+Laatste volledige serverregressie **373 geslaagd**, 144,88 s; Windows **107
+geslaagd**, 4,90 s; Android **14 instrumentatietests geslaagd**, unit/lint/debug/
+release-build geslaagd (154 s). Windows portable- en speechhelper-smoke geslaagd:
+geen netwerk/model/microfoon bij start; geen downloads. APK-handtekening komt
+overeen met de bestaande lokale 0.7.0-debug-APK. Beide artifacts staan in .local.
+Fase 7.5 is nog geen volledige acceptatie van alle 50 specificatieonderdelen:
+overige runtime-instellingen, automatisch vervolgen van afhankelijke intenties,
+uitgebreide mailconceptcorrecties en echte hardwareacceptatie blijven open.
+Geen fase 8, publieke toegang, echte accountmutaties of mini-pc-migratie.
+
 Handmatige spraakactivatie reserveert op Windows en Android de centrale
 gesprekslease vóór microfoonopname. Bij conflict wordt geen opname gestart;
 annuleren negeert late activatiecallbacks. Dezelfde conversation_id blijft

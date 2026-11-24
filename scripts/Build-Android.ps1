@@ -11,7 +11,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Android-tests/lint/build mislukt.' }
     $phase6Output = Join-Path $phase6Root '.local\android-build'
     New-Item -ItemType Directory -Force -Path $phase6Output | Out-Null
-    $phase6Apk = Join-Path $phase6Output 'JARVIS-Android-0.7.0-debug.apk'
+    $phase6Apk = Join-Path $phase6Output 'JARVIS-Android-0.7.5-debug.apk'
     Copy-Item -LiteralPath 'app\build\outputs\apk\debug\app-debug.apk' -Destination $phase6Apk -Force
     Get-FileHash -LiteralPath $phase6Apk -Algorithm SHA256 | Format-List
 } finally {

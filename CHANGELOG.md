@@ -4,6 +4,13 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- 0.7.5-kandidaat: optionele persistente mailopvolging en contextgebonden vraag
+  naar ontvangen antwoorden; controles gebruiken bestaande leesrechten en
+  kunnen geen nieuwe verzending autoriseren.
+- Persoonlijkheidsvoorbeeld op Windows/Android zonder opslag of tooluitvoering.
+  Geheugensynchronisatie uit beperkt toegang tot het oorspronkelijke apparaat;
+  schema 6 bewaart die herkomst. Diagnostiek uit start geen resourceprobe.
+
 - Handmatige spraakactivatie reserveert de centrale sessie vóór opname op Windows
   en Android; annuleren maakt late activatie ongeldig.
 

@@ -144,6 +144,17 @@ internal object SettingsDraft {
             val changed=JSONObject(draft);changed.getJSONObject(category).put(name,value);draft=changed.toString();dirty=true
         }
     }}
+    var preview by remember(state.connection.authenticated) {mutableStateOf<String?>(null)}
+    if(category=="personality") {
+        OutlinedButton(onClick={try {
+            val ready=SettingsDraft.validated(draft,schema)
+            preview="Voorbeeld genereren…"
+            model.previewNaturalPersonality(ready.getJSONObject("personality").toString()) {preview=it}
+        } catch(_:Exception){model.message("Controleer de persoonlijkheidsinstellingen")}}) {Text("Voorbeeldgesprek testen")}
+    }
+    preview?.let {text->AlertDialog(onDismissRequest={preview=null},title={Text("Persoonlijkheidsvoorbeeld")},
+        text={Text(text+"\n\nNiet opgeslagen. Er worden geen taken uitgevoerd.")},
+        confirmButton={TextButton(onClick={preview=null}){Text("Sluiten")}})}
     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
         Button(onClick={try {val ready=SettingsDraft.validated(draft,schema);submitted=SettingsDraft.canonical(ready);model.saveNaturalSettings(ready.toString(),JSONObject(base).getInt("revision"))} catch(_:Exception){model.message("Controleer de numerieke instellingen en hun toegestane bereik")}},enabled=dirty&&!conflict,modifier=Modifier.testTag("natural-save")){Text("Opslaan")}
         OutlinedButton(onClick={base=state.naturalSettings;draft=JSONObject(base).getJSONObject("settings").toString();dirty=false;conflict=false;submitted=null}){Text("Annuleren")}
