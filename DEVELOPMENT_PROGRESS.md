@@ -2,6 +2,34 @@
 
 ## Huidige opdracht
 
+Intelligent Response Engine & Dutch Butler Voice geïmplementeerd op
+feature/intelligent-response-butler-voice, voortbouwend op b2948b1/PR25 omdat develop
+fase 7.5 nog niet bevat. Nieuwe antwoordmodi/profielen, apart speech-SSE-protocol,
+conservatieve brongebonden samenvattingen, contextgebonden mailvervolgvragen,
+Classic Butler en gesloten tijdelijke/permanente gesproken instellingen.
+Centrale lokale Supertonic/Piper-router, vaste provider per antwoord, begrensde
+sessie-/geheugenversiegebonden audiocache, native Voice Studio op beide clients.
+Geen SQL-migratie (schema 7), tweede backend, nieuwe rechten, online TTS of cloning.
+Eigenaar gaf toestemming voor circa 400 MB Supertonic 3 M1–M5. ONNX-checksums
+geverifieerd; modelbestanden blijven buiten Git. Licenties en primaire bronnen in
+TTS_PROVIDERS.md; vendored helper met MIT-copyright en licentie.
+
+Definitieve serverregressie **417 geslaagd**, 221,34 s; Windows **112 geslaagd**,
+7,03 s; Android unit/lint/debug/release en **18 instrumentatietests geslaagd**
+(ook herhaling met nieuw contract). Ruff/mypy en drie pip checks geslaagd.
+Echte 42-zinsbenchmark: mediaan warm Supertonic 1,467 s / Piper 0,213 s;
+Supertonic-helperpiek 518,6 MiB. Echte generatieannulering circa 0,051 s en
+verse inference daarna geslaagd. Verpakte Supertonic produceert geldig WAV.
+Geen fysieke microfoon-/luisterkwaliteit, mini-pc of GPU-TTS als geslaagd geclaimd.
+Rapport: docs/RESPONSE_AND_VOICE_TEST_REPORT.md. Subjectieve luisteracceptatie vereist.
+
+Windows-opstartmelding onderzocht: eigen verborgen gestart proces draaide zonder
+zichtbaar venster. Zichtbaar herstart en venster daadwerkelijk teruggevonden.
+Nieuwe build bevat same-user/profile IPC-activatie voor dubbelstart, getest met
+apart proces. Definitieve geïnstalleerde build-/Git-/CI-status wordt na uitrol aangevuld.
+Backend blijft localhost 8765, desktop-development. Geen fase 8, migratie of productie.
+
+
 Adresboekuitbreiding lokaal uitgerold op bestaande server/Windows en Android
 0.7.5/707: persoonlijke contactnamen en aliassen, exact e-mailadres, revisiecontrole,
 geen adreswijziging van bestaande voorstellen, lokale verduidelijking bij dubbelzinnigheid.

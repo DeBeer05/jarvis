@@ -197,6 +197,9 @@ Globale sneltoetsen alleen na expliciete opt-in. Onderbreken annuleert ook oude
 TTS/generaties. Grote modellen alleen na omvangindicatie en toestemming; eigenaar
 heeft Whisper Small (~486 MB), Piper MLS (~77 MB) en extra Piper Ronnie (~63 MB)
 expliciet goedgekeurd.
+Eigenaar heeft daarnaast Supertonic 3 (~400 MB, vaste M1–M5-stemmen) expliciet
+goedgekeurd voor deze antwoord-/butleruitbreiding. Hergebruik dezelfde private helper
+en centrale TTS-router; geen runtime-downloads, online TTS of voice cloning.
 Geen berichten, account-OAuth, autonome acties, permanente Windows-
 service of productie-deployment. Alleen localhost; alles op de ontwikkeldesktop.
 Gebruik voorlopig uitsluitend profiel desktop-development. Verplaats niets naar

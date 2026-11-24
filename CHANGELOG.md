@@ -4,6 +4,20 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Intelligent Response Engine: kanaalgebonden lengte/profielen, korte toolspraak naast
+  geschreven broninformatie, behoud van deadlines/goedkeuringen, contextgebonden
+  mailvervolgvragen en gesloten tijdelijke/permanente gesproken instellingen.
+- Classic Butler-persoonlijkheid en gedeelde Nederlandse SpeechFormatter.
+- Centrale lokale TTS-router met Supertonic 3 M1–M5, Piper-fallback, providerbinding
+  per antwoord en sessie-/geheugenversiegebonden vluchtige audiocache.
+- Voice Studio op Windows en Android (708): geïnstalleerde stemmen beluisteren,
+  serieel vergelijken en als globale favoriet opslaan; geen microfoon of online TTS.
+- Expliciete modelinstallatie na toestemming (~400 MB), 42 echte synthetische
+  benchmarkproeven en annuleringsproef. Geen betaalde diensten, cloning of migratie.
+- Tweede Windows-start opent het bestaande venster; updatebuild kan naast de
+  actieve artifactdirectory worden voorbereid zonder gebruikersgegevens te wijzigen.
+
+
 - Persoonlijk adresboek op Windows en Android (build 707): namen en aliassen
   koppelen aan één e-mailadres, zoeken, wijzigen, verwijderen en synchroniseren.
   Backend koppelt expliciet genoemde ontvangers vóór toolplanning; dubbele namen
