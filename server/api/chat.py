@@ -25,6 +25,8 @@ class ChatInput(BaseModel):
     provider: Literal["auto", "gemini", "groq", "ollama"] | None = None
     conversation_id: UUID | None = None
     request_id: UUID | None = None
+    channel: Literal["text","voice"] = "text"
+    session_epoch: int | None = Field(default=None,ge=1)
 
 
 async def prepare(request: Request, body: ChatInput):
@@ -35,6 +37,7 @@ async def prepare(request: Request, body: ChatInput):
         str(body.conversation_id) if body.conversation_id else None,
         str(body.request_id) if body.request_id else None,
         principal=request.state.principal,
+        channel=body.channel, session_epoch=body.session_epoch,
     )
 
 

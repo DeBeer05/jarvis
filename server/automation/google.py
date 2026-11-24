@@ -141,6 +141,8 @@ class IntegrationManager:
         if tool != "CalendarCreate": path += "/"+quote(p["event_id"],safe="")
         body = {"summary":p["summary"], "start":{"dateTime":p["start"],"timeZone":p["timezone"]}, "end":{"dateTime":p["end"],"timeZone":p["timezone"]}, "location":p["location"], "attendees":[{"email":x} for x in p["attendees"]]}
         if p["recurrence"]: body["recurrence"] = p["recurrence"]
+        if p.get("reminder_minutes") is not None:
+            body["reminders"]={"useDefault":False,"overrides":[{"method":"popup","minutes":p["reminder_minutes"]}]}
         if tool == "CalendarCreate": body["id"] = "j"+hashlib.sha256(key.encode()).hexdigest()[:40]
         if tool == "CalendarUpdate":
             current = await self.api("calendar_read", path)

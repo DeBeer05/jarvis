@@ -27,7 +27,8 @@ class JarvisApi(val endpoint: Endpoint, private val vault: SecretVault) {
     @Volatile var generation = 0
         private set
     @Volatile private var streamCall: Call? = null
-    @Volatile private var audioCall: Call? = null
+    @Volatile private var transcriptionCall: Call? = null
+    @Volatile private var synthesisCall: Call? = null
     private fun make(path: String, method: String, body: RequestBody?, bearer: String? = null): Call {
         require(path.startsWith("/api/") || path == "/health")
         val request = Request.Builder().url(endpoint.origin + path).method(method, body).tag(SendTrace::class.java, SendTrace())
@@ -35,13 +36,14 @@ class JarvisApi(val endpoint: Endpoint, private val vault: SecretVault) {
         return http.newCall(request.build())
     }
     private fun error(response: Response): Nothing {
+        val raw=try {response.peekBody(8192).string()}catch(_:Exception){""}
+        val code=try {JSONObject(raw).optJSONObject("error")?.optString("code")}catch(_:Exception){null}
         if (response.request.url.encodedPath == "/api/v1/pairing/token") {
-            val raw = response.body?.source()?.readUtf8Line() ?: ""
-            val code = try { JSONObject(raw).optJSONObject("error")?.optString("code") } catch (_: Exception) { null }
             if (code in setOf("authorization_pending", "slow_down")) throw MobileError(code!!, response.code, "Wacht op goedkeuring door de eigenaar")
         }
         if (response.code == 401) forget()
-        val message = when(response.code) { 401 -> "Log opnieuw in of koppel dit apparaat opnieuw"; 403 -> "Dit apparaat heeft geen toestemming"; 429 -> "Te veel verzoeken; wacht even"; 503 -> "Server of spraakengine niet beschikbaar"; else -> "Serververzoek mislukt (${response.code})" }
+        if(response.code==409 && code in setOf("conversation_busy","duplicate_request"))throw MobileError(code!!,409,"Het vorige antwoord wordt nog afgesloten. Wacht even en druk opnieuw op de spreekknop; je hoeft het gesprek niet over te nemen.")
+        val message = when(response.code) { 401 -> "Log opnieuw in of koppel dit apparaat opnieuw"; 403 -> "Dit apparaat heeft geen toestemming"; 409 -> "Gegevens of spraaksessie elders gewijzigd. Vernieuw eerst of neem het gesprek expliciet over"; 422 -> "Controleer de invoer en de toegestane waarden"; 429 -> "Te veel verzoeken; wacht even"; 503 -> "Server of spraakengine niet beschikbaar"; else -> "Serververzoek mislukt (${response.code})" }
         throw MobileError("http_${response.code}", response.code, message)
     }
     private fun read(response: Response, limit: Int = 2_000_000): ByteArray {
@@ -111,15 +113,16 @@ class JarvisApi(val endpoint: Endpoint, private val vault: SecretVault) {
         } } finally { streamCall = null }
     }
     suspend fun transcribe(wav: ByteArray): String = withContext(Dispatchers.IO) {
-        val call = make("/api/v1/mobile/speech/transcribe", "POST", wav.toRequestBody("audio/wav".toMediaType()), bearer()); audioCall = call
-        try { call.execute().use { JSONObject(read(it).toString(Charsets.UTF_8)).getString("text") } } finally { audioCall = null }
+        val call = make("/api/v1/mobile/speech/transcribe", "POST", wav.toRequestBody("audio/wav".toMediaType()), bearer()); transcriptionCall = call
+        try { call.execute().use { JSONObject(read(it).toString(Charsets.UTF_8)).getString("text") } } finally { if(transcriptionCall===call)transcriptionCall = null }
     }
     suspend fun synthesize(text: String, speed: Float): ByteArray = withContext(Dispatchers.IO) {
         val body = JSONObject().put("text", text).put("speed", speed)
-        val call = make("/api/v1/mobile/speech/synthesize", "POST", body.toString().toRequestBody("application/json".toMediaType()), bearer()); audioCall = call
-        try { call.execute().use { read(it, 8_000_000) } } finally { audioCall = null }
+        val call = make("/api/v1/mobile/speech/synthesize", "POST", body.toString().toRequestBody("application/json".toMediaType()), bearer()); synthesisCall = call
+        try { call.execute().use { read(it, 8_000_000) } } finally { if(synthesisCall===call)synthesisCall = null }
     }
-    fun stop() { streamCall?.cancel(); audioCall?.cancel() }
+    fun cancelTranscription() {transcriptionCall?.cancel()}
+    fun stop() { streamCall?.cancel(); transcriptionCall?.cancel();synthesisCall?.cancel() }
     fun invalidatePendingAuth() = synchronized(credentialState) { generation++ }
     fun forget() {
         synchronized(credentialState) { generation++; access = ""; vault.drop(endpoint.origin) }

@@ -1,5 +1,38 @@
 # Testverslag fase 7
 
+## Eén gesproken ja — 24 november 2026
+
+Op expliciet vervolgverzoek is ja nu een bevestiging van alleen het voorafgaande,
+volledig getoonde/voorgelezen ongewijzigde mail-/agendavoorstel; nee wijst het af.
+Mailconcepten krijgen automatisch een verzendvoorstel, behalve expliciet alleen-
+concept. Bestaande payload-/sessie-/tijd-/preview-/approverguards blijven gelden.
+
+255 volledige servertests en 51 gerichte chat-/automatiseringstests geslaagd.
+De synthetische STT→chat→TTS→STT ‘Ja, graag’→engine-proef slaagt voor mail en
+agenda. Ook geen tweede uitvoering, geen bevestiging in een ander gesprek,
+onderbroken preview, ontbrekende approverrechten en concept-only gecontroleerd.
+Echte Groq met gemockte Google en tijdelijke SQLite bevestigt beide volledige
+flows inclusief één ja en het ontbreken van dubbele acties. Geen echte mail of
+afspraak namens de gebruiker uitgevoerd. Geen APK-/clientwijziging nodig.
+
+## Goedkeuringen in de chat — 24 november 2026
+
+249 volledige servertests en 45 gerichte chat-/automatiseringstests geslaagd.
+Nieuwe gevallen: volledige kalenderpreview met jaartal, eenmalige expliciete
+Goedkeuren/Weigeren, geverifieerde mailpreview, ontbrekende approverrechten,
+herhaalde beslissingen, meerdere voorstellen/selectie, verlopen/gewijzigde/
+onderbroken preview, wijziging tijdens challenge en te grote/onvolledige preview.
+Een afgebroken preview geldt nooit als volledig getoond. Payloadfingerprint
+wordt in de beslissingstransactie opnieuw gecontroleerd. Nonce blijft buiten
+chat/model/logs; alleen bestaande digestopslag. Geen schema-/clientwijziging.
+
+Echte Groq/GPT-OSS 120B met tijdelijke database en gesimuleerde executor: eerste
+afspraakvraag, aanvullende tijden, volledige preview, Goedkeuren en confirmed
+completed geslaagd. Geen echte Google-accountmutatie. Server-pip check,
+repository-/indexgeheim-/whitespacecontrole geslaagd; Bandit nul middel/hoge.
+Gecontroleerde serverstart: health/ready 200, anonieme automation-API 401.
+Windows 0.7.1 en Android 0.7.0 blijven dezelfde chatroute gebruiken.
+
 ## AI-chat en spraakbediening
 
 26 nieuwe tests voor geregistreerde tools via de bestaande geauthenticeerde

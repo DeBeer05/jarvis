@@ -11,6 +11,9 @@ from server.ai.providers import ProviderError
 from server.ai.router import AIRouter
 from server.chat_store import ChatError, ChatStore
 from server.config import Settings
+from server.ai.policy import next_with_policy
+from server.natural.store import Conflict
+from server.natural.conversation import State
 
 logger = logging.getLogger("jarvis.server")
 
@@ -35,6 +38,18 @@ class Generation:
     started: bool = False
     expiry: asyncio.TimerHandle | None = field(default=None, repr=False)
     principal: object | None = field(default=None, repr=False)
+    channel: str = "text"
+    session_epoch: int | None = None
+    natural_context: dict | None = field(default=None, repr=False)
+    context_messages: list | None = field(default=None, repr=False)
+    context_metrics: dict = field(default_factory=dict)
+    ai_policy: object | None = field(default=None, repr=False)
+    wait_state: object | None = field(default=None, repr=False)
+    allowed_tools: frozenset[str] | None = field(default=None, repr=False)
+    tool_operation: str = ""
+    started_at:float=field(default_factory=time.perf_counter,repr=False)
+    first_token_seconds:float|None=field(default=None,repr=False)
+    persist_history:bool=True
 
     def public(self) -> dict:
         return {"request_id": self.request_id, "conversation_id": self.conversation_id,
@@ -49,8 +64,9 @@ class ChatService:
         self.admissions = deque()
         self.persistence_tasks: set[asyncio.Task] = set()
         self.automation_chat = None
+        self.natural = None
 
-    async def prepare(self, message: str, mode: str | None = None, conversation_id: str | None = None, request_id: str | None = None, *, principal=None) -> Generation:
+    async def prepare(self, message: str, mode: str | None = None, conversation_id: str | None = None, request_id: str | None = None, *, principal=None,channel="text",session_epoch=None) -> Generation:
         if len(message) > self.settings.max_message_chars or not message.strip():
             raise ChatError("invalid_message", "Het bericht is leeg of te lang.", 422)
         if len(message) + len(self.settings.system_prompt) > self.settings.max_context_chars:
@@ -69,12 +85,29 @@ class ChatService:
             raise ChatError("duplicate_request", "Dit verzoek loopt al.", 409)
         run = Generation(request_id, conversation_id, mode or self.settings.ai_provider, self.store.clean(message.strip()))
         run.principal = principal
+        run.channel,run.session_epoch=channel,session_epoch
         self.active[request_id] = run  # Reserve before the first await; no unbounded wait queue.
         self.admissions.append(tick)
         try:
-            run.conversation_id, run.history = await asyncio.to_thread(self.store.start, request_id, conversation_id, run.message)
+            if self.natural and principal:
+                document=await asyncio.to_thread(self.natural.settings.get,principal)
+                run.persist_history=document["settings"]["memory"]["history"]
+            if self.natural and principal and conversation_id:
+                await asyncio.to_thread(self.natural.authorize_conversation,principal,conversation_id)
+                await asyncio.to_thread(self.natural.check_audio,run)
+            run.conversation_id, run.history = await asyncio.to_thread(self.store.start, request_id, conversation_id, run.message,persist=run.persist_history)
         except BaseException:
             self.active.pop(request_id, None)
+            raise
+        try:
+            if self.natural and principal:
+                run.natural_context,run.context_messages,run.context_metrics=await asyncio.to_thread(self.natural.prepare,run)
+                run.ai_policy=run.natural_context["policy"]
+                await self.natural.phase(run,State.THINKING)
+        except BaseException:
+            # start succeeded: finish only this new turn, never a duplicate ID.
+            await asyncio.to_thread(self.store.finish,request_id,"",None,None,"error","context_rejected")
+            self.active.pop(request_id,None)
             raise
         run.expiry = asyncio.get_running_loop().call_later(self.settings.ai_timeout_seconds + 5, self.expire, run)
         return run
@@ -92,6 +125,8 @@ class ChatService:
             task.add_done_callback(self.persistence_tasks.discard)
 
     def context(self, run: Generation) -> list[dict]:
+        if run.context_messages is not None:
+            return run.context_messages
         # Keep complete user/assistant pairs, newest first within a strict character budget.
         remaining = self.settings.max_context_chars - len(run.message) - len(self.settings.system_prompt)
         kept = []
@@ -108,17 +143,21 @@ class ChatService:
     async def events(self, run: Generation):
         run.started = True
         pending = None
+        memory_command=bool(self.natural and run.natural_context and self.natural.is_command(run))
         cancellation = asyncio.create_task(run.cancel.wait())
         try:
             yield {"type": "meta", "request_id": run.request_id, "conversation_id": run.conversation_id}
             if run.cancel.is_set():
                 raise GenerationCancelled
-            source = self.automation_chat.stream(run) if self.automation_chat and self.automation_chat.candidate(run) else self.router.stream(self.context(run), run.mode)
+            if memory_command:
+                source=self.natural.stream_command(run)
+            else:
+                source = self.automation_chat.stream(run) if self.automation_chat and self.automation_chat.candidate(run) else self.router.stream(self.context(run), run.mode)
             async with aclosing(source) as stream:
                 try:
-                    async with asyncio.timeout(self.settings.ai_timeout_seconds):
+                    async with asyncio.timeout(run.ai_policy.timeout_seconds if run.ai_policy else self.settings.ai_timeout_seconds):
                         while True:
-                            pending = asyncio.create_task(anext(stream))
+                            pending = asyncio.create_task(next_with_policy(stream,run.ai_policy))
                             done, _ = await asyncio.wait((pending, cancellation), return_when=asyncio.FIRST_COMPLETED)
                             if cancellation in done:
                                 run.status = "cancelled"
@@ -128,7 +167,17 @@ class ChatService:
                             except StopAsyncIteration:
                                 run.status = "completed"
                                 break
+                            if self.natural and run.session_epoch is not None:
+                                await asyncio.to_thread(self.natural.check_audio,run)
+                                if event["type"]=="delta" and not run.text:
+                                    await self.natural.phase(run,State.ASSISTANT_SPEAKING)
+                            if self.natural and run.natural_context and not memory_command:
+                                version=await asyncio.to_thread(self.natural.context.memory_version,run.principal)
+                                if version!=run.natural_context["memory_version"]:
+                                    run.status="cancelled"
+                                    break
                             if event["type"] == "delta":
+                                if not run.text:run.first_token_seconds=time.perf_counter()-run.started_at
                                 if len(run.text) + len(event["text"]) > self.settings.max_response_chars:
                                     raise ProviderError("response_limit", retryable=False)
                                 run.text += event["text"]
@@ -143,6 +192,9 @@ class ChatService:
                             await pending
         except GenerationCancelled:
             run.status = "cancelled"
+        except Conflict:
+            run.status="cancelled"
+            run.error={"code":"conversation_taken_over","message":"Dit spraakgesprek is verlopen of overgenomen. Start of hervat het gesprek opnieuw."}
         except ProviderError as error:
             run.status = "error"
             run.error = {"code": error.code, "message": error.message}
@@ -153,12 +205,37 @@ class ChatService:
             logger.warning("chat_timeout")
         except (asyncio.CancelledError, GeneratorExit):
             run.status = "cancelled"
+            run.cancel.set()
             raise
         except Exception as error:
             run.status = "error"
             run.error = {"code": "internal_error", "message": "Het antwoord kon niet worden verwerkt."}
             logger.error("chat_failed", extra={"error_type": type(error).__name__})
         finally:
+            # HTTP/AnyIO cancellation can be delivered repeatedly, including
+            # during a finally block. Own the complete cleanup in a separate
+            # task so a second disconnect cannot leave a permanent busy entry.
+            cleanup=asyncio.create_task(self._finalize(run,pending,cancellation))
+            self.persistence_tasks.add(cleanup)
+            def completed(task):
+                self.persistence_tasks.discard(task)
+                if not task.cancelled() and task.exception():
+                    logger.error("chat_cleanup_failed",extra={"error_type":type(task.exception()).__name__})
+            cleanup.add_done_callback(completed)
+            try:await asyncio.shield(cleanup)
+            except asyncio.CancelledError:pass
+        if run.error:
+            yield {"type": "error", **run.error}
+        yield {"type": "done", **run.public()}
+
+    async def _finalize(self,run,pending,cancellation):
+        try:
+            if self.natural and run.session_epoch is not None:
+                try:
+                    target=run.wait_state if run.status=="completed" and run.wait_state else State.ERROR if run.status=="error" else State.LISTENING if run.status=="cancelled" else None
+                    if target:await self.natural.phase(run,target)
+                except Exception:
+                    logger.debug("conversation_phase_unavailable")
             if run.expiry:
                 run.expiry.cancel()
             if pending and not pending.done():
@@ -169,22 +246,24 @@ class ChatService:
             with suppress(asyncio.CancelledError):
                 await cancellation
             run.text = self.store.clean(run.text)
-            persistence = asyncio.create_task(asyncio.to_thread(
-                self.store.finish, run.request_id, run.text, run.provider, run.model,
+            await asyncio.to_thread(
+                self.store.finish, run.request_id, run.text if run.persist_history else "", run.provider, run.model,
                 run.status, run.error["code"] if run.error else None,
-            ))
-            self.persistence_tasks.add(persistence)
-            persistence.add_done_callback(self.persistence_tasks.discard)
-            try:
-                await asyncio.shield(persistence)
-            except asyncio.CancelledError:
-                # Shielded database cleanup continues even after an HTTP disconnect.
-                pass
-            finally:
-                self.active.pop(run.request_id, None)
-        if run.error:
-            yield {"type": "error", **run.error}
-        yield {"type": "done", **run.public()}
+            )
+            if self.natural and run.principal and run.natural_context and run.status in ("completed","cancelled"):
+                try:await asyncio.to_thread(self.natural.context.complete,run)
+                except Exception:logger.debug("private_context_unavailable")
+            if self.natural and run.principal and run.status=="completed":
+                try:
+                    await asyncio.to_thread(self.natural.automatic_memory,run)
+                    await asyncio.to_thread(self.natural.context.summarize,run.principal,run.conversation_id)
+                except Exception as error:
+                    logger.warning("summary_unavailable",extra={"error_type":type(error).__name__})
+            if self.natural and run.principal:
+                try:await asyncio.to_thread(self.natural.diagnostics.response,run)
+                except Exception:logger.debug("diagnostics_unavailable")
+        finally:
+            self.active.pop(run.request_id,None)
 
     def cancel(self, request_id: str) -> bool:
         run = self.active.get(request_id)

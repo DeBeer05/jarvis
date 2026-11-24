@@ -4,6 +4,77 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Persoonlijk adresboek op Windows en Android (build 707): namen en aliassen
+  koppelen aan één e-mailadres, zoeken, wijzigen, verwijderen en synchroniseren.
+  Backend koppelt expliciet genoemde ontvangers vóór toolplanning; dubbele namen
+  vragen verduidelijking. Verzendgoedkeuring blijft aan het exacte concept gebonden.
+- SQLite schema 7 met voorafgaande back-up; contactwijzigingen gebruiken revisies.
+
+
+- Android-reparatiebuild 706: overname-/stopherstel en afscherming tegen oude
+  foutcallbacks. Chatfinalisatie overleeft herhaalde disconnects, zodat een
+  gesprek niet blijvend bezet raakt. Overname wacht op annulering van de oude beurt.
+- Natuurlijke afspraak-aanmaak en vrije slotantwoorden behouden eerdere gegevens;
+  mogelijkhedenvragen gebruiken feitelijke serverfuncties. Vervolgvragen volgen
+  de ingestelde combineerkeuze; proactiviteitspresets en plannertijdzone aangesloten.
+
+- 0.7.5-kandidaat: optionele persistente mailopvolging en contextgebonden vraag
+  naar ontvangen antwoorden; controles gebruiken bestaande leesrechten en
+  kunnen geen nieuwe verzending autoriseren.
+- Persoonlijkheidsvoorbeeld op Windows/Android zonder opslag of tooluitvoering.
+  Geheugensynchronisatie uit beperkt toegang tot het oorspronkelijke apparaat;
+  schema 6 bewaart die herkomst. Diagnostiek uit start geen resourceprobe.
+
+- Handmatige spraakactivatie reserveert de centrale sessie vóór opname op Windows
+  en Android; annuleren maakt late activatie ongeldig.
+
+- Brongebonden invalidatie bewaart onverwante samenvattingen bij vergeten.
+  Agenda-alternatieven blijven met volledige buffer binnen het gecontroleerde
+  bereik. Android-instellingencontract wordt reproduceerbaar uit de backend
+  gegenereerd en in CI gecontroleerd.
+
+- Geschiedenis uit houdt nieuwe gewone gesprekstekst alleen tijdelijk in RAM;
+  Android schakelt caching uit. Retentie, conservatieve automatische voorkeuren,
+  echte profielpresets en brongebonden ‘onthou dit’/‘vergeet dat’ aangesloten.
+
+- Natuurlijke afspraakslots, correcties zonder dubbele afspraak, popupherinneringen
+  en gevalideerde samengestelde opdrachten. Iedere actie behoudt eigen rechten,
+  idempotency-key en verplichte exacte goedkeuring.
+- Diagnostiekpagina in beide native apps met veilige numerieke export en echte
+  latency-/procesmetingen. Python-lint/typechecks zijn reproduceerbaar in CI.
+
+- Fase 7.5 in uitvoering: centrale versiegebonden instellingen in 13 categorieën,
+  SQLite/FTS5-geheugen, bronbewust vergeten, lokale samenvattingen en begrensde
+  gesprekscontext. Offlinebeleid geldt ook voor interne AI-aanroepen.
+- Windows: instellingen-/geheugencentrum, expliciete sessieoverdracht en
+  doorlopende spraakbeurten na bewuste activatie. Microfoon start niet vanzelf.
+- Nederlandse tijdresolver en hervatbare taakreferenties gebruiken de bestaande
+  AutomationEngine. Geen herstel van oude goedkeuringsgeheimen of auto-uitvoering.
+- Audiohelper blijft geladen tussen aanvragen; Windows Natural Conversation
+  Mode en Android delen dezelfde serverinference. Annulering sluit ook een
+  lopende serveraanvraag af; beveiligingsheaders behouden via pure ASGI.
+- Android: doorlopende voorgrondgesprekken met centrale sessie/epoch, timeouts,
+  expliciete overname, audiofocusherstel en beschikbare platform-AEC/ruisfiltering.
+  Tien opeenvolgende synthetische spraakbeurten getest.
+- Optionele spraakonderbreking in Windows en Android: pauzeren, echo-/tekstguard,
+  geverifieerde vervolguitspraak en annulering van oude audio/generatie met behoud
+  van gesprek/taken. Softwareproeven geslaagd; echte echo-/microfoonacceptatie open.
+- Android: centrale instellingen-/geheugeninterface, typed controls en CAS,
+  import/export via Android-bestandsdialoog, lokale hardwarekeuze apart gehouden.
+  Alleen ondersteunde/geïnstalleerde spraakkeuzes aangeboden. Drie nieuwe echte
+  emulatorproeven dekken UI, geheugen/synchronisatie en expliciete audio-overdracht.
+
+- Op gebruikersverzoek volstaat één gesproken/getypte ja na de volledige actuele
+  mail-/agendapreview; nee weigert. Een mail wordt na het geverifieerde concept
+  direct als verzendvoorstel klaargezet. Geen extra verstuur-opdracht of dubbele
+  verzending; expliciet alleen-concept blijft behouden. Dezelfde approvalbinding.
+
+- Agenda- en mailvoorstellen in dezelfde chat goedkeuren/weigeren, met volledige
+  serverpreview, actuele approverrechten en eenmalige payloadbinding. Verlopen,
+  gewijzigde of niet als laatste getoonde previews vragen opnieuw controle.
+  Ontbrekende afspraakgegevens blijven bij de oorspronkelijke vervolgvraag;
+  geen door het model verzonnen tijdstip. Geen nieuwe client of APK nodig.
+
 - Spraakagenda: ‘Wat stond er voor vandaag in mijn agenda?’ en vergelijkbare
   complete dagvragen halen rechtstreeks echte toolresultaten op, met dezelfde
   rechtencontrole. ‘En morgen?’ behoudt de gekozen agenda; geen willekeurige

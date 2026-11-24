@@ -56,6 +56,10 @@ class VoicePanel(QWidget):
         stop.clicked.connect(window.voice_stop)
         controls.addWidget(stop)
         layout.addLayout(controls)
+        takeover=QPushButton("Gesprek hier overnemen")
+        takeover.setToolTip("Selecteer eerst een eerder gesprek bij Gesprekken. Neem daarna expliciet de spraaksessie van een ander apparaat over.")
+        takeover.clicked.connect(lambda:window.voice_session.takeover())
+        layout.addWidget(takeover)
         self.wake = QCheckBox("Luister naar Hé JARVIS")
         self.wake.setToolTip("Experimentele lokale herkenning na je hele zin; standaard uit. Microfoon is actief zolang je dit inschakelt.")
         self.wake.toggled.connect(self.set_wake)
@@ -207,6 +211,21 @@ class VoicePanel(QWidget):
 
     def set_authorized(self, authorized):
         self.manager.set_authorized(authorized)
+        central=bool(self.manager.options and self.manager.options["conversations"]["enabled"])
+        if central:
+            effective=self.manager.effective_settings()
+            for key,field in self.fields.items():
+                if key not in ("input_gain","followup_seconds"):field.setValue(getattr(effective,key))
+            for key,field in self.choices.items():field.setCurrentIndex(field.findData(getattr(effective,key)))
+            self.cache.setChecked(effective.cache)
+        for key,field in self.fields.items():
+            field.setEnabled(not central or key in ("input_gain","followup_seconds"))
+            if central and key not in ("input_gain","followup_seconds"):field.setToolTip("Beheer deze voorkeur onder Instellingen → Gesprekken en geheugen.")
+        for field in self.choices.values():
+            field.setEnabled(not central)
+            if central:field.setToolTip("De centrale server gebruikt de gedeelde stem- en modelvoorkeuren.")
+        self.paths.setEnabled(not central)
+        self.cache.setEnabled(not central)
         if not authorized:
             self.global_keys.setChecked(False)
             self.shortcuts.unregister()

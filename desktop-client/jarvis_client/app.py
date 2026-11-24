@@ -1,7 +1,6 @@
 import argparse
 import json
 import logging
-import os
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
@@ -12,6 +11,7 @@ from jarvis_client import __version__
 from jarvis_client.settings import SettingsStore
 from jarvis_client.vault import VaultError, WindowsVault
 from jarvis_client.window import MainWindow
+from jarvis_client.activation import WindowActivation,show_existing
 
 
 def main():
@@ -28,8 +28,10 @@ def main():
     store.directory.mkdir(parents=True, exist_ok=True)
     lock = QLockFile(str(store.directory / "client.lock"))
     if not lock.tryLock(0):
+        if show_existing(store.directory):return 0
         QMessageBox.information(None, "JARVIS", "JARVIS draait al. Open de app vanuit het systeemvak.")
         return 1
+    activation=None
     try:
         preferences = store.load()
         vault = WindowsVault()
@@ -45,6 +47,7 @@ def main():
         voice_logger.addHandler(handler)
         logger.info("client_started version=%s", __version__)
         window = MainWindow(store, vault, preferences=preferences)
+        activation=WindowActivation(store.directory,window.restore)
         if preferences.language == "en":
             for nav, title in zip(window.nav, ("Chat", "Conversations", "Devices", "Notifications", "Settings", "Account", "Voice")):
                 nav.setText(title)
@@ -65,4 +68,5 @@ def main():
         QMessageBox.critical(None, "JARVIS starten", "De client kan instellingen of Windows Credential Manager niet openen. Gegevens zijn behouden; controleer de handleiding.")
         return 2
     finally:
+        if activation:activation.close()
         lock.unlock()

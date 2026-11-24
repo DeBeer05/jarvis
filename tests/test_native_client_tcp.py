@@ -3,6 +3,7 @@ import socket
 import subprocess
 import sys
 import time
+import threading
 from pathlib import Path
 from uuid import uuid4
 
@@ -13,6 +14,9 @@ from tests.auth_helpers import TEST_PASSWORD
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "desktop-client"))
 from jarvis_client.api import ApiClient, ClientError
+from jarvis_client.voice.server_worker import ServerInferenceWorker
+from jarvis_client.voice.settings import VoiceSettings
+from providers.voice_pipe import OwnedVoicePipe
 
 
 class TemporaryVault:
@@ -65,6 +69,26 @@ def test_native_client_true_tcp_pair_chat_history_refresh_and_revoke(tmp_path, m
                         clock[0] += 6
                         principal = api.poll_pair()
                     assert api.request("GET", "/api/v1/auth/device")["type"] == "windows"
+                    from tests.test_mobile import wav
+                    speech=ServerInferenceWorker(api)
+                    try:
+                        assert speech.transcribe(wav(),VoiceSettings(),lambda:True)["text"]=="Synthetic native transcription"
+                        assert speech.synthesize("Synthetic normal synthesis",VoiceSettings(),lambda:True)[0]==wav()
+                        results=[]
+                        def slow():
+                            try:speech.synthesize("Synthetic slow synthesis",VoiceSettings(),lambda:True)
+                            except RuntimeError:results.append("cancelled")
+                        thread=threading.Thread(target=slow);thread.start();deadline=time.monotonic()+3
+                        while not owner.get("/api/v1/test/speech-status").json()["active"]:
+                            assert time.monotonic()<deadline;time.sleep(.05)
+                        speech.cancel();thread.join(2);assert not thread.is_alive() and results==["cancelled"]
+                        deadline=time.monotonic()+3
+                        while owner.get("/api/v1/test/speech-status").json()["cancelled"]!=1:
+                            assert time.monotonic()<deadline;time.sleep(.05)
+                        assert speech.transcribe(wav(),VoiceSettings(),lambda:True)["text"]=="Synthetic native transcription"
+                    finally:
+                        speech.close()
+                        for cleanup in speech.cleanup_threads:cleanup.join(7)
                     with pytest.raises(ClientError) as denied:api.request("GET","/api/v1/automation/calendar/calendars")
                     assert denied.value.status==403
                     granted=owner.post("/api/v1/automation/grants",json={"device_id":principal["device_id"],"scopes":["automation:read","automation:write"]},headers={"X-Jarvis-CSRF":owner.cookies["jarvis_csrf"]})
@@ -88,5 +112,4 @@ def test_native_client_true_tcp_pair_chat_history_refresh_and_revoke(tmp_path, m
                 finally:
                     api.close()
         finally:
-            process.terminate()
-            process.wait(timeout=10)
+            OwnedVoicePipe._reap(process)

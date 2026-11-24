@@ -2,6 +2,24 @@
 from urllib.parse import urlsplit
 
 from starlette.responses import JSONResponse
+from starlette.datastructures import MutableHeaders
+
+
+class SecurityHeaders:
+    """Keep receive/disconnect intact; response headers need no BaseHTTP bridge."""
+    def __init__(self,app):self.app=app
+
+    async def __call__(self,scope,receive,send):
+        if scope["type"]!="http":return await self.app(scope,receive,send)
+        async def guarded_send(message):
+            if message["type"]=="http.response.start":
+                headers=MutableHeaders(scope=message)
+                headers["X-Content-Type-Options"]="nosniff"
+                headers["Referrer-Policy"]="no-referrer"
+                headers["Content-Security-Policy"]="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+                headers["Cache-Control"]="no-store"
+            await send(message)
+        await self.app(scope,receive,guarded_send)
 
 
 class RequestGuard:

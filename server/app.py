@@ -22,7 +22,7 @@ from server.ai.router import AIRouter
 from server.chat_store import ChatError, ChatStore
 from server.chat_service import ChatService
 from server.api.chat import router as chat_router
-from server.http_security import RequestGuard
+from server.http_security import RequestGuard,SecurityHeaders
 from server.security.service import SecurityService
 from server.security.gate import SecurityGate
 from server.security.api import router as security_router
@@ -31,6 +31,9 @@ from server.mobile import router as mobile_router, SpeechBridge
 from server.automation.api import router as automation_router
 from server.automation.engine import AutomationEngine
 from server.automation.chat import AutomationChat
+from server.natural.service import NaturalService
+from server.natural.api import router as natural_router
+from server.natural.store import Conflict
 
 logger = logging.getLogger("jarvis.server")
 
@@ -56,6 +59,9 @@ def create_app(
             database.initialize()
             security.initialize()
             app.state.automation.store.recover()
+            app.state.natural.conversations.recover()
+            app.state.natural.context.private.clear()
+            app.state.natural.retention.start()
             if settings.automations_enabled:
                 app.state.automation.scheduler.start()
             runtime["ready"] = True
@@ -68,8 +74,11 @@ def create_app(
             raise RuntimeError("Server lifecycle failed; inspect structured event logs") from None
         finally:
             runtime["ready"] = False
+            await app.state.natural.retention.close()
             await app.state.automation.close()
             await chat.shutdown()
+            app.state.natural.context.private.clear()
+            if hasattr(app.state.speech,"close"):await app.state.speech.close()
             database.close()
             logger.info("server_stopped")
 
@@ -79,13 +88,19 @@ def create_app(
         openapi_url="/openapi.json" if settings.environment == "development" else None,
     )
     app.state.settings = settings
+    @app.exception_handler(Conflict)
+    async def natural_conflict(request,error):
+        return JSONResponse({"error":{"code":"conversation_conflict","message":"Gegevens of spraaksessie elders gewijzigd. Vernieuw of neem het gesprek expliciet over."}},status_code=409)
     app.state.runtime = runtime
     app.state.chat = chat
     app.state.security = security
     app.state.speech = SpeechBridge()
     app.state.mobile_push = {}
     app.state.automation = AutomationEngine(database, security)
+    app.state.natural = NaturalService(database,security,chat,app.state.automation)
     chat.automation_chat = AutomationChat(app.state.automation, security, chat.router, store.clean)
+    chat.automation_chat.task_memory = app.state.natural.tasks
+    chat.automation_chat.contacts = app.state.natural.contacts
     app.add_middleware(SecurityGate, service=security)
     app.add_middleware(RequestGuard, port=settings.port, allowed_origins=settings.allowed_origins)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(settings.trusted_hosts))
@@ -95,19 +110,13 @@ def create_app(
     app.include_router(security_router)
     app.include_router(mobile_router)
     app.include_router(automation_router)
+    app.include_router(natural_router)
 
     @app.exception_handler(ValueError)
     async def invalid_automation(request: Request, error: ValueError):
         return JSONResponse({"error":{"code":"invalid_action","message":"Controleer actie, tijdzone, accountkoppeling en actuele afspraakgegevens."}},status_code=400)
 
-    @app.middleware("http")
-    async def security_headers(request: Request, call_next):
-        response = await call_next(request)
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["Referrer-Policy"] = "no-referrer"
-        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
-        response.headers["Cache-Control"] = "no-store"
-        return response
+    app.add_middleware(SecurityHeaders)
 
     @app.exception_handler(AuthError)
     async def auth_error(request: Request, error: AuthError):

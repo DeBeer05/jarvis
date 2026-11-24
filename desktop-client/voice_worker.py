@@ -42,6 +42,9 @@ def main():
             response = {"ok": False, "code": "voice_failed"}
         sys.stdout.write(json.dumps(response, ensure_ascii=True) + "\n")
         sys.stdout.flush()
+        # Private protocol payloads are not an audio/transcript cache.
+        result=response=None
+        line=b""
 
 
 if __name__ == "__main__":

@@ -140,6 +140,7 @@ recordings/
 .local/
 # Android: generated artifacts, SDK locations, signing and Firebase configuration.
 android/.gradle/
+android/.kotlin/
 android/**/build/
 android/local.properties
 android/**/google-services.json

@@ -19,7 +19,7 @@ def test_lifespan_health_ready_status_and_shutdown(settings):
         assert http.get("/ready").status_code == 200
         data = http.get("/api/v1/status").json()
         assert data["status"] == "running"
-        assert data["version"] == "0.3.0"
+        assert data["version"] == "0.7.5"
         assert data["uptime_seconds"] >= 0
         assert data["components"] == {"api": True, "database": True, "ai": True}
         assert data["ai_providers"]["selected"] == "auto"

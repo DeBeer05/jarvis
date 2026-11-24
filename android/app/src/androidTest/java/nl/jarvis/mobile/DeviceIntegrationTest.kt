@@ -24,7 +24,10 @@ import java.util.UUID
 @RunWith(AndroidJUnit4::class)
 class DeviceIntegrationTest {
     private val context=InstrumentationRegistry.getInstrumentation().targetContext
-    @Before fun isolateCredentials() { SecretVault(context).drop("http://127.0.0.1:8765") }
+    @Before fun isolateCredentials() {
+        SecretVault(context).drop("http://127.0.0.1:8765")
+        OkHttpClient().newCall(Request.Builder().url("http://127.0.0.1:8765/api/test/reset-rates").post("{}".toRequestBody("application/json".toMediaType())).build()).execute().use {assertTrue(it.isSuccessful)}
+    }
     @After fun clearCredentials() { SecretVault(context).drop("http://127.0.0.1:8765") }
     private fun api()=JarvisApi(Endpoint.parse("http://127.0.0.1:8765",true),SecretVault(context))
     private suspend fun pair(api: JarvisApi) {
@@ -68,6 +71,138 @@ class DeviceIntegrationTest {
         cache.put(origin,"late","Should never be stored") {false}
         assertNull(cache.get(origin,"late"))
     }
+    @Test fun naturalSettingsMemoryAndExplicitConversationHandoff() = runBlocking {
+        val first=api();pair(first)
+        val base=first.json("/api/v1/natural/settings")
+        val updated=first.json("/api/v1/natural/settings/personality","PATCH",JSONObject().put("revision",base.getInt("revision")).put("changes",JSONObject().put("humor",81)))
+        val second=api();pair(second)
+        assertEquals(81,second.json("/api/v1/natural/settings").getJSONObject("settings").getJSONObject("personality").getInt("humor"))
+        val device=first.json("/api/v1/natural/device-settings");device.getJSONObject("settings").put("input_device",123)
+        first.json("/api/v1/natural/device-settings","PUT",JSONObject().put("revision",device.getInt("revision")).put("settings",device.getJSONObject("settings")))
+        assertEquals(-1,second.json("/api/v1/natural/device-settings").getJSONObject("settings").getInt("input_device"))
+        val memory=first.json("/api/v1/natural/memory","POST",JSONObject().put("category","project").put("content","Android synthetic lantern preference"))
+        val found=second.json("/api/v1/natural/memory/search","POST",JSONObject().put("query","lantern"))
+        assertEquals(memory.getString("id"),found.getJSONArray("items").getJSONObject(0).getString("id"))
+        second.json("/api/v1/natural/memory/${memory.getString("id")}","DELETE")
+        assertEquals(0,first.json("/api/v1/natural/memory/search","POST",JSONObject().put("query","lantern")).getJSONArray("items").length())
+        val session=first.json("/api/v1/natural/conversations/start","POST",JSONObject())
+        val id=session.getString("conversation_id");val epoch=session.getInt("epoch");val events="/api/v1/natural/conversations/$id/events"
+        first.json(events,"POST",JSONObject().put("event","listening").put("epoch",epoch))
+        first.json(events,"POST",JSONObject().put("event","processing").put("epoch",epoch))
+        val input=JSONObject().put("message","Synthetic Android voice turn").put("provider","ollama").put("channel","voice").put("session_epoch",epoch).put("conversation_id",id)
+        assertEquals("completed",first.json("/api/v1/chat","POST",input).getString("status"))
+        try {second.json("/api/v1/natural/conversations/start","POST",JSONObject().put("conversation_id",id));fail("Silent audio takeover") }catch(error:MobileError){assertEquals(409,error.status)}
+        val taken=second.json("/api/v1/natural/conversations/start","POST",JSONObject().put("conversation_id",id).put("takeover",true))
+        assertTrue(taken.getInt("epoch")>epoch)
+        try {first.json("/api/v1/chat","POST",input);fail("Stale audio accepted") }catch(error:MobileError){assertEquals(409,error.status)}
+        assertEquals(1,second.json("/api/v1/chat/conversations/$id").getJSONArray("turns").length())
+        second.json(events,"POST",JSONObject().put("event","ending").put("epoch",taken.getInt("epoch")))
+        second.json("/api/v1/natural/settings/reset","POST",JSONObject().put("revision",updated.getInt("revision")).put("category","personality"))
+        first.json("/api/v1/auth/disconnect","POST");first.forget();second.json("/api/v1/auth/disconnect","POST");second.forget()
+    }
+    @Test fun oneManualActivationRunsTenSyntheticSpeechTurnsInOneConversation() = runBlocking {
+        val api=api();pair(api)
+        val application=context.applicationContext as JarvisApplication
+        val original=application.graph.settings.values.first()
+        val settings=api.json("/api/v1/natural/settings")
+        api.json("/api/v1/natural/settings/conversations","PATCH",JSONObject().put("revision",settings.getInt("revision")).put("changes",JSONObject().put("continuous",true)))
+        val source=api.synthesize("Ik wil een kort antwoord.",1f)
+        val (rate,pcm)=Wav.decode(source);val samples=java.nio.ByteBuffer.wrap(pcm).order(java.nio.ByteOrder.LITTLE_ENDIAN).asShortBuffer()
+        val converted=java.nio.ByteBuffer.allocate((samples.limit().toLong()*16000/rate).toInt()*2).order(java.nio.ByteOrder.LITTLE_ENDIAN)
+        repeat(converted.capacity()/2) {index->converted.putShort(samples.get((index.toLong()*rate/16000).toInt().coerceAtMost(samples.limit()-1)))}
+        val synthetic=Wav.encode(converted.array())
+        val recorded=java.util.concurrent.atomic.AtomicInteger();val played=java.util.concurrent.atomic.AtomicInteger()
+        val fake=object:AudioClient(context) {
+            override suspend fun record(device:Int,threshold:Float,silenceMs:Int,maximumSeconds:Int,echo:Boolean,noise:Boolean,level:(Float)->Unit):ByteArray {
+                if(recorded.incrementAndGet()>10)awaitCancellation()
+                level(.4f);return synthetic
+            }
+            override suspend fun play(wav:ByteArray,device:Int,volume:Float) {Wav.decode(wav);played.incrementAndGet();delay(1)}
+        }
+        val store=androidx.lifecycle.ViewModelStore()
+        val model=withContext(Dispatchers.Main) {nl.jarvis.mobile.features.JarvisViewModel(application,fake).also {store.put("synthetic-continuous",it)}}
+        var conversation:String?=null
+        try {
+            application.graph.settings.save(original.copy(origin="http://127.0.0.1:8765",voiceOutput=true,automatic=true))
+            withContext(Dispatchers.Main){model.active(true)}
+            withTimeout(15000) {model.state.first {it.connection.authenticated&&it.naturalSettings.isNotBlank()}}
+            assertFalse(model.state.value.recording)
+            withContext(Dispatchers.Main){model.ptt()}
+            withTimeout(120000) {while(model.state.value.messages.count {it.role=="JIJ"}<10 || model.state.value.busy || played.get()<10) {
+                check(model.state.value.error.isBlank()) {model.state.value.error};delay(50)
+            }}
+            conversation=model.state.value.conversation
+            assertNotNull(conversation);assertTrue(recorded.get()>=10);assertEquals(10,played.get())
+            withContext(Dispatchers.Main){model.active(false)}
+            val afterBackground=recorded.get();delay(700);assertEquals(afterBackground,recorded.get())
+            val client=application.graph.api(original.copy(origin="http://127.0.0.1:8765").origin)
+            assertEquals(10,client.json("/api/v1/chat/conversations/$conversation").getJSONArray("turns").length())
+            assertFalse(model.state.value.recording)
+            val current=client.json("/api/v1/natural/settings")
+            client.json("/api/v1/natural/settings/reset","POST",JSONObject().put("revision",current.getInt("revision")).put("category","conversations"))
+            client.json("/api/v1/chat/conversations/$conversation","DELETE")
+            client.json("/api/v1/auth/disconnect","POST");client.forget()
+        } finally {
+            withContext(Dispatchers.Main){model.active(false);store.clear()}
+            application.graph.settings.save(original)
+        }
+    }
+    @Test fun syntheticBargeInCancelsPlaybackAndContinuesSameConversation() = runBlocking {
+        val api=api();pair(api)
+        val application=context.applicationContext as JarvisApplication
+        val original=application.graph.settings.values.first()
+        val base=api.json("/api/v1/natural/settings")
+        api.json("/api/v1/natural/settings/listening","PATCH",JSONObject().put("revision",base.getInt("revision")).put("changes",JSONObject().put("barge_in",true)))
+        suspend fun phrase(text:String):ByteArray {
+            val (rate,pcm)=Wav.decode(api.synthesize(text,1f))
+            val samples=java.nio.ByteBuffer.wrap(pcm).order(java.nio.ByteOrder.LITTLE_ENDIAN).asShortBuffer()
+            val converted=java.nio.ByteBuffer.allocate((samples.limit().toLong()*16000/rate).toInt()*2).order(java.nio.ByteOrder.LITTLE_ENDIAN)
+            repeat(converted.capacity()/2) {index->converted.putShort(samples.get((index.toLong()*rate/16000).toInt().coerceAtMost(samples.limit()-1)))}
+            return Wav.encode(converted.array())
+        }
+        val first=phrase("Vertel iets interessants.");val interrupt=phrase("Wacht even, vertel over fietsen.")
+        val recorded=java.util.concurrent.atomic.AtomicInteger();val played=java.util.concurrent.atomic.AtomicInteger()
+        val paused=java.util.concurrent.atomic.AtomicInteger();val cancelled=java.util.concurrent.atomic.AtomicBoolean()
+        val playbackStarted=CompletableDeferred<Unit>()
+        val fake=object:AudioClient(context) {
+            override fun supportsBargeIn()=true
+            override fun echoReady()=true // Scheduling test, not proof of acoustic echo cancellation.
+            override fun pausePlayback() {paused.incrementAndGet()}
+            override fun resumePlayback() {}
+            override suspend fun record(device:Int,threshold:Float,silenceMs:Int,maximumSeconds:Int,echo:Boolean,noise:Boolean,level:(Float)->Unit):ByteArray {
+                when(recorded.incrementAndGet()) {
+                    1->return first
+                    2->{playbackStarted.await();repeat(5){level(.5f)};return interrupt}
+                    else->awaitCancellation()
+                }
+            }
+            override suspend fun play(wav:ByteArray,device:Int,volume:Float) {
+                Wav.decode(wav)
+                if(played.incrementAndGet()==1) {playbackStarted.complete(Unit);try {awaitCancellation()}finally {cancelled.set(true)}}
+                else delay(10)
+            }
+        }
+        val store=androidx.lifecycle.ViewModelStore()
+        val model=withContext(Dispatchers.Main) {nl.jarvis.mobile.features.JarvisViewModel(application,fake).also {store.put("barge",it)}}
+        try {
+            application.graph.settings.save(original.copy(origin="http://127.0.0.1:8765",voiceOutput=true,automatic=true))
+            withContext(Dispatchers.Main){model.active(true)}
+            withTimeout(15000){model.state.first {it.connection.authenticated&&it.naturalSettings.isNotBlank()}}
+            withContext(Dispatchers.Main){model.ptt()}
+            withTimeout(60000) {while(model.state.value.messages.count {it.role=="JIJ"}<2 || model.state.value.busy || played.get()<2) {
+                check(model.state.value.error.isBlank()){model.state.value.error};delay(50)
+            }}
+            assertTrue(paused.get()>0);assertTrue(cancelled.get())
+            val conversation=model.state.value.conversation;assertNotNull(conversation)
+            withContext(Dispatchers.Main){model.stop()}
+            val client=application.graph.api("http://127.0.0.1:8765")
+            assertEquals(2,client.json("/api/v1/chat/conversations/$conversation").getJSONArray("turns").length())
+            val current=client.json("/api/v1/natural/settings")
+            client.json("/api/v1/natural/settings/reset","POST",JSONObject().put("revision",current.getInt("revision")).put("category","listening"))
+            client.json("/api/v1/chat/conversations/$conversation","DELETE")
+            client.json("/api/v1/auth/disconnect","POST");client.forget()
+        } finally {withContext(Dispatchers.Main){model.active(false);store.clear()};application.graph.settings.save(original)}
+    }
     @Test fun realTcpPairRefreshChatHistoryPushAndRevocation() = runBlocking {
         val api=api();assertTrue(api.health());pair(api)
         assertEquals("android",api.json("/api/v1/auth/device").getString("type"))
@@ -89,6 +224,45 @@ class DeviceIntegrationTest {
         assertThrows(MobileError::class.java) {runBlocking {api.json("/api/v1/auth/session")}}
         api.forget()
     }
+    @Test fun diagnosticsUseAuthenticatedApiAndContainOnlySafeMeasurements() = runBlocking {
+        val api=api();pair(api)
+        val metric=JSONObject().put("event","native_first_audio_ms").put("value",1234.5)
+        api.json("/api/v1/natural/diagnostics/metrics","POST",JSONObject().put("items",org.json.JSONArray().put(metric)))
+        val data=api.json("/api/v1/natural/diagnostics")
+        assertEquals(1234.5,data.getJSONObject("latency").getDouble("native_first_audio_ms"),.001)
+        assertFalse(data.getBoolean("contains_conversation_content"))
+        assertEquals("read_write_ok",data.getString("database"))
+        assertFalse(data.toString().contains("access_token"))
+        api.json("/api/v1/auth/disconnect","POST");api.forget()
+    }
+    @Test fun disablingHistoryClearsRoomCacheAndDoesNotRecachePrivateTurns() = runBlocking<Unit> {
+        val api=api();pair(api)
+        val application=context.applicationContext as JarvisApplication
+        val original=application.graph.settings.values.first()
+        val base=api.json("/api/v1/natural/settings")
+        api.json("/api/v1/natural/settings/memory","PATCH",JSONObject().put("revision",base.getInt("revision")).put("changes",JSONObject().put("history",false)))
+        application.graph.cache.put("http://127.0.0.1:8765","synthetic-old-cache","Synthetische oude cache")
+        val store=androidx.lifecycle.ViewModelStore()
+        val model=withContext(Dispatchers.Main) {nl.jarvis.mobile.features.JarvisViewModel(application).also{store.put("private-history",it)}}
+        try {
+            application.graph.settings.save(original.copy(origin="http://127.0.0.1:8765",automatic=true))
+            withContext(Dispatchers.Main){model.active(true)}
+            withTimeout(15000) {model.state.first{it.connection.authenticated&&it.naturalSettings.isNotBlank()}}
+            withTimeout(5000) {while(application.graph.cache.get("http://127.0.0.1:8765","synthetic-old-cache")!=null)delay(20)}
+            withContext(Dispatchers.Main){model.send("Een tijdelijke synthetische vraag")}
+            withTimeout(15000) {model.state.first{!it.busy&&it.messages.any{line->line.role=="JIJ"}}}
+            val conversation=model.state.value.conversation;assertNotNull(conversation)
+            assertNull(application.graph.cache.get("http://127.0.0.1:8765",conversation!!))
+            withContext(Dispatchers.Main){model.open(conversation)}
+            withTimeout(10000){model.state.first{it.messages.isEmpty()}}
+            val document=JSONObject(model.state.value.naturalSettings)
+            withContext(Dispatchers.Main){model.resetNaturalCategory("memory",document.getInt("revision"))}
+            withTimeout(10000){model.state.first{JSONObject(it.naturalSettings).getJSONObject("settings").getJSONObject("memory").getBoolean("history")}}
+        } finally {
+            withContext(Dispatchers.Main){model.active(false);store.clear()}
+            application.graph.settings.save(original)
+        }
+    }
     @Test fun realPiperWhisperAndAndroidAudioInterfaces() = runBlocking {
         val api=api();pair(api)
         val wav=api.synthesize("Hallo, ik ben Jarvis. Hoe kan ik je vandaag helpen?",1f)
@@ -103,11 +277,66 @@ class DeviceIntegrationTest {
         audio.play(wav,0) // Actual Android AudioTrack, not a mocked output.
         val playback=launch {audio.play(wav,0)};delay(200);audio.stop();withTimeout(1500){playback.join()}
         InstrumentationRegistry.getInstrumentation().uiAutomation.grantRuntimePermission(context.packageName,Manifest.permission.RECORD_AUDIO)
-        val capture=async {audio.record(0){}}
-        delay(500);audio.finishRecording();withTimeout(2000){capture.await()}
+        assertTrue(audio.beginConversation())
+        val capture=async {audio.record(0,echo=true,noise=true){}}
+        delay(500);audio.finishRecording();withTimeout(2000){capture.await()};audio.endConversation()
         // Emulator host audio is disabled: capture tests driver lifecycle, not user's voice.
         api.json("/api/v1/auth/disconnect","POST");api.forget()
     }
+    @Test fun alreadyEndedAudioLeaseDoesNotBlockTextOrExplicitTakeover() = runBlocking {
+        val api=api();pair(api)
+        val scope=CoroutineScope(SupervisorJob()+Dispatchers.Default)
+        val failures=java.util.concurrent.atomic.AtomicInteger()
+        val session=ConversationSession(scope,{api},{true},{failures.incrementAndGet()},{})
+        try {
+            val first=session.prepare(null,processing=false)
+            api.json("/api/v1/natural/conversations/${first.conversation}/events","POST",JSONObject().put("event","ending").put("epoch",first.epoch))
+            // A late close receives 409, but the lease is already inactive.
+            session.endBeforeText()
+            val chat=api.json("/api/v1/chat","POST",JSONObject().put("message","Hallo").put("provider","ollama"))
+            assertEquals("completed",chat.getString("status"))
+            val again=session.prepare(first.conversation,takeover=true,processing=false)
+            assertEquals(first.conversation,again.conversation)
+            assertEquals("LISTENING",again.state)
+            val otherLease=api.json("/api/v1/natural/conversations/start","POST",JSONObject().put("conversation_id",first.conversation).put("takeover",true))
+            try {session.endBeforeText();fail("An active superseding lease must require explicit takeover")}
+            catch(error:MobileError){assertEquals(409,error.status)}
+            assertEquals(otherLease.getInt("epoch"),api.json("/api/v1/natural/conversations/${first.conversation}/state").getInt("epoch"))
+            assertEquals("LISTENING",session.prepare(first.conversation,takeover=true,processing=false).state)
+            assertEquals(0,failures.get())
+        } finally {session.end();scope.cancel()}
+    }
+
+    @Test fun repeatedNativeTakeoverAndStopKeepOneConversationUsable() = runBlocking {
+        val api=api();pair(api)
+        val application=context.applicationContext as JarvisApplication
+        val original=application.graph.settings.values.first()
+        val recordings=java.util.concurrent.atomic.AtomicInteger()
+        val fake=object:AudioClient(context) {
+            override suspend fun record(device:Int,threshold:Float,silenceMs:Int,maximumSeconds:Int,echo:Boolean,noise:Boolean,level:(Float)->Unit):ByteArray {
+                recordings.incrementAndGet();level(.3f);awaitCancellation()
+            }
+        }
+        val store=androidx.lifecycle.ViewModelStore()
+        val model=withContext(Dispatchers.Main){nl.jarvis.mobile.features.JarvisViewModel(application,fake).also{store.put("takeover-recovery",it)}}
+        try {
+            application.graph.settings.save(original.copy(origin="http://127.0.0.1:8765",voiceOutput=false,automatic=false))
+            withContext(Dispatchers.Main){model.active(true)}
+            withTimeout(15000){model.state.first{it.connection.authenticated&&it.naturalSettings.isNotBlank()}}
+            var conversation:String?=null
+            repeat(5) {round->
+                withContext(Dispatchers.Main){model.takeOverConversation()}
+                val state=withTimeout(10000){model.state.first{it.recording&&it.conversationState=="LISTENING"&&recordings.get()>round&&it.error.isBlank()}}
+                if(conversation==null)conversation=state.conversation else assertEquals(conversation,state.conversation)
+                delay(100);assertTrue(model.state.value.recording);assertTrue(model.state.value.error.isBlank())
+                withContext(Dispatchers.Main){model.stop()}
+            }
+        } finally {
+            withContext(Dispatchers.Main){model.active(false);store.clear()}
+            application.graph.settings.save(original)
+        }
+    }
+
     @Test fun notificationChannelsAreRealAndPrivate() {
         Notifications(context).channels()
         val manager=context.getSystemService(NotificationManager::class.java)
