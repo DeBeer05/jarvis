@@ -41,8 +41,16 @@ class VoiceActivityDetector:
 
 class WakeWordEngine:
     """Explicitly an utterance-level Dutch phrase gate, not a trained wake model."""
-    def detect(self, text):
+    def detect(self, text, phrase=None):
+        text=unicodedata.normalize("NFC",text)
         normalized = "".join(c for c in unicodedata.normalize("NFD", text.lower()) if not unicodedata.combining(c))
+        if phrase:
+            wanted="".join(c for c in unicodedata.normalize("NFD",phrase.lower()) if not unicodedata.combining(c))
+            if wanted.strip() not in ("he jarvis","hey jarvis","hee jarvis"):
+                words=re.findall(r"\w+",wanted)
+                if not words:return False,""
+                custom=re.match(r"^\s*"+r"[\s,!.]+".join(re.escape(word) for word in words)+r"\b[\s,:.!?\-]*(.*)$",normalized)
+                return (True,text[custom.start(1):].strip()) if custom else (False,"")
         match = re.match(r"^\s*(?:he|hey|hee)\s*[,!.]?\s*j[ae]rvis\b[\s,:.!?\-]*(.*)$", normalized)
         # Preserve the original command (case/accents) using the matched prefix length.
         if not match:

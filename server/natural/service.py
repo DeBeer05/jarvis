@@ -2,7 +2,7 @@
 from server.natural.store import NaturalStore
 from server.natural.settings import SettingsManager
 from server.natural.memory import MemoryManager
-from server.natural.conversation import NaturalConversationManager
+from server.natural.conversation import NaturalConversationManager,State
 from server.natural.context import ContextManager
 from server.natural.store import Conflict
 from server.natural.tasks import TaskMemory
@@ -32,14 +32,24 @@ class NaturalService:
 
     def prepare(self,run):
         self.authorize_conversation(run.principal,run.conversation_id)
+        self.check_audio(run)
+        prepared=self.context.prepare(run)
+        messages,metrics=self.context.build(run,prepared)
+        return prepared,messages,metrics
+
+    def check_audio(self,run):
         if run.session_epoch is not None:
+            if run.channel!="voice":raise Conflict("Audioversie vereist een spraakverzoek")
+            state=self.conversations._get(run.principal,run.conversation_id)
+            if state["state"] in (State.STANDBY,State.ENDING,State.RECONNECTING,State.ERROR):raise Conflict("Audiosessie niet actief")
             with self.store.transaction(run.principal) as (db,user):
                 row=db.execute("SELECT * FROM natural_sessions WHERE conversation_id=? AND user_id=?",(run.conversation_id,user)).fetchone()
                 if not row or row["device_id"]!=run.principal.device_id or row["auth_session"]!=run.principal.session_id or row["epoch"]!=run.session_epoch or row["lease_until"]<=self.store.clock():
                     raise Conflict("Audiosessie verlopen of overgenomen")
-        prepared=self.context.prepare(run)
-        messages,metrics=self.context.build(run,prepared)
-        return prepared,messages,metrics
+
+    async def phase(self,run,state):
+        if run.session_epoch is not None:
+            return await self.conversations.transition(run.principal,run.conversation_id,state,run.session_epoch)
 
     def command(self,run):
         """Explicit memory commands are executed locally, never by generated code."""

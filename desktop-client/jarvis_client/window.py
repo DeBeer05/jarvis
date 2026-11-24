@@ -18,6 +18,7 @@ from jarvis_client.settings import Preferences
 from jarvis_client.theme import icon, stylesheet
 from jarvis_client.automations import AutomationPanel
 from jarvis_client.natural_settings import NaturalSettingsPanel
+from jarvis_client.voice.session import ConversationSession
 
 
 def label(text, name=None):
@@ -67,6 +68,7 @@ class MainWindow(QMainWindow):
         self.active_origin = None
         self.permissions = LocalAgent()
         self.pending_voice = None
+        self.natural_refresh=0
         self.setWindowTitle("JARVIS — Desktop")
         self.setWindowIcon(icon())
         self.resize(1160, 790)
@@ -113,6 +115,9 @@ class MainWindow(QMainWindow):
         self.make_account()
         self.voice_panel = VoicePanel(self)
         self.voice = self.voice_panel.manager
+        self.voice_session=ConversationSession(self)
+        self.voice.session_ended.connect(self.voice_session.end)
+        self.voice.playback_finished.connect(self.voice_session.listened)
         self.pages.addWidget(self.voice_panel)
         self.automation_panel = AutomationPanel(self)
         self.pages.addWidget(self.automation_panel)
@@ -356,6 +361,9 @@ class MainWindow(QMainWindow):
         self.principal = principal
         self.account_info.setText("Ingelogd · Windows-apparaat " + principal["device_id"] + "\nRechten: " + ", ".join(principal["permissions"]))
         self.update_controls()
+        if first or time.monotonic()-self.natural_refresh>30:
+            self.natural_refresh=time.monotonic()
+            self.call("GET","/api/v1/natural/settings",None,self.apply_natural_settings)
         if first:
             self.show_notice("Verbonden. Je gesprekken staan klaar.")
             self.load_history()
@@ -365,6 +373,9 @@ class MainWindow(QMainWindow):
 
     def providers_loaded(self, result):
         self.model_info.setText(" · ".join(f"{name}: {value.get('model', '—')}" for name, value in result.get("providers", {}).items()))
+
+    def apply_natural_settings(self,document):
+        self.voice.configure_natural(document["settings"])
 
     def update_controls(self):
         permissions = set(self.principal["permissions"]) if self.principal else set()
@@ -508,6 +519,7 @@ class MainWindow(QMainWindow):
         if self.running:
             return
         self.voice.stop()
+        self.voice_session.end()
         self.conversation = None
         self.rows = []
         self.transcript.clear()
@@ -528,6 +540,8 @@ class MainWindow(QMainWindow):
             self.show_notice("Typ een bericht van maximaal 8000 tekens.")
             return
         api = self.manager.api
+        channel="voice" if self.voice.voice_next else "text"
+        epoch=self.voice_session.current["epoch"] if channel=="voice" and self.voice_session.current else None
         self.voice.begin_response()
         self.request_id = str(uuid4())
         request_id, conversation, provider = self.request_id, self.conversation, self.provider.currentData()
@@ -565,7 +579,7 @@ class MainWindow(QMainWindow):
                 self.render()
             self.report_error(error)
             self.update_controls()
-        self.jobs.submit(lambda emit: api.stream(message, conversation, provider, emit, request_id), finished, failed,
+        self.jobs.submit(lambda emit: api.stream(message, conversation, provider, emit, request_id,**({"channel":channel,"session_epoch":epoch} if channel=="voice" else {})), finished, failed,
                          lambda event: self.stream_event(event) if current() else None)
 
     def voice_ptt(self):
@@ -577,6 +591,7 @@ class MainWindow(QMainWindow):
         self.pending_voice = None
         self.voice.stop()
         self.stop_answer()
+        self.voice_session.end()
 
     def voice_message(self, text):
         if not self.principal or self.manager.state != "online":
@@ -587,6 +602,12 @@ class MainWindow(QMainWindow):
             self.pending_voice = text
             self.stop_answer()
             return
+        if self.voice_session.enabled():
+            self.voice_session.submit(text)
+            return
+        self.send_voice_text(text)
+
+    def send_voice_text(self,text):
         self.composer.setPlainText(text)
         self.send_message()
 
@@ -648,6 +669,7 @@ class MainWindow(QMainWindow):
             self.logout(revoke=True)
 
     def clear_private(self):
+        if hasattr(self,"voice_session"):self.voice_session.clear()
         if hasattr(self,"automation_panel"): self.automation_panel.clear()
         if hasattr(self,"natural_settings"):self.natural_settings.clear()
         self.pending_voice = None

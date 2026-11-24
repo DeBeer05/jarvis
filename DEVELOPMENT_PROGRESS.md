@@ -75,6 +75,21 @@ accountmutaties of downloads. Dit is nog geen totale gesprekslatency.
 Zie docs/CONVERSATION_PERFORMANCE.md. Doorlopende modus/AEC/barge-in en Android
 worden hierna aangesloten; geen fase-8- of mini-pc-werk gestart.
 
+Windows-doorloop aangesloten op de centrale audiosessie: één conversation_id,
+epoch op voice-chat, automatische backend-thinking/antwoord-/wachtstatus,
+heartbeat zonder activiteit te vervalsen en expliciete overnameknop. Oude audio
+van een ander apparaat wordt vóór het aanmaken van een nieuwe beurt afgewezen.
+Doorloop vereist bewuste lokale PTT-/wakeactivatie plus de ingestelde vervolgmodus;
+microfoon blijft bij opstart uit. Afsluitzinnen en inactiviteit stoppen de sessie.
+Globale instellingen worden na authenticatie opgehaald en wijzigen geen lokale
+toestemming/apparaatkeuze. Wakefrase kan worden aangepast (transcriptiegate).
+Server **310 tests geslaagd**, 114,34 s; Windows **87 tests geslaagd**, 4,15 s.
+Inclusief tien synthetische doorlopende beurten, daadwerkelijke serverlevenscyclus,
+idle-heartbeat, oude overgenomen invoer en late native callbacks. Geen echte
+microfoonacceptatie geclaimd. Native Android-koppeling is de volgende stap;
+barge-in/DSP, uitgebreidere intentlaag, overige GUI/diagnostiek en documentatie
+blijven open. Zie docs/CONVERSATION_STATE_MACHINE.md.
+
 ### Eén gesproken ja voor mail en agenda — 24 november 2026
 
 Nieuwe expliciete opdracht vervangt de eerdere beperking op een korte ja:

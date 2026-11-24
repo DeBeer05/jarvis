@@ -33,6 +33,7 @@ from server.automation.engine import AutomationEngine
 from server.automation.chat import AutomationChat
 from server.natural.service import NaturalService
 from server.natural.api import router as natural_router
+from server.natural.store import Conflict
 
 logger = logging.getLogger("jarvis.server")
 
@@ -83,6 +84,9 @@ def create_app(
         openapi_url="/openapi.json" if settings.environment == "development" else None,
     )
     app.state.settings = settings
+    @app.exception_handler(Conflict)
+    async def natural_conflict(request,error):
+        return JSONResponse({"error":{"code":"conversation_conflict","message":"Gegevens of spraaksessie elders gewijzigd. Vernieuw of neem het gesprek expliciet over."}},status_code=409)
     app.state.runtime = runtime
     app.state.chat = chat
     app.state.security = security

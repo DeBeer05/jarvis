@@ -216,6 +216,9 @@ class AutomationChat:
             yield provider
         else:
             yield {"type":"provider","provider":"jarvis","model":"automation"}
+        memory=self.memory(run)
+        if memory.get("pending"):run.wait_state="WAITING_FOR_APPROVAL"
+        elif memory.get("write_question") or memory.get("read_question"):run.wait_state="WAITING_FOR_INFORMATION"
         result=self.clean(result)
         for start in range(0,len(result),160):
             if run.cancel.is_set():raise asyncio.CancelledError()

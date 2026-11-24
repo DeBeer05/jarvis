@@ -12,6 +12,8 @@ from server.ai.router import AIRouter
 from server.chat_store import ChatError, ChatStore
 from server.config import Settings
 from server.ai.policy import next_with_policy
+from server.natural.store import Conflict
+from server.natural.conversation import State
 
 logger = logging.getLogger("jarvis.server")
 
@@ -42,6 +44,7 @@ class Generation:
     context_messages: list | None = field(default=None, repr=False)
     context_metrics: dict = field(default_factory=dict)
     ai_policy: object | None = field(default=None, repr=False)
+    wait_state: object | None = field(default=None, repr=False)
 
     def public(self) -> dict:
         return {"request_id": self.request_id, "conversation_id": self.conversation_id,
@@ -81,6 +84,9 @@ class ChatService:
         self.active[request_id] = run  # Reserve before the first await; no unbounded wait queue.
         self.admissions.append(tick)
         try:
+            if self.natural and principal and conversation_id:
+                await asyncio.to_thread(self.natural.authorize_conversation,principal,conversation_id)
+                await asyncio.to_thread(self.natural.check_audio,run)
             run.conversation_id, run.history = await asyncio.to_thread(self.store.start, request_id, conversation_id, run.message)
         except BaseException:
             self.active.pop(request_id, None)
@@ -89,6 +95,7 @@ class ChatService:
             if self.natural and principal:
                 run.natural_context,run.context_messages,run.context_metrics=await asyncio.to_thread(self.natural.prepare,run)
                 run.ai_policy=run.natural_context["policy"]
+                await self.natural.phase(run,State.THINKING)
         except BaseException:
             # start succeeded: finish only this new turn, never a duplicate ID.
             await asyncio.to_thread(self.store.finish,request_id,"",None,None,"error","context_rejected")
@@ -152,6 +159,10 @@ class ChatService:
                             except StopAsyncIteration:
                                 run.status = "completed"
                                 break
+                            if self.natural and run.session_epoch is not None:
+                                await asyncio.to_thread(self.natural.check_audio,run)
+                                if event["type"]=="delta" and not run.text:
+                                    await self.natural.phase(run,State.ASSISTANT_SPEAKING)
                             if self.natural and run.natural_context and not memory_command:
                                 version=await asyncio.to_thread(self.natural.context.memory_version,run.principal)
                                 if version!=run.natural_context["memory_version"]:
@@ -172,6 +183,9 @@ class ChatService:
                             await pending
         except GenerationCancelled:
             run.status = "cancelled"
+        except Conflict:
+            run.status="cancelled"
+            run.error={"code":"conversation_taken_over","message":"Dit spraakgesprek is verlopen of overgenomen. Start of hervat het gesprek opnieuw."}
         except ProviderError as error:
             run.status = "error"
             run.error = {"code": error.code, "message": error.message}
@@ -188,6 +202,12 @@ class ChatService:
             run.error = {"code": "internal_error", "message": "Het antwoord kon niet worden verwerkt."}
             logger.error("chat_failed", extra={"error_type": type(error).__name__})
         finally:
+            if self.natural and run.session_epoch is not None:
+                try:
+                    target=run.wait_state if run.status=="completed" and run.wait_state else State.ERROR if run.status=="error" else State.LISTENING if run.status=="cancelled" else None
+                    if target:await self.natural.phase(run,target)
+                except Exception:
+                    logger.debug("conversation_phase_unavailable")
             if run.expiry:
                 run.expiry.cancel()
             if pending and not pending.done():

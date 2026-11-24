@@ -69,6 +69,7 @@ class NaturalConversationManager:
         if not preferences["enabled"]:raise ValueError("Natuurlijke gesprekken zijn uitgeschakeld")
         with self.store.transaction(principal,write=True) as (db,user):
             if conversation is None:
+                if db.execute("SELECT count(*) FROM chat_conversations").fetchone()[0]>=self.chat.store.max_conversations:raise Conflict("Gesprekslimiet bereikt")
                 conversation=str(uuid.uuid4());stamp=chat_time()
                 db.execute("INSERT INTO chat_conversations VALUES (?,?,?,?)",(conversation,"Spraakgesprek",stamp,stamp))
                 db.execute("INSERT INTO natural_conversation_owners VALUES (?,?)",(conversation,user))
@@ -129,6 +130,8 @@ class NaturalConversationManager:
 
     async def transition(self,principal,conversation,target,epoch,*,heartbeat=False):
         async with self.mutation:
+            # Heartbeats must not keep an idle/expired session alive forever.
+            await asyncio.to_thread(self._get,principal,conversation)
             state=await asyncio.to_thread(self._transition,principal,conversation,target,epoch,heartbeat=heartbeat)
             if target in (State.INTERRUPTED,State.ENDING):
                 for run in list(self.chat.active.values()):

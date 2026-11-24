@@ -1,6 +1,8 @@
 import queue
 import threading
 import time
+import re
+from copy import deepcopy
 from dataclasses import replace
 
 from PySide6.QtCore import QObject, QTimer, Signal, Slot
@@ -19,6 +21,8 @@ class VoiceConversationManager(QObject):
     metrics = Signal(object)
     level = Signal(float)
     delivered = Signal(object)
+    session_ended = Signal(str)
+    playback_finished = Signal()
 
     def __init__(self, settings, parent=None, *, worker=None, audio_input=None, audio_output=None):
         super().__init__(parent)
@@ -34,6 +38,9 @@ class VoiceConversationManager(QObject):
         self.consent = self.wake_enabled = self.authorized = False
         self.recording = self.closed = self.responding = self.voice_next = False
         self.armed = False
+        self.options=None
+        self.session_active=False
+        self.session_started=self.last_activity=0
         self.state = "Microfoon uit"
         self.pending = queue.Queue(maxsize=32)
         self.threads = []
@@ -45,6 +52,41 @@ class VoiceConversationManager(QObject):
         self.scheduled.setSingleShot(True)
         self.scheduled.timeout.connect(self._auto_listen)
         self.delivered.connect(self._delivered)
+
+    def configure_natural(self,settings):
+        # Snapshot for the next turn; never open a microphone or alter local consent.
+        self.options=deepcopy(settings)
+        if self.session_active and not settings["conversations"]["enabled"]:
+            self.end_session("uitgeschakeld")
+
+    def effective_settings(self):
+        settings=replace(self.settings)
+        if not self.options or not self.options["conversations"]["enabled"]:return settings
+        voice=self.options["voice"];listening=self.options["listening"]
+        return replace(settings,model=voice["whisper_model"],device=voice["processing"],provider=voice["tts_provider"],
+                       voice=voice["voice"],speed=voice["speed"],output_gain=voice["volume"],cache=voice["cache"],
+                       max_seconds=listening["maximum_listen_seconds"],silence_seconds=(listening["thinking_pause_ms"] if listening["adaptive"] else listening["normal_silence_ms"])/1000,
+                       sensitivity=max(0,min(1,(.028-listening["vad_threshold"])/.023)))
+
+    def activate_session(self):
+        if self.options and self.options["conversations"]["enabled"] and not self.session_active:
+            self.session_active=True;self.session_started=self.last_activity=time.monotonic()
+
+    def continuous(self):
+        return bool(self.options and self.options["conversations"]["enabled"] and self.options["conversations"]["continuous"] and self.session_active)
+
+    def end_session(self,reason="afgesloten"):
+        wake=self.wake_enabled
+        self.stop()
+        self.wake_enabled=wake and self.consent and self.authorized
+        self.set_state("Standby")
+        self.session_ended.emit(reason)
+        if self.wake_enabled:self.scheduled.start(150)
+
+    def farewell(self,text):
+        if not self.options:return False
+        normalize=lambda value:re.sub(r"[^\w\s]","",value.casefold()).strip()
+        return normalize(text) in {normalize(value) for value in self.options["conversations"]["ending_phrases"]}
 
     @property
     def busy(self):
@@ -110,7 +152,8 @@ class VoiceConversationManager(QObject):
             return
         self.stop(keep_wake=True)
         generation = self.interruptions.generation
-        settings = replace(self.settings)
+        settings = self.effective_settings()
+        if not automatic:self.activate_session()
         wake_gate = automatic and self.wake_enabled and not self.armed
         self.recording = True
         capture_input = self.input = self.input_factory()
@@ -157,25 +200,30 @@ class VoiceConversationManager(QObject):
             self.measurements = {"stt_seconds": round(result["seconds"], 3), "device": result.get("device", "cpu"), "cpu_fallback": result.get("cpu_fallback", False)}
             text = result["text"].strip()
             if wake_gate:
-                detected, text = self.wake.detect(text)
+                detected, text = self.wake.detect(text,self.options["conversations"]["wake_word"] if self.options else None)
                 self.measurements["wake_after_utterance_seconds"] = round(result["seconds"], 3)
                 if not detected:
                     self.scheduled.start(150)
                     self.set_state("Ik wacht op Hé JARVIS")
                     return
+                self.activate_session()
                 if not text:
                     self.armed = True
                     self.scheduled.start(0)
                     return
             if text:
                 self.transcript.emit(text)
+                if self.session_active and self.farewell(text):
+                    self.end_session("afscheid")
+                    return
+                self.last_activity=time.monotonic()
                 self.voice_next = True
-                self.armed = False
+                self.armed = self.continuous()
                 self.ready_text.emit(text)
             else:
                 self.set_state("Geen duidelijke spraak gehoord")
-                self.armed = False
-                if self.wake_enabled:
+                self.armed = self.continuous()
+                if self.wake_enabled or self.continuous():
                     self.scheduled.start(150)
         elif kind == "playing":
             if not self.first_audio:
@@ -187,8 +235,9 @@ class VoiceConversationManager(QObject):
             self.measurements["total_seconds"] = round(time.perf_counter() - self.response_started, 3)
             self.metrics.emit(dict(self.measurements))
             self.set_state("Klaar om te luisteren")
-            if self.consent and self.authorized and (self.wake_enabled or self.settings.followup_seconds):
-                self.armed = bool(self.settings.followup_seconds)
+            self.playback_finished.emit()
+            if self.consent and self.authorized and (self.wake_enabled or self.settings.followup_seconds or self.continuous()):
+                self.armed = bool(self.settings.followup_seconds) or self.continuous()
                 # Let the output driver's final buffer drain to prevent self-triggering.
                 self.scheduled.start(450)
         elif kind == "error":
@@ -197,6 +246,12 @@ class VoiceConversationManager(QObject):
             self.problem.emit(payload)
 
     def _auto_listen(self):
+        if self.session_active and self.options:
+            config=self.options["conversations"];now=time.monotonic()
+            if now-self.session_started>=config["maximum_seconds"] or config["automatic_end"] and now-self.last_activity>=config["inactivity_seconds"]:
+                self.end_session("time-out")
+                return
+            if self.continuous() and not config["auto_listen"]:return
         if self.consent and self.authorized and not self.responding:
             self.start_recording(automatic=True)
 
@@ -211,7 +266,7 @@ class VoiceConversationManager(QObject):
         self.response_started = time.perf_counter()
         self.first_token = self.first_audio = 0
         self.set_state("JARVIS denkt…")
-        generation, settings, pending = self.interruptions.generation, replace(self.settings), self.pending
+        generation, settings, pending = self.interruptions.generation, self.effective_settings(), self.pending
 
         def consume():
             while self.interruptions.valid(generation) and not self.closed:
@@ -288,6 +343,7 @@ class VoiceConversationManager(QObject):
         self.pending = queue.Queue(maxsize=32)
         if not keep_wake:
             self.wake_enabled = self.armed = False
+            self.session_active=False
         self.level.emit(0)
         self.set_state("Gestopt")
 

@@ -97,6 +97,7 @@ class NaturalSettingsPanel(QWidget):
         self.categories.addItems([self.schema["categories"][key] for key in self.keys]);self.tabs.setEnabled(True)
         self.categories.setCurrentRow(self.keys.index(selected) if selected in self.keys else 0)
         self.loading=False;self.status.setText(f"Gesynchroniseerd · versie {data['revision']} · microfoontoestemming blijft lokaal en de microfoon start niet automatisch.")
+        if hasattr(self.window,"apply_natural_settings"):self.window.apply_natural_settings(data)
 
     def collect(self):
         if self.draft is not None and self.category:

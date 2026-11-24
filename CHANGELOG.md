@@ -4,6 +4,16 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Fase 7.5 in uitvoering: centrale versiegebonden instellingen in 13 categorieën,
+  SQLite/FTS5-geheugen, bronbewust vergeten, lokale samenvattingen en begrensde
+  gesprekscontext. Offlinebeleid geldt ook voor interne AI-aanroepen.
+- Windows: instellingen-/geheugencentrum, expliciete sessieoverdracht en
+  doorlopende spraakbeurten na bewuste activatie. Microfoon start niet vanzelf.
+- Nederlandse tijdresolver en hervatbare taakreferenties gebruiken de bestaande
+  AutomationEngine. Geen herstel van oude goedkeuringsgeheimen of auto-uitvoering.
+- Audiohelper blijft geladen tussen aanvragen; gedeelde procesbewaking,
+  annulering en idle-unload. Android-/barge-in-uitbreiding volgt nog.
+
 - Op gebruikersverzoek volstaat één gesproken/getypte ja na de volledige actuele
   mail-/agendapreview; nee weigert. Een mail wordt na het geverifieerde concept
   direct als verzendvoorstel klaargezet. Geen extra verstuur-opdracht of dubbele
