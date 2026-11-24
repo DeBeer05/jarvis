@@ -34,7 +34,28 @@ Die beheer je afzonderlijk bij **Gesprekken**. Ook openstaande automatiseringsta
 kunnen noodzakelijke taakparameters bevatten; geheugen wissen annuleert geen
 externe acties en verandert geen uitgevoerde taken. Het menu vermeldt dit onderscheid.
 
+‘Onthou dit’ kan de laatste duidelijke eigen ik-/mijn-uitspraak opslaan. ‘Vergeet
+dat’ werkt alleen bij één zojuist getoonde of opgeslagen herinnering waarvan de
+versie niet veranderd is. Een lijst met meerdere herinneringen vraagt een keuze.
+Ook zulke geheugenlijst-antwoorden krijgen bronkoppelingen, zodat verwijderde
+feiten niet via een oud lijstantwoord opnieuw aan AI worden meegegeven.
+
+Automatisch onthouden staat uit. Na inschakelen herkent JARVIS een beperkte set
+heldere plannings-/programmeertaalvoorkeuren. Bij ‘altijd vragen’ verschijnen ze
+als **proposed**, zonder ze als actieve waarheid te gebruiken. Kies Wijzigen en
+status Actief om zo'n voorstel te bevestigen. Binnen toegestane zelfstandigheidsregels
+kunnen gewone voorkeuren meteen actief worden; gevoelige feiten worden niet
+automatisch verzameld. Je kunt ook altijd zelf een ruimere herinnering toevoegen.
+
 Samenvattingen worden lokaal en extractief gemaakt en zijn zichtbaar/bewerkbaar.
-Automatische onthoudregels, aanvullende privacyretentie en semantische retrieval
-zijn tijdens deze documentversie nog in uitvoering; de actuele retrieval gebruikt
-SQLite FTS5 en metadata/ranking, zonder vectordatabase of embeddingdownload.
+De huidige implementatie kan bij vergeten conservatief alle samenvattingen van
+de gebruiker invalideren. Bewaar belangrijke eigen notities daarom ook als
+afzonderlijke expliciete herinnering. Algemene semantische retrieval is nog in
+uitvoering; nu gebruikt JARVIS FTS5 en metadata/ranking, zonder embeddingdownload.
+
+Met **Gespreksgeschiedenis uit** bevatten nieuwe chatbeurten geen gewone tekst
+in SQLite. Een beperkte actieve context blijft tijdelijk in server-RAM en vervalt
+bij inactiviteit/herstart. Android wist de offline Room-cache en schrijft geen
+nieuwe gesprekstekst naar die cache. Oudere servergesprekken blijven afzonderlijk
+bestaan tot verwijderen of de bewaartermijn. Noodzakelijke open taakparameters,
+expliciete herinneringen en request-idempotentiemetadata zijn afzonderlijke gegevens.

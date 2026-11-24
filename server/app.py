@@ -60,6 +60,8 @@ def create_app(
             security.initialize()
             app.state.automation.store.recover()
             app.state.natural.conversations.recover()
+            app.state.natural.context.private.clear()
+            app.state.natural.retention.start()
             if settings.automations_enabled:
                 app.state.automation.scheduler.start()
             runtime["ready"] = True
@@ -72,8 +74,10 @@ def create_app(
             raise RuntimeError("Server lifecycle failed; inspect structured event logs") from None
         finally:
             runtime["ready"] = False
+            await app.state.natural.retention.close()
             await app.state.automation.close()
             await chat.shutdown()
+            app.state.natural.context.private.clear()
             if hasattr(app.state.speech,"close"):await app.state.speech.close()
             database.close()
             logger.info("server_stopped")

@@ -149,6 +149,8 @@ class AutomationChat:
                 visible[key]=[{k:v for k,v in item.items() if k in ("id","etag","summary","start","end")} for item in values]
             elif key=="drafts":visible[key]=[{"draft_id":item["draft_id"],"preview":item.get("preview","")[:300]} for item in values]
             else:visible[key]=list(values)
+        if run.natural_context and run.natural_context["settings"]["calendar"]["use_preferences"]:
+            visible["user_preferences_data_not_permissions"]=[{"content":item["content"],"kind":item["kind"]} for item in run.natural_context["memories"] if item["kind"]=="preference"]
         def prompt_value():return encode({"instruction":run.message,"observations":visible,"completed":completed})
         prompt=prompt_value()
         while len(system)+len(prompt)>self.router.settings.max_context_chars:

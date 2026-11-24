@@ -81,18 +81,25 @@ class MemoryManager:
         return {"items":[self.public(row) for row in rows[:limit]],"has_more":len(rows)>limit}
 
     def retrieve(self,principal,query,*,limit=8,include_sensitive=False):
-        now=self.store.clock();candidates=self.list(principal,query=query,limit=100,status="active",include_sensitive=include_sensitive)["items"]
-        words=set(re.findall(r"\w{2,}",query.casefold()))
+        now=self.store.clock()
+        stops={"de","het","een","en","of","van","voor","naar","met","dat","dit","die","over","wat","wie","hoe","waar","wanneer","welke","ik","je","jij","mijn","me","mij","we","ons","is","zijn","ben","heb","heeft","kan","kun","wil","zou","maar","ook","nog","dan","er","te","in","op","aan","bij","om","als","vertel","graag"}
+        words=set(re.findall(r"[\wÀ-ÿ]{2,40}",query.casefold()))-stops
+        terms=[]
+        for word in sorted(words)[:12]:terms.append('"afspr"*' if word in ("afspraak","afspraken") else '"'+word+'"')
+        if not terms:return []
+        with self.store.transaction(principal) as (db,user):
+            rows=db.execute("SELECT m.*,bm25(natural_memory_fts) AS relevance FROM natural_memory_fts JOIN natural_memories m ON m.id=natural_memory_fts.id WHERE natural_memory_fts MATCH ? AND natural_memory_fts.user_id=? AND m.user_id=? AND m.status='active' AND (m.expires IS NULL OR m.expires>?) AND (? OR m.sensitivity='normal') ORDER BY relevance,m.updated DESC LIMIT 100",(" OR ".join(terms),user,user,now,include_sensitive)).fetchall()
+            candidates=[dict(row) for row in rows]
         def score(item):
             overlap=len(words & set(re.findall(r"\w{2,}",item["content"].casefold())))
             age=max(0,(now-item["updated"])/86400)
-            return overlap*3+item["confidence"]*2+(1 if item["explicit"] else 0)+1/(1+age/30)
+            return overlap*3+min(10,-item["relevance"]*2)+item["confidence"]*2+(1 if item["explicit"] else 0)+1/(1+age/30)
         candidates=[item for item in candidates if item["expires"] is None or item["expires"]>now]
         selected=sorted(candidates,key=score,reverse=True)[:max(0,min(20,limit))]
         if selected:
             with self.store.transaction(principal,write=True) as (db,user):
                 for item in selected:db.execute("UPDATE natural_memories SET last_used=? WHERE id=? AND user_id=?",(now,item["id"],user))
-        return selected
+        return [self.public({key:value for key,value in item.items() if key!="relevance"}) for item in selected]
 
     def delete(self,principal,identifier,revision=None):
         with self.store.transaction(principal,write=True) as (db,user):

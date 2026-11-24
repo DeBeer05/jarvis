@@ -94,6 +94,7 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
     private val conversationSession=ConversationSession(viewModelScope,{currentApi},{foreground},{voiceProblem(it)},{lease -> mutable.update {it.copy(conversationState=lease?.state ?: "STANDBY")}})
 
     private fun naturalConfig(): JSONObject?=try {JSONObject(mutable.value.naturalSettings).getJSONObject("settings")}catch(_:Exception){null}
+    private fun keepHistory()=naturalConfig()?.optJSONObject("memory")?.optBoolean("history")==true
     private fun naturalVoice()=naturalConfig()?.optJSONObject("conversations")
     private fun naturalEnabled()=naturalVoice()?.optBoolean("enabled")==true
     private fun continuousVoice()=voiceConversationActive&&naturalVoice()?.optBoolean("continuous")==true
@@ -156,7 +157,10 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
         if(!mutable.value.connection.authenticated) return message("Log eerst in en koppel dit apparaat")
         viewModelScope.launch { try {
             val data=api.json("/api/v1/natural$path",method,body)
-            if(currentApi===api && epoch==generation && api.hasCredential()) done?.invoke(data)
+            if(currentApi===api && epoch==generation && api.hasCredential()) {
+                done?.invoke(data)
+                if(data.optJSONObject("settings")?.optJSONObject("memory")?.optBoolean("history")==false)graph.cache.clear(api.endpoint.origin)
+            }
         } catch(cancel: CancellationException) { throw cancel }
           catch(error: Exception) { if(currentApi===api && epoch==generation) {
             mutable.update {it.copy(naturalStatus="Niet opgeslagen/opgehaald. Controleer de invoer; bij een wijzigingsconflict moet je eerst vernieuwen. Je invoer blijft staan.")};problem(error)
@@ -294,8 +298,8 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
         val epoch = generation
         viewModelScope.launch { try {
             val response = if (mutable.value.connection.authenticated) {
-                api.json("/api/v1/chat/conversations?limit=100&offset=0").also { graph.cache.put(api.endpoint.origin, "list", it.toString()) { currentApi===api && generation==epoch && api.hasCredential() } }
-            } else if (api.hasCredential()) graph.cache.get(api.endpoint.origin, "list")?.let { JSONObject(it) } else null
+                api.json("/api/v1/chat/conversations?limit=100&offset=0").also { graph.cache.put(api.endpoint.origin, "list", it.toString()) { keepHistory() && currentApi===api && generation==epoch && api.hasCredential() } }
+            } else if (api.hasCredential()&&keepHistory()) graph.cache.get(api.endpoint.origin, "list")?.let { JSONObject(it) } else null
             val items = response?.optJSONArray("items") ?: JSONArray()
             if (currentApi === api && generation==epoch && api.hasCredential()) mutable.update { it.copy(history=(0 until items.length()).map { i -> val row=items.getJSONObject(i); Conversation(row.getString("id"), row.getString("title")) }) }
         } catch (error: Exception) { problem(error) } }
@@ -306,8 +310,8 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
         val api = currentApi ?: return
         val epoch = generation
         viewModelScope.launch { try {
-            val response = if (mutable.value.connection.authenticated) api.json("/api/v1/chat/conversations/$id").also { graph.cache.put(api.endpoint.origin, id, it.toString()) { currentApi===api && generation==epoch && api.hasCredential() } }
-                else if (api.hasCredential()) graph.cache.get(api.endpoint.origin, id)?.let { JSONObject(it) } else null
+            val response = if (mutable.value.connection.authenticated) api.json("/api/v1/chat/conversations/$id").also { graph.cache.put(api.endpoint.origin, id, it.toString()) { keepHistory() && currentApi===api && generation==epoch && api.hasCredential() } }
+                else if (api.hasCredential()&&keepHistory()) graph.cache.get(api.endpoint.origin, id)?.let { JSONObject(it) } else null
             if (response == null) return@launch message("Dit gesprek is niet lokaal beschikbaar")
             val turns=response.getJSONArray("turns"); val lines=mutableListOf<Line>()
             repeat(turns.length()) { index -> val turn=turns.getJSONObject(index); lines += Line("JIJ", turn.getString("user_text")); lines += Line("JARVIS", turn.getString("assistant_text")) }

@@ -31,7 +31,9 @@ def fixture(root, port):
     async def reset_rates():
         # Test-case isolation in this explicitly synthetic process only. Real
         # authentication/rate-limit tests use the unchanged production app.
-        with app.state.automation.store.db(True) as db:db.execute("DELETE FROM auth_rates")
+        with app.state.automation.store.db(True) as db:
+            db.execute("DELETE FROM auth_rates")
+            db.execute("DELETE FROM natural_settings")
         return {"reset":True}
     owner_device=[None]
     @app.post("/api/test/approve")

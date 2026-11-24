@@ -173,6 +173,8 @@ class VoiceConversationManager(QObject):
         settings = self.effective_settings()
         if not automatic:self.activate_session()
         wake_gate = automatic and self.wake_enabled and not self.armed
+        if wake_gate and self.options:
+            settings=replace(settings,sensitivity=max(0.,min(1.,settings.sensitivity+(self.options["conversations"].get("wake_sensitivity",.6)-.6)*.3)))
         self.recording = True
         capture_input = self.input = self.input_factory()
         capture_input.prepare()

@@ -235,6 +235,34 @@ class DeviceIntegrationTest {
         assertFalse(data.toString().contains("access_token"))
         api.json("/api/v1/auth/disconnect","POST");api.forget()
     }
+    @Test fun disablingHistoryClearsRoomCacheAndDoesNotRecachePrivateTurns() = runBlocking<Unit> {
+        val api=api();pair(api)
+        val application=context.applicationContext as JarvisApplication
+        val original=application.graph.settings.values.first()
+        val base=api.json("/api/v1/natural/settings")
+        api.json("/api/v1/natural/settings/memory","PATCH",JSONObject().put("revision",base.getInt("revision")).put("changes",JSONObject().put("history",false)))
+        application.graph.cache.put("http://127.0.0.1:8765","synthetic-old-cache","Synthetische oude cache")
+        val store=androidx.lifecycle.ViewModelStore()
+        val model=withContext(Dispatchers.Main) {nl.jarvis.mobile.features.JarvisViewModel(application).also{store.put("private-history",it)}}
+        try {
+            application.graph.settings.save(original.copy(origin="http://127.0.0.1:8765",automatic=true))
+            withContext(Dispatchers.Main){model.active(true)}
+            withTimeout(15000) {model.state.first{it.connection.authenticated&&it.naturalSettings.isNotBlank()}}
+            withTimeout(5000) {while(application.graph.cache.get("http://127.0.0.1:8765","synthetic-old-cache")!=null)delay(20)}
+            withContext(Dispatchers.Main){model.send("Een tijdelijke synthetische vraag")}
+            withTimeout(15000) {model.state.first{!it.busy&&it.messages.any{line->line.role=="JIJ"}}}
+            val conversation=model.state.value.conversation;assertNotNull(conversation)
+            assertNull(application.graph.cache.get("http://127.0.0.1:8765",conversation!!))
+            withContext(Dispatchers.Main){model.open(conversation)}
+            withTimeout(10000){model.state.first{it.messages.isEmpty()}}
+            val document=JSONObject(model.state.value.naturalSettings)
+            withContext(Dispatchers.Main){model.resetNaturalCategory("memory",document.getInt("revision"))}
+            withTimeout(10000){model.state.first{JSONObject(it.naturalSettings).getJSONObject("settings").getJSONObject("memory").getBoolean("history")}}
+        } finally {
+            withContext(Dispatchers.Main){model.active(false);store.clear()}
+            application.graph.settings.save(original)
+        }
+    }
     @Test fun realPiperWhisperAndAndroidAudioInterfaces() = runBlocking {
         val api=api();pair(api)
         val wav=api.synthesize("Hallo, ik ben Jarvis. Hoe kan ik je vandaag helpen?",1f)

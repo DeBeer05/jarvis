@@ -284,12 +284,16 @@ class NaturalSettingsPanel(QWidget):
         category=QComboBox();category.addItems(["preference","person","project","work","activity","habit","hobby","decision","technical","location","instruction","conversation"])
         if item:category.setCurrentText(item["category"])
         form.addRow("Categorie",category)
+        status=QComboBox()
+        for title,value in (("Actief","active"),("Voorstel: nog niet gebruiken","proposed"),("Verouderd","outdated")):status.addItem(title,value)
+        status.setCurrentIndex(max(0,status.findData(item["status"] if item else "active")));form.addRow("Status",status)
         consent=QCheckBox("Ik geef expliciet toestemming voor deze gevoelige herinnering");form.addRow(consent)
         controls=QDialogButtonBox(QDialogButtonBox.StandardButton.Save|QDialogButtonBox.StandardButton.Cancel);controls.accepted.connect(dialog.accept);controls.rejected.connect(dialog.reject);form.addRow(controls)
         if dialog.exec()!=QDialog.DialogCode.Accepted:return
         payload={"content":content.toPlainText(),"category":category.currentText(),"consent_sensitive":consent.isChecked()}
         if item:payload.update(revision=item["revision"],key=item["memory_key"],kind=item["kind"],confidence=item["confidence"],sensitivity=item["sensitivity"],expires_at=item["expires"],status=item["status"])
         if consent.isChecked():payload["sensitivity"]="sensitive"
+        payload["status"]=status.currentData()
         self.call("PUT" if item else "POST","/memory/"+item["id"] if item else "/memory",payload,self.memory_changed)
 
     def delete_memory(self):

@@ -178,6 +178,29 @@ uitvoering al door os.name wordt afgeschermd. Windows-only loader wordt nu pas
 binnen die platformtak opgezocht. Zowel Linux- als Windows-typeprofiel lokaal
 gecontroleerd; nieuwe remote run volgt. Geen applicatie- of beveiligingscheck omzeild.
 
+Bewaarbeleid aangesloten: nieuwe beurten bij geschiedenis uit bevatten geen
+gewone tekst in SQLite; actieve context blijft begrensd in RAM met eigen TTL en
+verdwijnt bij herstart. Exacte approval en request-idempotentie blijven werken;
+open taakparameters zijn afzonderlijk. Android wist de offline Room-cache en
+cachet privébeurten niet opnieuw. Eén lichte onderhoudstaak ruimt begrensd oude
+inhoud/verlopen herinneringen op; actieve gesprekken en open taakgegevens blijven
+behouden. Automatisch onthouden is opt-in en gebruikt alleen een positieve
+grammatica voor gewone plannings-/programmeertaalvoorkeuren; bij altijd-vragen
+ontstaan niet opgehaalde voorstellen. Profielkeuze past echte presetwaarden toe.
+
+FTS-kandidaten worden vóór de limiet op relevantie gerangschikt. ‘Onthou dit’ en
+‘vergeet dat’ binden één duidelijke eigen uitspraak/geheugenversie. Ook expliciete
+geheugenlijst-antwoorden worden als afgeleide bron gevolgd, zodat vergeten feiten
+niet via een oud lijstantwoord terugkomen. Algemene ambiguïteit vraagt een keuze.
+Negen nieuwe privacy-/referentietests; laatste volledige serverregressie **355
+geslaagd**, 141,84 s. Windows **99 geslaagd**, Android **14 instrumented tests,
+0 fouten** plus unit/lint/debug/release. Alleen eigen test-AVD/fixture gebruikt.
+Architectuur-, context-, geheugen-, security-, persoonlijkheids- en handmatige
+testdocumentatie toegevoegd; PHASE_7_5_TEST_REPORT.md houdt beperkingen expliciet bij.
+Remote checks voor 084baad inmiddels allemaal geslaagd. Nieuwere privacywijzigingen
+krijgen nog hun eigen CI-run. Fase 7.5 blijft in uitvoering; echte 8765-server nog
+niet gemigreerd, geen fase-8-/productie-/mini-pc-werk.
+
 ### Eén gesproken ja voor mail en agenda — 24 november 2026
 
 Nieuwe expliciete opdracht vervangt de eerdere beperking op een korte ja:

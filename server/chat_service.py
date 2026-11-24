@@ -49,6 +49,7 @@ class Generation:
     tool_operation: str = ""
     started_at:float=field(default_factory=time.perf_counter,repr=False)
     first_token_seconds:float|None=field(default=None,repr=False)
+    persist_history:bool=True
 
     def public(self) -> dict:
         return {"request_id": self.request_id, "conversation_id": self.conversation_id,
@@ -88,10 +89,13 @@ class ChatService:
         self.active[request_id] = run  # Reserve before the first await; no unbounded wait queue.
         self.admissions.append(tick)
         try:
+            if self.natural and principal:
+                document=await asyncio.to_thread(self.natural.settings.get,principal)
+                run.persist_history=document["settings"]["memory"]["history"]
             if self.natural and principal and conversation_id:
                 await asyncio.to_thread(self.natural.authorize_conversation,principal,conversation_id)
                 await asyncio.to_thread(self.natural.check_audio,run)
-            run.conversation_id, run.history = await asyncio.to_thread(self.store.start, request_id, conversation_id, run.message)
+            run.conversation_id, run.history = await asyncio.to_thread(self.store.start, request_id, conversation_id, run.message,persist=run.persist_history)
         except BaseException:
             self.active.pop(request_id, None)
             raise
@@ -224,7 +228,7 @@ class ChatService:
                 await cancellation
             run.text = self.store.clean(run.text)
             persistence = asyncio.create_task(asyncio.to_thread(
-                self.store.finish, run.request_id, run.text, run.provider, run.model,
+                self.store.finish, run.request_id, run.text if run.persist_history else "", run.provider, run.model,
                 run.status, run.error["code"] if run.error else None,
             ))
             self.persistence_tasks.add(persistence)
@@ -235,9 +239,13 @@ class ChatService:
                 # Shielded database cleanup continues even after an HTTP disconnect.
                 pass
             finally:
+                if self.natural and run.principal and run.natural_context and run.status in ("completed","cancelled"):
+                    try:await asyncio.to_thread(self.natural.context.complete,run)
+                    except Exception:logger.debug("private_context_unavailable")
                 self.active.pop(run.request_id, None)
             if self.natural and run.principal and run.status=="completed":
                 try:
+                    await asyncio.to_thread(self.natural.automatic_memory,run)
                     await asyncio.to_thread(self.natural.context.summarize,run.principal,run.conversation_id)
                 except Exception as error:
                     logger.warning("summary_unavailable",extra={"error_type":type(error).__name__})

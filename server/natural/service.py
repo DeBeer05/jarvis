@@ -7,7 +7,12 @@ from server.natural.context import ContextManager
 from server.natural.store import Conflict
 from server.natural.tasks import TaskMemory
 from server.natural.diagnostics import DiagnosticsManager
+from server.natural.retention import RetentionManager
+from server.natural.preferences import preference,automatic_preference
 import re
+import json
+import uuid
+from server.natural.store import encode
 
 
 class NaturalService:
@@ -20,6 +25,7 @@ class NaturalService:
         self.context=ContextManager(self.store,self.settings,self.memory,chat.settings)
         self.tasks=TaskMemory(self.store,self.settings,automation)
         self.diagnostics=DiagnosticsManager(self.store,self.settings)
+        self.retention=RetentionManager(self)
         chat.natural=self
 
     def authorize_conversation(self,principal,conversation):
@@ -35,6 +41,10 @@ class NaturalService:
     def prepare(self,run):
         self.authorize_conversation(run.principal,run.conversation_id)
         self.check_audio(run)
+        if not run.persist_history:
+            config=self.settings.get(run.principal)["settings"]
+            turns=self.context.private_turns(run.principal,run.conversation_id,config)
+            run.history=[item for row in turns for item in ({"role":"user","content":row["user_text"]},{"role":"assistant","content":row["assistant_text"]})]
         prepared=self.context.prepare(run)
         messages,metrics=self.context.build(run,prepared)
         return prepared,messages,metrics
@@ -56,32 +66,80 @@ class NaturalService:
     def command(self,run):
         """Explicit memory commands are executed locally, never by generated code."""
         message=run.message.strip();config=run.natural_context["settings"]
-        match=re.fullmatch(r"(?:jarvis[, ]+)?onthoud(?: dat)?\s+(.+)",message,re.I|re.S)
+        match=re.fullmatch(r"(?:jarvis[, ]+)?onthou(?:d)?(?: dat)?\s+(.+)",message,re.I|re.S)
         if match:
             if not config["memory"]["long_term"] or config["autonomy"]["actions"].get("MemorySave")=="block":
                 return "Langetermijngeheugen is uitgeschakeld of geblokkeerd."
             content=match.group(1).strip()
-            if content.casefold() in ("dit","dat"):
-                return "Wat wil je precies dat ik onthoud?"
-            try:self.memory.save(run.principal,{"content":content,"kind":"preference" if re.search(r"\b(liever|voorkeur|liefst)\b",content,re.I) else "fact"},source="conversation",source_turn=run.request_id)
+            source=run.request_id
+            if content.casefold().rstrip(".!") in ("dit","dat"):
+                turns=run.natural_context["turns"]
+                previous=turns[-1] if turns else None
+                if not previous or "?" in previous["user_text"] or not re.match(r"(?:ik|mijn)\b",previous["user_text"],re.I):return "Wat wil je precies dat ik onthoud? Noem de voorkeur of het feit."
+                content=previous["user_text"];source=previous["id"]
+            value=preference(content) or {"content":content,"kind":"preference" if re.search(r"\b(liever|voorkeur|liefst)\b",content,re.I) else "fact"}
+            try:
+                saved=self.memory.save(run.principal,value,source="conversation",source_turn=source)
+                self.remember_memory_refs(run,[saved])
             except ValueError:
                 return "Dit kan ik niet als gewone herinnering opslaan. Gevoelige gegevens vereisen expliciete toestemming via geheugenbeheer; geheimen sla ik niet op."
             return "Ik heb dit onthouden. Je kunt het later bekijken, aanpassen of verwijderen in geheugenbeheer."
         if re.fullmatch(r"(?:jarvis[, ]+)?wat (?:weet|onthoud) je (?:nog )?(?:over|van) mij[?.!]*",message,re.I):
             items=self.memory.list(run.principal,status="active",include_sensitive=False,limit=20)["items"]
             items=[item for item in items if item["expires"] is None or item["expires"]>self.store.clock()]
+            self.remember_memory_refs(run,items)
             return ("Dit heb ik onthouden:\n"+"\n".join(f"- {item['content']}" for item in items)) if items else "Ik heb nog geen actieve gewone herinneringen over je opgeslagen."
         match=re.fullmatch(r"(?:jarvis[, ]+)?vergeet\s+(.+?)[.!]*",message,re.I|re.S)
         if match:
             if config["autonomy"]["actions"].get("MemoryUpdate")=="block":return "Geheugenwijzigingen zijn geblokkeerd."
             query=match.group(1).strip()
-            if query.casefold() in ("dat","dit","alles"):
+            if query.casefold() in ("dat","dit"):
+                items=self.last_memory_refs(run)
+                if len(items)!=1:return "Welke herinnering bedoel je precies? Noem de inhoud of kies haar in geheugenbeheer."
+                try:self.memory.delete(run.principal,items[0]["id"],items[0]["revision"])
+                except ValueError:return "Die herinnering is gewijzigd of al verwijderd. Bekijk de actuele herinnering voordat je haar vergeet."
+                return "Die herinnering is verwijderd. De oorspronkelijke gesprekken bestaan nog afzonderlijk."
+            if query.casefold()=="alles":
                 return "Welke herinnering bedoel je precies? Noem de inhoud of verwijder haar via geheugenbeheer. De volledige geheugenlijst wissen vraagt daar een aparte bevestiging."
             items=self.memory.list(run.principal,query=query,status="active",limit=2,include_sensitive=False)["items"]
             if len(items)!=1:return "Ik vind geen unieke herinnering. Noem iets specifiekers of kies de herinnering in geheugenbeheer."
             self.memory.delete(run.principal,items[0]["id"],items[0]["revision"])
             return "Die herinnering is verwijderd en wordt niet meer als geheugen opgehaald. Het oorspronkelijke gesprek bestaat nog in de gespreksgeschiedenis."
         return None
+
+    def remember_memory_refs(self,run,items):
+        with self.store.transaction(run.principal,write=True) as (db,user):
+            identifier=str(uuid.uuid5(uuid.NAMESPACE_URL,f"jarvis:memory-reference:{user}:{run.conversation_id}"));now=self.store.clock()
+            payload=encode({"shown_turn":run.request_id,"items":[{"id":item["id"],"revision":item["revision"]} for item in items]})
+            db.execute("INSERT INTO natural_pending VALUES (?,?,?,?,?,1,?,?,'completed') ON CONFLICT(id) DO UPDATE SET payload=excluded.payload,revision=natural_pending.revision+1,updated=excluded.updated",(identifier,user,run.conversation_id,"memory_reference",payload,now,now))
+            # Explicit list responses contain memory text too, even when ordinary
+            # retrieval returned no candidates. Track those derived turns.
+            if items:
+                old=db.execute("SELECT payload FROM natural_pending WHERE id=? AND user_id=? AND kind='memory_context'",(run.request_id,user)).fetchone()
+                ids=list(dict.fromkeys([*(json.loads(old["payload"]) if old else []),*(item["id"] for item in items)]))
+                db.execute("INSERT INTO natural_pending VALUES (?,?,?,?,?,1,?,?,'completed') ON CONFLICT(id) DO UPDATE SET payload=excluded.payload,revision=natural_pending.revision+1,updated=excluded.updated",(run.request_id,user,run.conversation_id,"memory_context",encode(ids),now,now))
+
+    def last_memory_refs(self,run):
+        turns=run.natural_context["turns"]
+        if not turns:return []
+        with self.store.transaction(run.principal) as (db,user):
+            identifier=str(uuid.uuid5(uuid.NAMESPACE_URL,f"jarvis:memory-reference:{user}:{run.conversation_id}"))
+            row=db.execute("SELECT payload FROM natural_pending WHERE id=? AND user_id=? AND kind='memory_reference'",(identifier,user)).fetchone()
+        payload=json.loads(row["payload"]) if row else {}
+        return payload.get("items",[]) if payload.get("shown_turn")==turns[-1]["id"] else []
+
+    def automatic_memory(self,run):
+        config=run.natural_context["settings"]
+        if not run.persist_history or not config["memory"]["automatic"] or not config["memory"]["long_term"] or self.is_command(run):return
+        autonomy=config["autonomy"]
+        if autonomy["actions"].get("MemorySave")=="block":return
+        value=automatic_preference(run.message)
+        if value is None:return
+        existing=self.memory.list(run.principal,query=value["content"],limit=100)["items"]
+        if any(row["content"]==value["content"] for row in existing):return
+        if value["key"] and autonomy["actions"].get("MemoryUpdate")=="block":value["status"]="proposed"
+        else:value["status"]="active" if autonomy["profile"]=="within_rules" and autonomy["actions"].get("MemorySave")!="ask" else "proposed"
+        self.memory.save(run.principal,value,source="automatic_preference",source_turn=run.request_id,explicit=False)
 
     async def stream_command(self,run):
         import asyncio
@@ -92,4 +150,4 @@ class NaturalService:
 
     @staticmethod
     def is_command(run):
-        return bool(re.match(r"^(?:jarvis[, ]+)?(?:onthoud\b|vergeet\b|wat (?:weet|onthoud) je (?:nog )?(?:over|van) mij[?.!]*$)",run.message.strip(),re.I))
+        return bool(re.match(r"^(?:jarvis[, ]+)?(?:onthou(?:d)?\b|vergeet\b|wat (?:weet|onthoud) je (?:nog )?(?:over|van) mij[?.!]*$)",run.message.strip(),re.I))

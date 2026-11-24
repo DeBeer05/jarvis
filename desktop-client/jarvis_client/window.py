@@ -268,6 +268,7 @@ class MainWindow(QMainWindow):
         self.natural_settings=NaturalSettingsPanel(self)
         tabs.addTab(self.natural_settings,"Gesprekken en geheugen")
         self.natural_settings.tabs.currentChanged.connect(lambda index:self.natural_settings.load_memory() if index==1 and self.principal else None)
+        self.natural_settings.tabs.currentChanged.connect(lambda index:self.natural_settings.refresh_diagnostics() if index==2 and self.principal else None)
 
     def make_account(self):
         body = self.page("Account", "Log in met je bestaande JARVIS-gebruikersnaam en wachtwoord. Je blijft na het afsluiten van de app ingelogd.")

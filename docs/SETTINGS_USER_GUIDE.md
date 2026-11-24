@@ -50,5 +50,20 @@ Android stopt bij verlaten van de app en hervat de microfoon niet vanzelf. Beide
 clients gebruiken bij Natural Conversation Mode de servermodellen; hardwarekeuze
 en microfoontoestemming blijven lokaal. Android gebruikt beschikbare platform-
 echo-/ruisonderdrukking; de kwaliteit vereist een echte audioproef.
-Barge-in en resterende instellingen worden nog aangesloten. Raadpleeg de actuele
+Optionele spraakonderbreking is aangesloten; echte hardwareacceptatie en overige
+instellingen worden nog afgerond. Raadpleeg de actuele
 voortgang; fase 7.5 is nog niet voltooid.
+
+Een ander persoonlijkheidsprofiel past bij opslaan de bijbehorende standaardwaarden
+toe. Sliders die je in dezelfde wijziging expliciet anders hebt ingesteld blijven
+behouden. Je kunt de opgeslagen waarden daarna verder aanpassen.
+
+Bij Geheugen kun je automatisch verzamelen, geschiedenis en bewaartermijnen instellen.
+Nieuwe privébeurten blijven bij geschiedenis uit alleen tijdelijk in server-RAM;
+Android schakelt dan de offline cache uit. Openstaande taken houden noodzakelijke
+gegevens apart. De opruiming verwerkt begrensde aantallen oude gegevens per minuut.
+Oorspronkelijke gesprekken verwijderen en geheugen wissen zijn aparte keuzes.
+
+De extra tab **Diagnostiek** toont echte beschikbare metingen. Ververs of exporteer
+de cijfers zonder gespreksinhoud. Niet beschikbare GPU-/audiometingen blijven als
+onbekend zichtbaar. Een responstijd van 1–3 seconden is een doel, geen garantie.

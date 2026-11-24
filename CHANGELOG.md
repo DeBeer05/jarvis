@@ -4,6 +4,10 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Geschiedenis uit houdt nieuwe gewone gesprekstekst alleen tijdelijk in RAM;
+  Android schakelt caching uit. Retentie, conservatieve automatische voorkeuren,
+  echte profielpresets en brongebonden ‘onthou dit’/‘vergeet dat’ aangesloten.
+
 - Natuurlijke afspraakslots, correcties zonder dubbele afspraak, popupherinneringen
   en gevalideerde samengestelde opdrachten. Iedere actie behoudt eigen rechten,
   idempotency-key en verplichte exacte goedkeuring.

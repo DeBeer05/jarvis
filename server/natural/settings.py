@@ -34,7 +34,13 @@ class SettingsManager:
         model=self.model(scope);validated=model.model_validate(data).model_dump(mode="json")
         if scope=="user":
             from server.natural.capabilities import voice_capabilities
-            before=self.get(principal)["settings"]["voice"];voice=validated["voice"];available=voice_capabilities()
+            from server.natural.personality import PROFILES
+            previous=self.get(principal)["settings"]
+            personality=validated["personality"]
+            if personality["profile"]!=previous["personality"]["profile"]:
+                for key,value in PROFILES[personality["profile"]][1].items():
+                    if personality[key]==previous["personality"][key]:personality[key]=value
+            before=previous["voice"];voice=validated["voice"];available=voice_capabilities()
             for key,choices in (("whisper_model",available["whisper_models"]),("voice",available["voices"])):
                 if voice[key]!=before[key] and not choices.get(voice[key],False):raise ValueError("Kies een geïnstalleerd spraakmodel of stemprofiel")
         payload=self.store.safe_content(encode(validated));device=principal.device_id if scope=="device" else ""
