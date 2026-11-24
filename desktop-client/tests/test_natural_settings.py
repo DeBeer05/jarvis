@@ -35,7 +35,21 @@ def test_typed_controls_preserve_categories_and_save_revision(qt):
     method,path,body,_=window.calls[-1]
     assert method=="PUT" and path.endswith("/settings") and body["revision"]==7
     assert body["settings"]["ai"]["temperature"]==.4 and body["settings"]["personality"]["humor"]==35
+    assert not view.tabs.isEnabled() and view.loading
+    view.failed(RuntimeError("synthetic conflict"))
+    assert view.tabs.isEnabled() and view.dirty and view.draft["ai"]["temperature"]==.4
     view.cancel();assert not view.dirty and view.draft==DOCUMENT["settings"]
+    window.close()
+
+
+def test_save_uses_immutable_snapshot_until_server_reply(qt):
+    window,view=panel(qt);requests=[]
+    window.call=lambda method,path,body,success,failure=None:requests.append(body)
+    view.scroll.widget().findChild(QDoubleSpinBox).setValue(.6);view.save()
+    view.draft["ai"]["temperature"]=.8
+    assert requests[-1]["settings"]["ai"]["temperature"]==.6
+    view.failed(RuntimeError("synthetic network failure"))
+    assert view.tabs.isEnabled() and view.draft["ai"]["temperature"]==.8
     window.close()
 
 
@@ -60,4 +74,13 @@ def test_logout_removes_personal_context_and_searches(qt):
     view.memory_search.setText("Private search");view.clear()
     assert not view.tabs.isEnabled() and not view.memory_list.count() and not view.summary_text.toPlainText()
     assert not view.memory_search.text() and view.document is None
+    window.close()
+
+
+def test_diagnostics_show_unknown_measurements_without_inventing_gpu_or_audio(qt):
+    window,view=panel(qt)
+    view.diagnostics_loaded({"active_provider":"ollama","voice":{"capabilities":{"runtime_installed":False},"inference_busy":False},"sessions":[],"memory_counts":{"active":2},"resources":{"resident_bytes":10485760},"latency":{"stt_ms":1234,"context_tokens":900},"events":[]})
+    assert view.diagnostic_labels["stt"].text()=="1.234 s" and view.diagnostic_labels["gpu"].text()=="Niet gemeten"
+    assert view.diagnostic_labels["audio"].text()=="Nog niet gemeten" and "10.0 MiB" in view.diagnostic_labels["ram"].text()
+    view.clear();assert view.diagnostic_document is None and view.diagnostic_labels["memory"].text()=="Nog niet gemeten"
     window.close()

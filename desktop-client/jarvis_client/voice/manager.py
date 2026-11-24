@@ -47,13 +47,13 @@ class VoiceConversationManager(QObject):
         self.armed = False
         self.options=None
         self.session_active=False
-        self.session_started=self.last_activity=0
+        self.session_started=self.last_activity=0.
         self.state = "Microfoon uit"
-        self.pending = queue.Queue(maxsize=32)
+        self.pending:queue.Queue[str|None] = queue.Queue(maxsize=32)
         self.threads = []
         self.sentence = SentenceBuffer()
         self.answer_text = ""
-        self.response_started = self.first_token = self.first_audio = 0
+        self.response_started = self.first_token = self.first_audio = 0.
         self.measurements = {}
         self.scheduled = QTimer(self)
         self.scheduled.setSingleShot(True)
@@ -181,7 +181,7 @@ class VoiceConversationManager(QObject):
 
         def capture():
             try:
-                previous = 0
+                previous = 0.
                 def activity(rms, voiced):
                     nonlocal previous
                     now = time.monotonic()
@@ -253,6 +253,7 @@ class VoiceConversationManager(QObject):
                 detected, text = self.wake.detect(text,self.options["conversations"]["wake_word"] if self.options else None)
                 self.measurements["wake_after_utterance_seconds"] = round(result["seconds"], 3)
                 if not detected:
+                    self.metrics.emit({"wake_miss":1})
                     self.scheduled.start(150)
                     self.set_state("Ik wacht op Hé JARVIS")
                     return
@@ -290,12 +291,14 @@ class VoiceConversationManager(QObject):
             text=payload.get("text","").strip()
             if not text or resembles_output(text,self.answer_text):
                 self.measurements["rejected_interruptions"]=self.measurements.get("rejected_interruptions",0)+bool(text)
+                if text:self.metrics.emit({"rejected_interruption":1})
                 self.output.resume()
                 QTimer.singleShot(150,lambda:self.start_barge_capture(generation))
                 self.set_state("JARVIS spreekt · luistert naar onderbreking")
                 return
             self.stop(keep_wake=True)
             self.measurements["interruptions"]=self.measurements.get("interruptions",0)+1
+            self.metrics.emit({"interruption":1})
             self.interrupted.emit()
             self.transcript.emit(text)
             if self.farewell(text):self.end_session("afscheid");return
@@ -345,7 +348,7 @@ class VoiceConversationManager(QObject):
         self.responding = True
         self.sentence, self.answer_text = SentenceBuffer(), ""
         self.response_started = time.perf_counter()
-        self.first_token = self.first_audio = 0
+        self.first_token = self.first_audio = 0.
         self.set_state("JARVIS denkt…")
         generation, settings, pending = self.interruptions.generation, self.effective_settings(), self.pending
 

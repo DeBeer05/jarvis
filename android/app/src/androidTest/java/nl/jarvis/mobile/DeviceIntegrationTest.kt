@@ -224,6 +224,17 @@ class DeviceIntegrationTest {
         assertThrows(MobileError::class.java) {runBlocking {api.json("/api/v1/auth/session")}}
         api.forget()
     }
+    @Test fun diagnosticsUseAuthenticatedApiAndContainOnlySafeMeasurements() = runBlocking {
+        val api=api();pair(api)
+        val metric=JSONObject().put("event","native_first_audio_ms").put("value",1234.5)
+        api.json("/api/v1/natural/diagnostics/metrics","POST",JSONObject().put("items",org.json.JSONArray().put(metric)))
+        val data=api.json("/api/v1/natural/diagnostics")
+        assertEquals(1234.5,data.getJSONObject("latency").getDouble("native_first_audio_ms"),.001)
+        assertFalse(data.getBoolean("contains_conversation_content"))
+        assertEquals("read_write_ok",data.getString("database"))
+        assertFalse(data.toString().contains("access_token"))
+        api.json("/api/v1/auth/disconnect","POST");api.forget()
+    }
     @Test fun realPiperWhisperAndAndroidAudioInterfaces() = runBlocking {
         val api=api();pair(api)
         val wav=api.synthesize("Hallo, ik ben Jarvis. Hoe kan ik je vandaag helpen?",1f)

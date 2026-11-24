@@ -10,7 +10,7 @@ import numpy as np
 
 class EchoReference:
     def __init__(self,clock=time.monotonic):
-        self.clock=clock;self.lock=threading.Lock();self.blocks=deque(maxlen=100)
+        self.clock=clock;self.lock=threading.Lock();self.blocks:deque[np.ndarray]=deque(maxlen=100)
         self.last=-10.;self.maximum_correlation=0.
 
     def clear(self):

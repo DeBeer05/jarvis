@@ -42,6 +42,22 @@ SelectorEventLoop voor subprocessen in de
 
 ## Doel en toekomstige mini-pc
 
+De instellingenpagina **Diagnostiek** in beide native clients toont de laatst
+bewaarde echte numerieke metingen. `/api/v1/natural/diagnostics` vereist statusrecht;
+clientmetingen accepteren alleen een begrensde whitelist zonder tekstvelden.
+CPU/RAM gelden voor het serverproces en de eigen helper, niet voor heel Windows.
+De optionele NVIDIA-probe gebruikt vaste argumenten, een timeout van twee seconden
+en een cache van dertig seconden. GPU-percentages gelden voor de hele machine.
+Ontbrekende metingen worden als onbekend getoond; er worden geen waarden verzonnen.
+
+`ai_first_token_ms` loopt vanaf de chatreservering tot de eerste zichtbare delta,
+inclusief eventuele toolplanning. `stt_ms`/`tts_ms` meten de serveraanvraag; de
+native eerste audio meet het eerste schrijven naar de uitvoerbuffer, zonder
+garantie over USB-/luidsprekervertraging. Retentie en aantal meetevents zijn
+configureerbaar. Export bevat geen prompts, transcripties, geheugeninhoud,
+sleutels, tokens of ruwe providerfoutmeldingen. GPU-geheugen is systeembreed en
+kan ook andere programma's bevatten.
+
 Een eerste gesproken reactie binnen ongeveer 1–3 s blijft een prestatiedoel.
 De gemeten CPU-STT kan dit budget grotendeels gebruiken; het doel is dus nog
 niet bewezen. VAD, inference, AI en TTS moeten apart worden gemeten.

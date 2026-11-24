@@ -45,6 +45,10 @@ class Generation:
     context_metrics: dict = field(default_factory=dict)
     ai_policy: object | None = field(default=None, repr=False)
     wait_state: object | None = field(default=None, repr=False)
+    allowed_tools: frozenset[str] | None = field(default=None, repr=False)
+    tool_operation: str = ""
+    started_at:float=field(default_factory=time.perf_counter,repr=False)
+    first_token_seconds:float|None=field(default=None,repr=False)
 
     def public(self) -> dict:
         return {"request_id": self.request_id, "conversation_id": self.conversation_id,
@@ -169,6 +173,7 @@ class ChatService:
                                     run.status="cancelled"
                                     break
                             if event["type"] == "delta":
+                                if not run.text:run.first_token_seconds=time.perf_counter()-run.started_at
                                 if len(run.text) + len(event["text"]) > self.settings.max_response_chars:
                                     raise ProviderError("response_limit", retryable=False)
                                 run.text += event["text"]
@@ -236,6 +241,9 @@ class ChatService:
                     await asyncio.to_thread(self.natural.context.summarize,run.principal,run.conversation_id)
                 except Exception as error:
                     logger.warning("summary_unavailable",extra={"error_type":type(error).__name__})
+            if self.natural and run.principal:
+                try:await asyncio.to_thread(self.natural.diagnostics.response,run)
+                except Exception:logger.debug("diagnostics_unavailable")
         if run.error:
             yield {"type": "error", **run.error}
         yield {"type": "done", **run.public()}

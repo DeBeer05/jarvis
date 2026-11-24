@@ -15,12 +15,14 @@ from server.automation.store import encode, fingerprint
 from server.security.types import AuthError
 from server.automation.chat_approval import ChatApprovals
 from server.natural.temporal import resolve, AmbiguousTime
+from server.natural.calendar import create_parameters,update_parameters
+from server.natural.intents import KINDS,WRITE_KIND,compound_candidate,interpret
 
 TOPIC = re.compile(r"\b(agenda\w*|afsprak\w*|afspraak\w*|kalender\w*|calendar\w*|meeting\w*|vergadering\w*|(?:e[-‑]?)?mails?\w*|concept\w*|inbox|postvak|bericht\w*|herinner\w*|reminder\w*|melding\w*|notificatie\w*|workflow\w*|automatisering\w*)\b|\bwat (?:staat|heb).*\bgepland\b", re.I)
 REFERENCE = re.compile(r"\b(eerste|tweede|derde|vierde|vijfde|\d+(?:e|de|ste)|deze|die|dat|dit|verstuur|verzend|verzet|verplaats|annuleer|antwoord\w*|ja|akkoord|oké|nee)\b", re.I)
 READ = {"CalendarList", "CalendarRead", "EmailSearch", "EmailRead", "ReminderList", "WorkflowStatus"}
 TOOLS = READ | {"CalendarCreate", "CalendarUpdate", "CalendarDelete", "EmailDraft", "EmailSend", "ReminderCreate", "ReminderCancel", "NotificationSend", "WorkflowCreate"}
-CONTINUE_WRITE = re.compile(r"\s*(?:ja\b|akkoord\b|(?:maak|zet|plan|doe)\s+(?:hem|die|dat|het)\b|(?:morgen|overmorgen|vandaag|maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag|titel)\b|(?:van|om|tussen)\s+(?:\d{1,2}|een|twee|drie|vier|vijf|zes|zeven|acht|negen|tien|elf|twaalf)\b|(?:op|voor)\s+(?:\d{1,2}|morgen|overmorgen|vandaag|maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag)\b|met\s+(?:titel|onderwerp|tekst|ontvanger)\b|\d{1,2}(?:[:.]|\s))",re.I)
+CONTINUE_WRITE = re.compile(r"\s*(?:ja\b|akkoord\b|nee[, ]+toch\b|(?:maak|zet|plan|doe)\s+(?:hem|die|dat|het)\b|(?:morgen|overmorgen|vandaag|maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag|titel|volgende week|aanstaande|komende)\b|(?:van|om|tussen)\s+(?:\d{1,2}|een|twee|drie|vier|vijf|zes|zeven|acht|negen|tien|elf|twaalf|half|kwart)\b|(?:op|voor)\s+(?:\d{1,2}|morgen|overmorgen|vandaag|maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag)\b|(?:\d{1,3}|een|twee|drie|vier|anderhalf|een half)\s+(?:uur|uren|minuten?)\b|met\s+(?:titel|onderwerp|tekst|ontvanger)\b|\d{1,2}(?:[:.]|\s))",re.I)
 
 
 class AutomationChat:
@@ -57,6 +59,7 @@ class AutomationChat:
 
     def remember(self, run, kind, values):
         memory = dict(self.memory(run))
+        if kind=="jobs":values=values+[item for item in memory.get("jobs",[]) if item["id"] not in {value["id"] for value in values}]
         memory[kind] = values[:20]
         if kind in ("events","calendars","messages","drafts","reminders"):
             memory.pop("read_question",None)
@@ -73,6 +76,7 @@ class AutomationChat:
             return False
         memory=self.memory(run)
         if (memory.get("pending") or memory.get("decision")) and self.approvals.is_answer(run.message):return True
+        if memory.get("pending") and re.match(r"\s*(?:nee[, ]+toch|pas eerst|toch maar|verander)\b",run.message,re.I):return True
         if memory.get("write_question") and (CONTINUE_WRITE.match(run.message) or re.fullmatch(r"\s*(nee|laat maar|annuleer)[.!\s]*",run.message,re.I)):return True
         day_followup=memory.get("recent")==[{"kind":"events"}] and re.fullmatch(r"\s*(?:en\s+)?(?:vandaag|morgen|overmorgen)(?:\s+dan)?\s*[?.!]*",run.message,re.I)
         return bool(TOPIC.search(run.message) or day_followup or memory.get("read_question") or (REFERENCE.search(run.message) and memory))
@@ -119,6 +123,7 @@ class AutomationChat:
             recent=observations.get("recent",[{}])[0].get("kind")
             eligible|={"events":{"CalendarRead"},"calendars":{"CalendarList","CalendarRead"},"messages":{"EmailSearch","EmailRead"},"drafts":{"EmailRead"},"reminders":{"ReminderList"}}.get(recent,READ)
         eligible|={name for name in TOOLS-READ if self.write_intent(name,run.message)}
+        if run.allowed_tools is not None:eligible.intersection_update(run.allowed_tools)
         schemas = {name:REGISTRY[name][0].model_json_schema() for name in sorted(eligible)}
         if "EmailSend" in schemas:schemas["EmailSend"]={"type":"object","properties":{"draft_id":{"type":"string"}},"required":["draft_id"],"additionalProperties":False}
         now = datetime.now(ZoneInfo("Europe/Amsterdam")).isoformat()
@@ -176,15 +181,21 @@ class AutomationChat:
             data["input"]={key:matching[0][key] for key in ("draft_id","message_hash","preview")}
         if data["tool"] not in READ:self.guard(run,"automation:write")
         self.engine.permissions.check_tool(run.principal.device_id,data["tool"])
-        payload=self.temporal(data["tool"],data["input"],run.message,run=run)
+        try:
+            payload=self.temporal(data["tool"],data["input"],run.message,run=run)
+            if data["tool"]=="CalendarUpdate":
+                known=[event for event in observations.get("events",[]) if event.get("id")==payload.get("event_id") and event.get("etag")==payload.get("etag")]
+                if len(known)==1:payload=update_parameters(payload,run.message,known[0],run.natural_context["settings"] if run.natural_context else None)
+        except AmbiguousTime as error:return {"clarification":str(error)},provider
         return {"tool":data["tool"],"input":validate(data["tool"],payload)}, provider
 
     @staticmethod
     def temporal(tool,payload,instruction,*,run=None):
         if not isinstance(payload,dict):raise ValueError("Invalid input")
         payload=dict(payload)
-        if tool not in ("CalendarRead","ReminderCreate"):return payload
         config=run.natural_context["settings"] if run and run.natural_context else None
+        if tool=="CalendarCreate":return create_parameters(payload,instruction,config)
+        if tool not in ("CalendarRead","ReminderCreate"):return payload
         timezone=config["general"]["timezone"] if config else "Europe/Amsterdam"
         hint=resolve(instruction,timezone=timezone)
         if tool=="CalendarRead" and hint.window_end:
@@ -199,7 +210,8 @@ class AutomationChat:
         try:
             self.guard(run, "automation:read")
             self.security.store.rate("chat-tools:"+run.principal.device_id, 20)
-            result, provider = await self.answer(run)
+            if compound_candidate(run.message):result,provider=await self.compound(run)
+            else:result, provider = await self.answer(run)
         except AuthError:
             result = "Dit apparaat heeft geen geldige toegang tot deze functie. Laat de eigenaar bij Automatiseringen de rechten controleren: automation:read voor lezen, automation:write voor taken en automation:approve voor goedkeuren."
             provider = None
@@ -230,8 +242,23 @@ class AutomationChat:
         completed = []
         last_result = ""
         provider = None
-        decision=await self.approvals.handle(run)
+        decision=await self.approvals.handle(run) if run.allowed_tools is None else None
         if decision is not None:return decision,None
+        if len(observations.get("pending",[]))==1 and re.match(r"\s*(?:nee[, ]+toch|pas eerst|toch maar|verander)\b",run.message,re.I):
+            pending=observations["pending"][0];row=self.engine.store.get(pending["id"])
+            if row["tool"]=="CalendarCreate" and row["status"]=="approval" and pending.get("instruction"):
+                if run.allowed_tools is not None and "CalendarCreate" not in run.allowed_tools:raise ValueError("Tool buiten deze intentie")
+                self.guard(run,"automation:write")
+                payload=json.loads(row["payload"])
+                if fingerprint([row["tool"],payload])!=pending["fingerprint"]:return self.approvals.show(run,row),None
+                instruction=pending["instruction"]+"\nAanvullende gegevens van dezelfde gebruiker: "+run.message
+                if len(instruction)>self.router.settings.max_message_chars:return "Geef de volledige gewijzigde afspraak opnieuw in één bericht.",None
+                payload=create_parameters(payload,instruction,run.natural_context["settings"] if run.natural_context else None)
+                payload=validate("CalendarCreate",payload)
+                self.engine.control(row["id"],"cancelled",run.principal.device_id,expected_status="approval")
+                self.remember(run,"pending",[])
+                return await self.write(replace(run,message=instruction),"CalendarCreate",payload),None
+            return "Welk onderdeel wil je aanpassen? Geef de volledige gewijzigde opdracht; het bestaande voorstel is nog niet uitgevoerd.",None
         if observations.get("pending") and re.fullmatch(r"\s*(ja|akkoord|ok[eé]?|doe maar|is goed)[.!\s]*",run.message,re.I):
             return self.approvals.show(run,self.engine.store.get(observations["pending"][0]["id"])),None
         if observations.get("write_question"):
@@ -240,7 +267,7 @@ class AutomationChat:
                 return "Het voorbereiden is gestopt. Er is niets uitgevoerd.",None
             if CONTINUE_WRITE.match(run.message):
                 previous=run.history[-1] if run.history else {}
-                if fingerprint(previous.get("content",""))!=observations["write_question"][0].get("question_hash"):
+                if fingerprint(previous.get("content",""))!=observations["write_question"][0].get("question_hash") and self.approvals.is_answer(run.message):
                     self.remember(run,"write_question",[])
                     return "Herhaal de volledige afspraak of e-mail die je wilt voorbereiden; de eerdere vervolgvraag is niet meer de laatste vraag in dit gesprek.",None
                 instruction=observations["write_question"][0]["instruction"]+"\nAanvullende gegevens van dezelfde gebruiker: "+run.message
@@ -307,7 +334,49 @@ class AutomationChat:
             return last_result, provider
         return last_result or "Geef de gewenste afspraak of het bericht concreter aan.", provider
 
+    async def compound(self,run):
+        config=run.natural_context["settings"] if run.natural_context else {}
+        maximum=config.get("tasks",{}).get("maximum_intents",5)
+        plan,provider=await interpret(self.router,run,maximum,self.write_intent)
+        if len(plan.steps)==1:return await self.answer(run)
+        results=[];states=[];proposals=[]
+        for index,step in enumerate(plan.steps):
+            self.guard(run,"automation:read")
+            if any(states[parent]!="completed" for parent in step.depends_on):
+                results.append("Dit onderdeel wacht nog op het resultaat of de toestemming voor een eerdere opdracht.")
+                states.append("waiting");continue
+            child=replace(run,message=step.text,allowed_tools=KINDS[step.kind],tool_operation=f":step:{index}")
+            before=dict(self.memory(run))
+            try:
+                text,actual=await self.answer(child)
+                if actual:provider=actual
+                after=self.memory(run)
+                pending=after.get("pending",[])
+                new=[item for item in pending if item["id"] not in {value["id"] for value in proposals} and item not in before.get("pending",[])]
+                proposals+=new
+                waiting=bool(new or after.get("write_question") and after.get("write_question")!=before.get("write_question") or after.get("read_question") and after.get("read_question")!=before.get("read_question"))
+                if step.kind in WRITE_KIND and not new:
+                    # A queued/unconfirmed side effect cannot satisfy a dependency.
+                    jobs=[job for job in after.get("jobs",[]) if job not in before.get("jobs",[])]
+                    waiting=waiting or not jobs or any(self.engine.store.get(job["id"])["status"]!="completed" for job in jobs)
+                states.append("waiting" if waiting else "completed");results.append(text)
+            except AuthError:
+                states.append("failed");results.append("Dit onderdeel is niet uitgevoerd: dit apparaat heeft daarvoor geen toestemming.")
+            except (ValueError,KeyError,TypeError,httpx.TransportError):
+                states.append("failed");results.append("Dit onderdeel kon niet worden bevestigd. Controleer de gegevens of koppeling; andere onafhankelijke onderdelen worden wel verwerkt.")
+        text="\n\n".join(results)
+        if len(proposals)==1:
+            # The parent turn contains the whole combined response, so bind the
+            # preview hash to exactly that response, not an unpersisted child turn.
+            proposals[0]["preview_hash"]=fingerprint(self.clean(text))
+            self.remember(run,"pending",proposals)
+        elif len(proposals)>1:
+            text+="\n\nEr staan meerdere voorstellen klaar. Een algemeen ‘ja’ keurt ze niet allemaal goed. Kies eerst ‘Toon voorstel’ met het gewenste voorstel-ID."
+            self.remember(run,"pending",proposals)
+        return text,provider
+
     async def read(self, run, tool, payload):
+        if run.allowed_tools is not None and tool not in run.allowed_tools:raise ValueError("Tool buiten deze intentie")
         self.engine.permissions.check_tool(run.principal.device_id,tool)
         guard=REQUEST_GUARD.set(lambda:self.guard(run,"automation:read"))
         try:return await self._read(run,tool,payload)
@@ -391,11 +460,8 @@ class AutomationChat:
         return {},f"Taak {row['id']}: {row['tool']} — {row['status']}."
 
     async def write(self, run, tool, payload):
+        if run.allowed_tools is not None and tool not in run.allowed_tools:raise ValueError("Tool buiten deze intentie")
         memory = self.memory(run)
-        if tool=="CalendarCreate" and not re.search(r"\b\d{1,2}[:.]\d{2}\b|\b(?:om|van|tussen)\s+(?:\d{1,2}|een|twee|drie|vier|vijf|zes|zeven|acht|negen|tien|elf|twaalf)\b",run.message,re.I):
-            question="Voor welke datum en van hoe laat tot hoe laat wil je de afspraak? Ik heb nog geen afspraak ingepland."
-            self.remember(run,"write_question",[{"instruction":run.message,"question_hash":fingerprint(question)}])
-            return question
         if tool in ("CalendarUpdate","CalendarDelete"):
             known = [item for item in memory.get("events",[]) if item.get("id")==payload["event_id"]]
             if len(known)!=1 or known[0].get("etag")!=payload["etag"]:
@@ -445,7 +511,7 @@ class AutomationChat:
                 if step["tool"] not in READ:
                     return "Een workflow met wijzigingen vraagt een afzonderlijk gecontroleerd voorstel via Automatiseringen. Ik heb deze workflow niet ingepland."
         self.guard(run,"automation:write")
-        key = "chat:"+run.principal.device_id+":"+run.request_id+(":send" if tool=="EmailSend" else "")
+        key = "chat:"+run.principal.device_id+":"+run.request_id+run.tool_operation+(":send" if tool=="EmailSend" else "")
         row = self.engine.submit(run.principal.device_id,tool,payload,key)
         self.remember(run,"jobs",[{"id":row["id"],"tool":tool,"status":row["status"]}])
         self.engine.audit.record("chat_tool_proposed",row["id"],run.principal.device_id)

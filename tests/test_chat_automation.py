@@ -525,6 +525,33 @@ def test_model_cannot_invent_missing_calendar_times(tools_chat):
     assert "van hoe laat" in result["message"] and not app.state.automation.store.items()
 
 
+def test_natural_appointment_preview_correction_replaces_unapproved_proposal(tools_chat):
+    app,c,router=tools_chat
+    router.plans=[{"tool":"CalendarCreate","input":{"summary":"Noah","start":"1999-01-01T11:00:00+01:00","end":"1999-01-01T12:00:00+01:00"}}]
+    first=call(c,"Maak morgen om half vier een afspraak van twee uur met Noah en herinner me er een dag van tevoren aan").json()
+    before=app.state.automation.store.items()[0]
+    assert before["status"]=="approval" and "1440 minuten" in first["message"]
+    corrected=call(c,"Nee, toch vrijdag om vier uur",first["conversation_id"]).json()
+    rows=app.state.automation.store.items();assert len(rows)==2
+    assert app.state.automation.store.get(before["id"])["status"]=="cancelled"
+    replacement=next(row for row in rows if row["status"]=="approval")
+    payload=json.loads(replacement["payload"])
+    assert datetime.fromisoformat(payload["start"]).weekday()==4
+    assert datetime.fromisoformat(payload["start"]).hour==16 and datetime.fromisoformat(payload["end"]).hour==18
+    assert payload["summary"]=="Noah" and payload["reminder_minutes"]==1440
+    assert "Zeg ‘ja’" in corrected["message"] and len(router.planning_calls)==1
+
+
+def test_explicit_missing_slots_resume_after_intervening_chat(tools_chat):
+    app,c,router=tools_chat;router.plans=[{"clarification":"Wanneer en hoe lang?"}]
+    first=call(c,"Maak een afspraak in mijn agenda met Noah").json()
+    call(c,"Hallo",first["conversation_id"])
+    router.plans=[{"tool":"CalendarCreate","input":{"summary":"Noah"}}]
+    result=call(c,"Vrijdag om half vier, ongeveer twee uur",first["conversation_id"]).json()
+    assert "wijzigingsvoorstel" in result["message"]
+    assert len(app.state.automation.store.items())==1
+
+
 def test_multiple_proposals_require_selection_and_full_preview(tools_chat):
     app,c,router=tools_chat;first,row=create_proposal(tools_chat);_,other=create_proposal(tools_chat)
     listed=call(c,"Toon mijn voorstellen").json()
@@ -605,10 +632,21 @@ def test_spoken_request_preview_then_one_spoken_ja_executes_once(tools_chat,kind
     if kind=="mail":assert json.loads(proposal["payload"])==actual
 
 
-def test_spoken_nee_refuses_exact_preview(tools_chat):
+@pytest.mark.parametrize("message",["Nee.","Laat maar!","Annuleer dat."])
+def test_spoken_nee_refuses_exact_preview(tools_chat,message):
     app,c,router=tools_chat;shown,row=create_proposal(tools_chat)
-    result=call(c,"Nee.",shown["conversation_id"]).json()
+    result=call(c,message,shown["conversation_id"]).json()
     assert "geweigerd" in result["message"] and app.state.automation.store.get(row["id"])["status"]=="denied"
+
+
+@pytest.mark.parametrize("message",["Doe maar.","Dat is goed!","Is goed.","Akkoord."])
+def test_natural_confirmation_binds_exact_preview_without_model(tools_chat,message):
+    app,c,router=tools_chat;shown,row=create_proposal(tools_chat);executed=[]
+    before=len(router.planning_calls)
+    completed=complete_after_decision(app,c,row,executed)
+    result=call(c,message,shown["conversation_id"]).json();completed.result(timeout=5)
+    assert "afspraak is aangemaakt" in result["message"] and executed==[row["id"]]
+    assert len(router.planning_calls)==before
 
 
 def test_ja_without_preview_in_this_conversation_does_not_approve_other_job(tools_chat):

@@ -28,7 +28,7 @@ data class ScreenState(
     val device: String = "Nog niet gekoppeld", val provider: String = "auto", val model: String = "", val notificationStatus: String = "Lokale testmeldingen",
     val automations: String = "", val automationResult: String = "",
     val naturalSettings: String = "", val naturalSchema: String = "", val naturalMemory: String = "",
-    val naturalSummaries: String = "", val naturalStatus: String = "",val conversationState: String="STANDBY"
+    val naturalSummaries: String = "", val naturalStatus: String = "",val conversationState: String="STANDBY",val naturalDiagnostics:String=""
 )
 class JarvisViewModel(application: Application,val audio: AudioClient): AndroidViewModel(application) {
     constructor(application: Application):this(application,AudioClient(application))
@@ -43,6 +43,12 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
     private val connection = ConnectionManager(application, viewModelScope) { currentApi }
     private var voiceConversationActive=false;private var voiceStarted=0L;private var lastVoice=0L
     private var interruptionJob:Job?=null;private var failedBargeGeneration:Int?=null
+    private var responseClock=0L;private var firstAudioReported=false
+    private fun metric(event:String,value:Double) {
+        val api=currentApi ?: return
+        if(!mutable.value.connection.authenticated)return
+        viewModelScope.launch {try {api.json("/api/v1/natural/diagnostics/metrics","POST",JSONObject().put("items",org.json.JSONArray().put(JSONObject().put("event",event).put("value",value))))}catch(_:Exception){ /* Optional numeric telemetry never retries an action. */ }}
+    }
 
     private fun startInterruptionMonitor(epoch:Int,spoken:String):Job? {
         val listening=naturalConfig()?.optJSONObject("listening") ?: return null
@@ -66,7 +72,8 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
                     if(wav.isEmpty()) {audio.resumePlayback();continue}
                     audio.pausePlayback();val text=api.transcribe(wav);ensureActive()
                     if(epoch!=generation || !foreground)return@launch
-                    if(text.isBlank() || EchoGuard.resemblesOutput(text,spoken)) {audio.resumePlayback();continue}
+                    if(text.isBlank() || EchoGuard.resemblesOutput(text,spoken)) {if(text.isNotBlank())metric("rejected_interruption",1.0);audio.resumePlayback();continue}
+                    metric("interruption",1.0)
                     mutable.update {it.copy(transcript=text)}
                     if(isEnding(text)) {stop();return@launch}
                     lastVoice=System.nanoTime();cancelTurn(false);send(text,true);return@launch
@@ -125,7 +132,7 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
             if (changed) {
                 stop(); pairJob?.cancel(); connection.stop()
                 currentApi = try { graph.api(preferences.origin) } catch (_: IllegalArgumentException) { null }
-                mutable.update { it.copy(naturalSettings="", naturalSchema="", naturalMemory="", naturalSummaries="", naturalStatus="", automations="", automationResult="", messages=emptyList(), history=emptyList(), conversation=null, pairCode="", pairUrl="") }
+                mutable.update { it.copy(naturalDiagnostics="",naturalSettings="", naturalSchema="", naturalMemory="", naturalSummaries="", naturalStatus="", automations="", automationResult="", messages=emptyList(), history=emptyList(), conversation=null, pairCode="", pairUrl="") }
             }
             mutable.update { it.copy(preferences=preferences, screen=if (!initialized && currentApi?.hasCredential() == true) "Chat" else it.screen) }
             initialized = true
@@ -138,7 +145,7 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
             if (!status.authenticated && was) stop()
             if (status.online && !status.authenticated && currentApi?.hasCredential() != true) {
                 currentApi?.let { graph.cache.clear(it.endpoint.origin) }
-                mutable.update { it.copy(naturalSettings="", naturalSchema="", naturalMemory="", naturalSummaries="", naturalStatus="", automations="", automationResult="", messages=emptyList(), history=emptyList(), conversation=null) }
+                mutable.update { it.copy(naturalDiagnostics="",naturalSettings="", naturalSchema="", naturalMemory="", naturalSummaries="", naturalStatus="", automations="", automationResult="", messages=emptyList(), history=emptyList(), conversation=null) }
             }
         } }
     }
@@ -160,6 +167,7 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
         if(mutable.value.naturalSchema.isBlank()) naturalRequest("/settings/schema") {data -> mutable.update {it.copy(naturalSchema=data.toString())}}
         naturalRequest("/settings") {data -> mutable.update {it.copy(naturalSettings=data.toString(),naturalStatus="Gesynchroniseerd · versie ${data.getInt("revision")}")}}
     }
+    fun naturalDiagnostics() {naturalRequest("/diagnostics") {data -> mutable.update {it.copy(naturalDiagnostics=data.toString())}}}
     fun saveNaturalSettings(settings: String,revision: Int) {
         try { naturalRequest("/settings","PUT",JSONObject().put("revision",revision).put("settings",JSONObject(settings))) {data -> mutable.update {it.copy(naturalSettings=data.toString(),naturalStatus="Opgeslagen · versie ${data.getInt("revision")}")}} }
         catch(_:Exception) {message("Controleer de instellingen")}
@@ -240,7 +248,7 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
         mutable.update { it.copy(error=if (error is MobileError) error.message ?: "Verzoek mislukt" else if (error is IllegalArgumentException) error.message ?: "Ongeldige instelling" else "Verbinding of audio onderbroken. Controleer server en apparaten.") }
         if (error is MobileError && error.status == 401) {
             stop(); currentApi?.forget(); currentApi?.let { api -> viewModelScope.launch { graph.cache.clear(api.endpoint.origin) } }
-            mutable.update { it.copy(naturalSettings="", naturalSchema="", naturalMemory="", naturalSummaries="", naturalStatus="", automations="", automationResult="", connection=Connection(true,false,"Opnieuw koppelen nodig"), messages=emptyList(), history=emptyList(), conversation=null, screen="Inloggen") }
+            mutable.update { it.copy(naturalDiagnostics="",naturalSettings="", naturalSchema="", naturalMemory="", naturalSummaries="", naturalStatus="", automations="", automationResult="", connection=Connection(true,false,"Opnieuw koppelen nodig"), messages=emptyList(), history=emptyList(), conversation=null, screen="Inloggen") }
         }
     }
     fun message(text: String) { mutable.update { it.copy(error=text) } }
@@ -313,6 +321,7 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
         if(text.isBlank() || text.length>8000 || mutable.value.busy || !mutable.value.connection.authenticated || "chat:write" !in mutable.value.connection.permissions)return
         cancelTurn(false);val api=currentApi ?: return
         val epoch=generation;val request=UUID.randomUUID().toString();requestId=request
+        responseClock=System.nanoTime();firstAudioReported=false
         val conversation=mutable.value.conversation;val narrate=speak&&mutable.value.preferences.voiceOutput
         val speed=voiceSpeed();val volume=voiceVolume();val succeeded=java.util.concurrent.atomic.AtomicBoolean(false)
         mutable.update {it.copy(busy=true,messages=it.messages+Line("JIJ",text)+Line("JARVIS",""),error="",voiceStatus="JARVIS denkt…")}
@@ -322,6 +331,8 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
                 for(sentence in queue) {
                     val wav=api.synthesize(sentence,speed);ensureActive();if(epoch!=generation)return@launch
                     mutable.update {it.copy(voiceStatus="JARVIS spreekt")}
+                    val startedAt=responseClock
+                    audio.playbackStarted={viewModelScope.launch {if(epoch==generation&&responseClock==startedAt&&!firstAudioReported) {firstAudioReported=true;metric("native_first_audio_ms",(System.nanoTime()-startedAt)/1_000_000.0)}}}
                     val monitor=startInterruptionMonitor(epoch,(mutable.value.messages.lastOrNull()?.text.orEmpty()+" "+sentence).takeLast(6000))
                     try {audio.play(wav,mutable.value.preferences.outputDevice,volume)}
                     finally {finishInterruptionMonitor(api,monitor)}
@@ -408,7 +419,7 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
     private fun cancelTurn(endConversation: Boolean) {
         followupJob?.cancel();followupJob=null
         if(endConversation) {voiceConversationActive=false;conversationSession.end();audio.endConversation()}
-        generation++; audio.stop(); currentApi?.stop(); sendJob?.cancel(); audioJob?.cancel();interruptionJob?.cancel();interruptionJob=null
+        generation++;responseClock=0L; audio.stop(); currentApi?.stop(); sendJob?.cancel(); audioJob?.cancel();interruptionJob?.cancel();interruptionJob=null
         val request=requestId; requestId=null
         val api=currentApi
         if (request!=null && api!=null) viewModelScope.launch { try { api.json("/api/v1/chat/requests/$request/cancel", "POST") } catch (_: Exception) { /* disconnect also cancels server work */ } }
@@ -420,7 +431,7 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
     fun logout(revoke: Boolean = false) { val api=currentApi ?: return; stop(); pairJob?.cancel()
         viewModelScope.launch { try { api.json("/api/v1/mobile/push", "DELETE"); api.json(if(revoke) "/api/v1/auth/disconnect" else "/api/v1/auth/logout", "POST") }
             catch (_: Exception) { message("Lokaal uitgelogd. Trek de sessie bij onbereikbare server ook in via de eigenaarinterface.") }
-            finally { api.forget(); graph.vault.drop("fcm-pending"); graph.cache.clear(api.endpoint.origin); mutable.update { it.copy(naturalSettings="", naturalSchema="", naturalMemory="", naturalSummaries="", naturalStatus="", automations="", automationResult="", messages=emptyList(), history=emptyList(), conversation=null, screen="Inloggen", device="Niet gekoppeld") }; reconnect() } }
+            finally { api.forget(); graph.vault.drop("fcm-pending"); graph.cache.clear(api.endpoint.origin); mutable.update { it.copy(naturalDiagnostics="",naturalSettings="", naturalSchema="", naturalMemory="", naturalSummaries="", naturalStatus="", automations="", automationResult="", messages=emptyList(), history=emptyList(), conversation=null, screen="Inloggen", device="Niet gekoppeld") }; reconnect() } }
     }
     fun testNotification(category: String) { if(category in mutable.value.preferences.categories) graph.notifications.show(category) }
     fun firebase(enabled: Boolean) {

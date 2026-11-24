@@ -7,6 +7,7 @@ import logging
 import os
 from pathlib import Path
 import threading
+import time
 import wave
 
 from fastapi import APIRouter, Depends, Request
@@ -100,6 +101,7 @@ async def inference_call(request,operation,payload):
 
 @router.post("/speech/transcribe", dependencies=[Depends(require_permission("chat:write"))])
 async def transcribe(request: Request):
+    started=time.perf_counter()
     raw = await request.body()
     if len(raw) > MAX_AUDIO:
         raise AuthError("audio_too_large", "Neem maximaal 60 seconden op.", 413)
@@ -116,6 +118,7 @@ async def transcribe(request: Request):
     result = await inference_call(request,"stt", {**await audio_preferences(request), "audio": base64.b64encode(raw).decode()})
     # Reject results if authorization was revoked during inference.
     await asyncio.to_thread(request.app.state.security.store.own_device, principal)
+    await asyncio.to_thread(request.app.state.natural.diagnostics.record,principal,"stt_ms",(time.perf_counter()-started)*1000)
     return {"text": result["text"], "seconds": result["seconds"]}
 
 
@@ -127,12 +130,14 @@ class Speak(BaseModel):
 
 @router.post("/speech/synthesize", dependencies=[Depends(require_permission("chat:read"))])
 async def synthesize(request: Request, body: Speak):
+    started=time.perf_counter()
     principal = request.state.principal
     await asyncio.to_thread(request.app.state.security.store.rate, "mobile-tts:" + principal.device_id, 60)
     preferences=await audio_preferences(request)
     if body.speed is not None:preferences["speed"]=body.speed
     result = await inference_call(request,"tts", {**preferences,"text": body.text})
     await asyncio.to_thread(request.app.state.security.store.own_device, principal)
+    await asyncio.to_thread(request.app.state.natural.diagnostics.record,principal,"tts_ms",(time.perf_counter()-started)*1000)
     return Response(base64.b64decode(result["audio"], validate=True), media_type="audio/wav")
 
 

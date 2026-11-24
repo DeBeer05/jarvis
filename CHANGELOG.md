@@ -4,6 +4,12 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Natuurlijke afspraakslots, correcties zonder dubbele afspraak, popupherinneringen
+  en gevalideerde samengestelde opdrachten. Iedere actie behoudt eigen rechten,
+  idempotency-key en verplichte exacte goedkeuring.
+- Diagnostiekpagina in beide native apps met veilige numerieke export en echte
+  latency-/procesmetingen. Python-lint/typechecks zijn reproduceerbaar in CI.
+
 - Fase 7.5 in uitvoering: centrale versiegebonden instellingen in 13 categorieën,
   SQLite/FTS5-geheugen, bronbewust vergeten, lokale samenvattingen en begrensde
   gesprekscontext. Offlinebeleid geldt ook voor interne AI-aanroepen.

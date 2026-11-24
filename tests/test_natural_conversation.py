@@ -1,10 +1,8 @@
-import asyncio
 from uuid import uuid4
 
-import pytest
 
 from server.natural.conversation import State,TRANSITIONS,is_ending
-from tests.test_natural_settings_memory import natural
+from tests.test_natural_settings_memory import natural as natural
 from tests.test_security import client_for
 from tests.auth_helpers import TEST_PASSWORD
 
@@ -20,6 +18,7 @@ def test_state_machine_start_turn_interrupt_and_end(natural):
     listening=event(c,session,'listening').json();assert listening['state']=='LISTENING'
     speaking=event(c,listening,'user_speaking').json();assert speaking['state']=='USER_SPEAKING'
     processing=event(c,speaking,'processing').json()
+    assert processing['state']=='PROCESSING'
     principal=app.state.security.store.authenticate(c.cookies.get('jarvis_access'))
     thinking=c.portal.call(app.state.natural.conversations.transition,principal,session['conversation_id'],State.THINKING,session['epoch'])
     answer=event(c,thinking,'assistant_speaking').json()

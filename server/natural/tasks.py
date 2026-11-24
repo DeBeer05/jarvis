@@ -25,7 +25,7 @@ class TaskMemory:
     def save(self,run,memory):
         if not self.settings.get(run.principal)["settings"]["tasks"]["resume"]:return
         self.engine.permissions.check(run.principal.device_id,"automation:read")
-        retained={}
+        retained:dict[str,list[dict]]={}
         for key in FIELDS:
             for item in memory.get(key,[])[:20]:
                 candidate={**retained,key:[*retained.get(key,[]),item]}

@@ -25,6 +25,44 @@ private fun objectOrEmpty(text: String): JSONObject = try { JSONObject(text) } c
 private fun JSONObject.namesList(): List<String> = keys().asSequence().toList()
 private fun JSONArray.strings(): List<String> = (0 until length()).map {getString(it)}
 
+@Composable private fun NaturalDiagnostics(state:ScreenState,model:JarvisViewModel,export:()->Unit) {
+    Text("Metingen bevatten geen gespreksinhoud of sleutels. RAM/CPU gelden voor de server en zijn geen meting van de toekomstige mini-pc.")
+    Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+        Button(onClick=model::naturalDiagnostics){Text("Vernieuwen")}
+        OutlinedButton(onClick=export){Text("Exporteren")}
+    }
+    if(state.naturalDiagnostics.isBlank()) {Text("Nog niet gemeten");return}
+    val data=objectOrEmpty(state.naturalDiagnostics);val latency=data.optJSONObject("latency") ?: JSONObject()
+    val resources=data.optJSONObject("resources") ?: JSONObject()
+    fun seconds(key:String)=if(latency.has(key)&&!latency.isNull(key))String.format(java.util.Locale.ROOT,"%.3f s",latency.getDouble(key)/1000) else "Nog niet gemeten"
+    fun mib(key:String)=if(resources.has(key)&&!resources.isNull(key))String.format(java.util.Locale.ROOT,"%.1f MiB",resources.getDouble(key)/1048576) else "Niet gemeten"
+    val rows=listOf(
+        "Server en database" to "Online · database gecontroleerd",
+        "Laatst gebruikte AI" to if(data.isNull("active_provider"))"Nog geen antwoord" else data.optString("active_provider","Onbekend"),
+        "Microfoon" to state.voiceStatus,
+        "Spraakgesprek" to state.conversationState,
+        "Verbinding" to "Geauthenticeerde HTTP/SSE · WebSocket nog niet geconfigureerd",
+        "STT / TTS" to if(data.optJSONObject("voice")?.optBoolean("inference_busy")==true)"Spraakengine bezig" else if(data.optJSONObject("voice")?.optJSONObject("capabilities")?.optBoolean("runtime_installed")==true)"Runtime aanwezig" else "Runtime niet geïnstalleerd",
+        "Geheugen" to "${data.optJSONObject("memory_counts")?.optInt("active",0) ?: 0} actieve herinneringen",
+        "Google-koppeling" to if(data.optJSONObject("integrations")?.optBoolean("google_connected")==true)"Gekoppeld" else "Niet gekoppeld",
+        "CPU server (één kern = 100%)" to if(resources.has("cpu_one_core_percent")&&!resources.isNull("cpu_one_core_percent"))"${resources.getDouble("cpu_one_core_percent")}%" else "Ververs voor een tweede meting",
+        "RAM server / spraakhelper" to "${mib("resident_bytes")} / ${mib("voice_helper_resident_bytes")}",
+        "GPU" to if(resources.has("gpu_percent")&&!resources.isNull("gpu_percent"))"${resources.getDouble("gpu_percent")}% (hele machine)" else "Niet gemeten",
+        "STT (server)" to seconds("stt_ms"),
+        "Eerste AI-tekst (server)" to seconds("ai_first_token_ms"),
+        "TTS-aanvraag (server)" to seconds("tts_ms"),
+        "Begin audio-uitvoer (client)" to seconds("native_first_audio_ms"),
+        "Totale antwoordtijd (server)" to seconds("response_total_ms"),
+        "Contextgrootte (geschatte tokens)" to if(latency.isNull("context_tokens"))"Nog niet gemeten" else latency.optDouble("context_tokens",0.0).roundToInt().toString())
+    Column(Modifier.heightIn(max=520.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+        rows.forEach {(title,value)->Card(Modifier.fillMaxWidth()) {Column(Modifier.padding(12.dp)) {Text(title,style=MaterialTheme.typography.labelLarge);Text(value)}}}
+        val events=data.optJSONArray("events") ?: JSONArray()
+        val counts=listOf("interruption","rejected_interruption","wake_miss").associateWith {event->(0 until events.length()).map{events.getJSONObject(it)}.filter{it.optString("event")==event}.sumOf{it.optDouble("metric",0.0)}}
+        Text("Onderbrekingen: ${counts["interruption"]?.roundToInt() ?: 0} · afgewezen spraak/wakekandidaten: ${((counts["rejected_interruption"] ?: 0.0)+(counts["wake_miss"] ?: 0.0)).roundToInt()} (bewaarde meetperiode)")
+        Text("Laatste foutcodes: "+(0 until events.length()).map{events.getJSONObject(it)}.filter{!it.isNull("code")}.map{it.getString("code")}.distinct().joinToString().ifBlank{"Geen bewaarde foutcodes"})
+    }
+}
+
 internal object SettingsDraft {
     fun canonical(value: Any?): String = when(value) {
         null,JSONObject.NULL -> "null"
@@ -58,7 +96,7 @@ internal object SettingsDraft {
     Text(state.naturalStatus.ifBlank {"Globale voorkeuren synchroniseren met Windows. Microfoon en luidspreker blijven lokaal."})
     if(!state.connection.authenticated) { Text("Log in en koppel deze telefoon om je persoonlijke instellingen te openen.");return }
     var page by remember {mutableStateOf("Instellingen")}
-    Row {listOf("Instellingen","Geheugen").forEach {name ->FilterChip(selected=page==name,onClick={page=name;if(name=="Geheugen")model.naturalMemory()},label={Text(name)})}}
+    Row {listOf("Instellingen","Geheugen","Diagnostiek").forEach {name ->FilterChip(selected=page==name,onClick={page=name;if(name=="Geheugen")model.naturalMemory();if(name=="Diagnostiek")model.naturalDiagnostics()},label={Text(name)})}}
     val context=LocalContext.current;val scope=rememberCoroutineScope();var exportText by remember {mutableStateOf("")}
     val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) {uri -> if(uri!=null) scope.launch {
         try { withContext(Dispatchers.IO) { context.contentResolver.openOutputStream(uri)?.use {it.write(exportText.toByteArray(Charsets.UTF_8))} ?: error("Geen uitvoerbestand") };model.message("Export opgeslagen") }
@@ -66,6 +104,7 @@ internal object SettingsDraft {
     } }
     fun exportData(path: String,name: String) {model.exportNatural(path) {text -> exportText=text;export.launch(name)}}
     if(page=="Geheugen") {NaturalMemory(state,model) {exportData("/memory/export","jarvis-geheugen.json")};return}
+    if(page=="Diagnostiek") {NaturalDiagnostics(state,model) {exportData("/diagnostics","jarvis-diagnostiek.json")};return}
     if(state.naturalSchema.isBlank() || state.naturalSettings.isBlank()) {Button(onClick=model::naturalRefresh){Text("Instellingen ophalen")};return}
     val schema=remember(state.naturalSchema) {JSONObject(state.naturalSchema)}
     var base by remember {mutableStateOf(state.naturalSettings)}

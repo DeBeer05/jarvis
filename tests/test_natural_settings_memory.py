@@ -1,5 +1,4 @@
 """Phase 7.5 foundations: actual auth/CAS, FTS isolation, privacy and migration."""
-import json
 from uuid import uuid4
 
 import pytest
@@ -51,6 +50,7 @@ def test_memory_fts_retrieval_correction_forget_and_source_invalidation(natural)
     new=manager.save(principal,{"content":"Afspraken voortaan na tien uur","key":"appointment_preference"},source_turn="synthetic-source-2")
     found=manager.retrieve(principal,"afspraken",limit=8)
     assert [x["id"] for x in found]==[new["id"]]
+    assert old["id"] in [row["id"] for row in manager.list(principal,status="outdated")["items"]]
     assert c.get("/api/v1/natural/memory").status_code==200
     assert c.delete("/api/v1/natural/memory/"+new["id"]).status_code==200
     assert not manager.retrieve(principal,"tien")

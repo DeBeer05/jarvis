@@ -121,6 +121,7 @@ class MainWindow(QMainWindow):
         self.voice.session_ended.connect(self.voice_session.end)
         self.voice.playback_finished.connect(self.voice_session.listened)
         self.voice.interrupted.connect(lambda:self.stop_answer(stop_voice=False))
+        self.voice.metrics.connect(self.voice_metrics)
         self.pages.addWidget(self.voice_panel)
         self.automation_panel = AutomationPanel(self)
         self.pages.addWidget(self.automation_panel)
@@ -598,6 +599,15 @@ class MainWindow(QMainWindow):
         if self.running and not self.voice.recording:
             self.stop_answer()
         self.voice.toggle_recording()
+
+    def voice_metrics(self,measurements):
+        if not self.principal or self.manager.state!="online":return
+        items=[]
+        for key,event in (("first_audio_seconds","native_first_audio_ms"),("stt_seconds","native_stt_ms"),("total_seconds","native_total_ms")):
+            if key in measurements:items.append({"event":event,"value":float(measurements[key])*1000})
+        for event in ("interruption","rejected_interruption","wake_miss"):
+            if event in measurements:items.append({"event":event,"value":float(measurements[event])})
+        if items:self.call("POST","/api/v1/natural/diagnostics/metrics",{"items":items},lambda _:None,lambda _:None)
 
     def voice_stop(self):
         self.pending_voice = None

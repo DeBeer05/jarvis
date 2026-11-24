@@ -79,6 +79,24 @@ def test_offline_covers_internal_automation_calls_and_failed_local_fallback(sett
         assert not providers["gemini"].calls
 
 
+def test_sensitive_assistant_history_and_edited_summary_stay_local(settings):
+    app,providers=build(settings)
+    with client(app) as c:
+        providers["ollama"].chunks=("Een medische diagnose blijft privé.",)
+        first=c.post("/api/v1/chat",json={"message":"Een lokale vraag","provider":"ollama"}).json()
+        cid=first["conversation_id"]
+        principal=app.state.security.store.authenticate(c.cookies.get("jarvis_access"))
+        summary=app.state.natural.context.summarize(principal,cid,force=True)
+        assert c.put("/api/v1/natural/summaries/"+summary["id"],json={"revision":summary["revision"],"content":"Mijn medicatie is persoonlijk"}).status_code==200
+        result=c.post("/api/v1/chat",json={"message":"Ga verder","provider":"gemini","conversation_id":cid}).json()
+        assert result["status"]=="completed"
+        cloud=str(providers["gemini"].calls[-1])
+        assert "medicatie" not in cloud and "diagnose" not in cloud and "Een lokale vraag" not in cloud
+        c.post("/api/v1/chat",json={"message":"En lokaal?","provider":"ollama","conversation_id":cid})
+        local=str(providers["ollama"].calls[-1])
+        assert "medicatie" in local and "diagnose" in local
+
+
 @pytest.mark.parametrize("clear",[False,True])
 def test_forgotten_memory_cannot_reenter_through_history_or_summary(settings,clear):
     app,providers=build(settings)

@@ -263,12 +263,13 @@ class AutomationEngine:
             due=datetime.fromisoformat(payload["at"]).timestamp(); repeat=payload["repeat"]; timezone=payload["timezone"]
         return self.store.create(device,tool,payload,key,due if due is not None else self.store.clock(),repeat,timezone,REGISTRY[tool][1],parent,step)
 
-    def control(self, identifier, status, device):
+    def control(self, identifier, status, device, *, expected_status=None):
         self.permissions.check(device,"automation:write")
         if status not in ("paused","queued","cancelled"): raise ValueError("Invalid state")
         with self.store.db(True) as db:
             row=db.execute("SELECT * FROM automation_jobs WHERE id=?",(identifier,)).fetchone()
             if not row or row["status"] not in ("paused","queued","waiting","approval","blocked"): raise ValueError("Taak kan niet gewijzigd worden")
+            if expected_status is not None and row["status"]!=expected_status:raise ValueError("Taakstatus gewijzigd; controleer het actuele voorstel")
             if status=="queued" and row["status"]!="paused": raise ValueError("Alleen gepauzeerde taken hervatten")
             if row["status"]=="approval" and status!="cancelled": raise ValueError("Voorstel vereist goedkeuring")
             db.execute("UPDATE automation_jobs SET status=?,approval_hash=NULL WHERE id=?",(status,identifier))

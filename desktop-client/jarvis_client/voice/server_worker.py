@@ -23,10 +23,10 @@ class ServerInferenceWorker:
         with self.lock:
             if self.closing:raise RuntimeError("Spraakverbinding afgesloten.")
             if self.loop:return
-            self.loop=asyncio.new_event_loop();ready=threading.Event()
+            loop=self.loop=asyncio.new_event_loop();ready=threading.Event()
             def run():
-                asyncio.set_event_loop(self.loop);ready.set()
-                self.loop.run_forever();self.loop.close()
+                asyncio.set_event_loop(loop);ready.set()
+                loop.run_forever();loop.close()
             self.thread=threading.Thread(target=run,name="jarvis-voice-http",daemon=True);self.thread.start();ready.wait(2)
 
     async def _request(self,path,*,body=None,audio=None):
@@ -61,13 +61,15 @@ class ServerInferenceWorker:
     def request(self,path,*,body=None,audio=None,valid=lambda:True):
         if not valid():raise RuntimeError("Spraakopdracht geannuleerd.")
         self._start()
+        loop=self.loop
+        if loop is None:raise RuntimeError("Spraakverbinding niet gestart.")
         with self.serial:
             if not valid():raise RuntimeError("Spraakopdracht geannuleerd.")
             with self.lock:
                 if self.closing:raise RuntimeError("Spraakverbinding afgesloten.")
                 async def bounded():
                     async with asyncio.timeout(120):return await self._request(path,body=body,audio=audio)
-                future=self.future=asyncio.run_coroutine_threadsafe(bounded(),self.loop)
+                future=self.future=asyncio.run_coroutine_threadsafe(bounded(),loop)
             try:
                 while True:
                     if not valid():future.cancel();raise RuntimeError("Spraakopdracht geannuleerd.")

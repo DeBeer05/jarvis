@@ -68,9 +68,10 @@ class OwnedVoicePipe:
                         self.process=subprocess.Popen(self.resolve_command(),stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=getattr(subprocess,"CREATE_NO_WINDOW",0))
                         threading.Thread(target=self._stderr,args=(self.process.stderr,),daemon=True).start()
                     process,epoch=self.process,self.epoch
-                result=queue.Queue(maxsize=1)
+                result:queue.Queue[dict]=queue.Queue(maxsize=1)
                 def transfer():
                     try:
+                        if process.stdin is None or process.stdout is None:raise ValueError("voice_pipes_unavailable")
                         process.stdin.write(encoded);process.stdin.flush()
                         line=process.stdout.readline(24*1024*1024)
                         if not line.endswith(b"\n"):raise ValueError("voice_protocol")

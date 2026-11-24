@@ -146,6 +146,32 @@ Windows **97 tests geslaagd**; Android unit/lint/build en **12 instrumented test
 gebruikersmicrofoon geopend. Zie docs/VOICE_STREAMING.md. Uitgebreidere Nederlandse
 afspraakvalidatie en runtime-instellingen worden hierna verder aangesloten.
 
+Afspraakvalidatie en samengestelde opdrachten uitgebreid: Nederlandse absolute/
+relatieve datum, half-/kwarttijd, duur, herinnering vooraf en correcties worden
+tegen eigen gebruikerswoorden gecontroleerd. Onbekende uitnodigingsadressen worden
+niet verzonnen. Een correctie vervangt alleen een nog niet goedgekeurd voorstel;
+eenmalige payload-/preview-/sessiebinding blijft intact, ook voor natuurlijke
+bevestigingen. Nieuwe reminder_minutes gaat als gecontroleerde Google popup mee.
+Geverifieerde afspraakgegevens ankeren verplaatsingen; duur/genodigden blijven behouden.
+Gesloten intentplannen gebruiken letterlijke gebruikersdelen, eerdere afhankelijkheden
+en een afzonderlijke idempotency-key per stap. Deelproblemen blokkeren onafhankelijke
+stappen niet; algemeen ja kan niet meerdere voorstellen goedkeuren.
+
+Diagnostiek in Windows/Android toegevoegd: geauthenticeerde numerieke telemetry,
+AI-/STT-/TTS-/audio-latency, geschatte context, sessie-/geheugen-/integratiestatus,
+proces-RAM/CPU en optionele begrensde NVIDIA-probe. Geen conversatie-inhoud/geheimen
+in export. Instellingen-RPC gebruikt een onveranderlijke snapshot en bewaart invoer
+bij fouten. Nieuwe Ruff/mypy-devtools met pins en reproduceerbare kwaliteitscheck;
+CI voert serverlint/typechecks uit, zonder desktopstack of modellen te importeren.
+Volledige serverregressie **346 geslaagd**, 194,89 s; Windows **99 geslaagd**;
+Android unit/lint/debug/release en **13 instrumented tests, 0 fouten**. Alle tests
+gebruiken synthetische accounts/gegevens; echte 8765-server nog niet gemigreerd.
+GitHub Actions is inmiddels weer actief: server Windows/Linux, Windows-build,
+Android-build en structuurchecks voor commit 242ffa4 geslaagd. Oudere melding
+over Actionsblokkade is daarmee achterhaald; nieuwe commits krijgen nieuwe checks.
+Nog in uitvoering: overige runtime-instellingen/bewaarbeleid, rijkere geheugen-
+en taakflows, adaptieve beurtanalyse, definitieve builds/documentatie/hardwareacceptatie.
+
 ### Eén gesproken ja voor mail en agenda — 24 november 2026
 
 Nieuwe expliciete opdracht vervangt de eerdere beperking op een korte ja:

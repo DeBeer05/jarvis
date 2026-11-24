@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (QCheckBox,QComboBox,QDialog,QDialogButtonBox,QDou
     QPlainTextEdit,QPushButton,QScrollArea,QSpinBox,QTabWidget,QVBoxLayout,QWidget)
 
 BASE="/api/v1/natural"
-LABELS={"general":"Algemeen","conversations":"Gesprekken","listening":"Luisteren","voice":"Stem en audio",
+LABELS={"general":"Algemeen","conversations":"Gesprekken","listening":"Luisteren",
     "personality":"Persoonlijkheid","ai":"AI en prestaties","memory":"Geheugen","calendar":"Agenda",
     "tasks":"Taken en automatiseringen","autonomy":"Zelfstandigheid en machtigingen","notifications":"Meldingen",
     "privacy":"Privacy","diagnostics":"Diagnostiek","profile":"Profiel","provider":"Primaire AI-provider",
@@ -65,20 +65,26 @@ class NaturalSettingsPanel(QWidget):
             item=QPushButton(title);item.clicked.connect(callback);actions.addWidget(item)
         audio=QPushButton("Microfoon, luidspreker en stem testen");audio.clicked.connect(lambda:self.window.navigate(6));body.addWidget(audio)
         self.make_memory()
+        self.make_diagnostics()
         self.clear()
 
     def clear(self):
         self.document=self.draft=self.schema=None;self.category=None;self.controls={};self.dirty=False
         self.keys=[];self.search.clear();self.memory_search.clear()
         self.categories.clear();self.memory_list.clear();self.memory_items=[];self.summary_list.clear();self.summary_text.clear();self.summary_items=[]
+        self.diagnostic_document=None
+        for value in self.diagnostic_labels.values():value.setText("Nog niet gemeten")
         self.scroll.takeWidget();self.status.setText("Log in om je instellingen en geheugen te openen.")
         self.tabs.setEnabled(False)
 
     def call(self,method,path,body,done):
-        self.window.call(method,BASE+path,body,done,self.failed)
+        if path.startswith("/settings"):
+            self.loading=True;self.tabs.setEnabled(False)
+        self.window.call(method,BASE+path,deepcopy(body),done,self.failed)
 
     def failed(self,error):
         self.loading=False
+        self.tabs.setEnabled(bool(self.document and self.window.principal))
         self.status.setText("Niet opgeslagen of opgehaald. Controleer je verbinding en rechten. Bij een wijzigingsconflict: vernieuw eerst; je invoer blijft staan.")
 
     def refresh(self):
@@ -170,8 +176,46 @@ class NaturalSettingsPanel(QWidget):
             self.categories.item(index).setHidden(query not in (self.categories.item(index).text()+" "+fields).casefold())
 
     def save(self):
-        if not self.document:return
+        if not self.document or self.loading:return
         self.collect();self.call("PUT","/settings",{"revision":self.document["revision"],"settings":self.draft},self.loaded)
+
+    def make_diagnostics(self):
+        page=QWidget();self.tabs.addTab(page,"Diagnostiek");body=QVBoxLayout(page)
+        body.addWidget(label("Metingen bevatten geen gespreksinhoud of sleutels. CPU/RAM gelden voor de server en de eigen spraakhelper. De eerste CPU-meting vereist een volgende verversing."))
+        form=QFormLayout();self.diagnostic_labels={}
+        for key,title in (("server","Server en database"),("provider","Laatst gebruikte AI"),("voice","STT en TTS"),("microphone","Lokale microfoon"),("transport","Verbinding"),("session","Spraakgesprek"),("memory","Geheugen"),("integration","Google-koppeling"),("cpu","CPU server (één kern = 100%)"),("ram","RAM server / spraakhelper"),("gpu","GPU"),("stt","STT (server)"),("ai","Eerste AI-tekst (server)"),("tts","TTS-aanvraag (server)"),("audio","Eerste afgespeelde audio (client)"),("total","Totale antwoordtijd (server)"),("context","Contextgrootte (geschatte tokens)"),("interruptions","Onderbrekingen / geweigerde activaties"),("errors","Laatste foutcodes")):
+            value=label("Nog niet gemeten");form.addRow(title,value);self.diagnostic_labels[key]=value
+        scroll=QScrollArea();scroll.setWidgetResizable(True);content=QWidget();content.setLayout(form);scroll.setWidget(content);body.addWidget(scroll,1)
+        actions=QHBoxLayout();body.addLayout(actions)
+        refresh=QPushButton("Metingen vernieuwen");refresh.clicked.connect(self.refresh_diagnostics);actions.addWidget(refresh)
+        export=QPushButton("Diagnostiek exporteren");export.clicked.connect(lambda:self.call("GET","/diagnostics",None,lambda data:self.write_export(data,"jarvis-diagnostiek.json")));actions.addWidget(export)
+
+    def refresh_diagnostics(self):self.call("GET","/diagnostics",None,self.diagnostics_loaded)
+
+    def diagnostics_loaded(self,data):
+        self.diagnostic_document=data;labels=self.diagnostic_labels
+        labels["server"].setText("Online · database gecontroleerd")
+        labels["provider"].setText(data.get("active_provider") or "Nog geen AI-antwoord")
+        capabilities=data["voice"]["capabilities"]
+        labels["voice"].setText("Spraakengine bezig" if data["voice"]["inference_busy"] else "Runtime aanwezig" if capabilities["runtime_installed"] else "Runtime niet geïnstalleerd")
+        voice=getattr(self.window,"voice",None)
+        labels["microphone"].setText(voice.state if voice else "Apparaatspecifiek")
+        labels["transport"].setText("Geauthenticeerde HTTP/SSE · WebSocket nog niet geconfigureerd")
+        sessions=data.get("sessions",[]);labels["session"].setText(", ".join(item["state"] for item in sessions[:3]) or "Standby")
+        labels["memory"].setText(str(data.get("memory_counts",{}).get("active",0))+" actieve herinneringen")
+        labels["integration"].setText("Gekoppeld" if data.get("integrations",{}).get("google_connected") else "Niet gekoppeld")
+        resources=data.get("resources") or {}
+        cpu=resources.get("cpu_one_core_percent");labels["cpu"].setText(f"{cpu:.1f}%" if cpu is not None else "Nog niet gemeten / uitgeschakeld")
+        mib=lambda value:f"{value/1048576:.1f} MiB" if value is not None else "Niet gemeten"
+        labels["ram"].setText(mib(resources.get("resident_bytes"))+" / "+mib(resources.get("voice_helper_resident_bytes")))
+        gpu=resources.get("gpu_percent");labels["gpu"].setText(f"{gpu:.0f}% (hele machine)" if gpu is not None else "Niet gemeten")
+        for key,metric in (("stt","stt_ms"),("ai","ai_first_token_ms"),("tts","tts_ms"),("audio","native_first_audio_ms"),("total","response_total_ms")):
+            value=data["latency"].get(metric);labels[key].setText(f"{value/1000:.3f} s" if value is not None else "Nog niet gemeten")
+        tokens=data["latency"].get("context_tokens");labels["context"].setText(str(round(tokens)) if tokens is not None else "Nog niet gemeten")
+        events=data.get("events",[])
+        count=lambda event:sum(row.get("metric") or 0 for row in events if row["event"]==event)
+        labels["interruptions"].setText(f"{count('interruption'):.0f} / {count('rejected_interruption')+count('wake_miss'):.0f} (bewaarde meetperiode)")
+        labels["errors"].setText(", ".join(row["code"] for row in events if row.get("code")) or "Geen bewaarde foutcodes")
 
     def cancel(self):
         if self.document:self.loaded(self.document)

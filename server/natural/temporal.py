@@ -1,7 +1,7 @@
 """Deterministic Dutch time hints, with explicit uncertainty and DST validation."""
 import re
 from dataclasses import dataclass
-from datetime import datetime, timedelta, time, UTC
+from datetime import date, datetime, timedelta, time, UTC
 from zoneinfo import ZoneInfo
 
 NUMBERS={word:index for index,word in enumerate(("nul","een","twee","drie","vier","vijf","zes","zeven","acht","negen","tien","elf","twaalf","dertien","veertien","vijftien","zestien","zeventien","achttien","negentien","twintig","eenentwintig","tweeentwintig","drieentwintig"))}
@@ -29,7 +29,7 @@ def number(value):
 
 def local_time(day,hour,minute,zone):
     naive=datetime.combine(day,time(hour,minute))
-    candidates=[]
+    candidates:list[datetime]=[]
     for fold in (0,1):
         candidate=naive.replace(tzinfo=zone,fold=fold)
         if candidate.astimezone(UTC).astimezone(zone).replace(tzinfo=None)==naive:
@@ -64,6 +64,15 @@ def resolve(text,*,now=None,timezone="Europe/Amsterdam",anchor=None,work_start=9
     if re.search(r"\bdezelfde tijd als vorige keer\b",message):
         return TimeHint(clock=anchor.astimezone(zone).strftime("%H:%M") if anchor else None,duration_minutes=duration,clarification=None if anchor else "Welke eerdere afspraak bedoel je?")
     day=None
+    iso=re.search(r"\b(\d{4})-(\d{2})-(\d{2})\b",message)
+    months=("januari","februari","maart","april","mei","juni","juli","augustus","september","oktober","november","december")
+    absolute=re.search(r"\b(\d{1,2})\s+("+"|".join(months)+r")(?:\s+(\d{4}))?\b",message)
+    try:
+        if iso:day=date(*map(int,iso.groups()))
+        elif absolute:
+            day=date(int(absolute[3] or now.year),months.index(absolute[2])+1,int(absolute[1]))
+            if not absolute[3] and day<now.date():day=day.replace(year=day.year+1)
+    except ValueError:raise AmbiguousTime("Die datum bestaat niet. Welke datum bedoel je?") from None
     if re.search(r"\bovermorgen\b",message):day=now.date()+timedelta(days=2)
     elif re.search(r"\bmorgen(?:ochtend|middag|avond)?\b",message):day=now.date()+timedelta(days=1)
     elif re.search(r"\b(?:vandaag|vanavond|vanochtend|vanmiddag)\b",message):day=now.date()
@@ -83,7 +92,7 @@ def resolve(text,*,now=None,timezone="Europe/Amsterdam",anchor=None,work_start=9
     complex_half=re.search(r"\b("+NUMBER+r")\s+(voor|over)\s+half\s+("+NUMBER+r")\b",clock_text)
     quarter=re.search(r"\bkwart\s+(over|voor)\s+("+NUMBER+r")\b",clock_text)
     half=re.search(r"\bhalf\s+("+NUMBER+r")\b",clock_text)
-    numeric=re.search(r"\b(?:om|vanaf)\s+("+NUMBER+r")(?::([0-5]\d))?(?:\s+uur)?\b|\b([0-2]?\d):([0-5]\d)\b",clock_text)
+    numeric=re.search(r"\b(?:om|vanaf|van|tussen)\s+("+NUMBER+r")(?::([0-5]\d))?(?:\s+uur)?\b|\b([0-2]?\d):([0-5]\d)\b",clock_text)
     if complex_half:
         amount=number(complex_half[1])
         if not 0<amount<30:raise AmbiguousTime("Welk exact tijdstip bedoel je?")

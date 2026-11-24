@@ -37,7 +37,7 @@ class AudioInputManager:
     def capture(self, settings, *, consent, timeout=6, activity=None, preprocess=None):
         if not consent:
             raise AudioError("Geef eerst in het spraakpaneel toestemming voor de microfoon.")
-        blocks = queue.Queue(maxsize=12)
+        blocks:queue.Queue[bytes] = queue.Queue(maxsize=12)
         overflow = threading.Event()
 
         def callback(data, frames, timing, status):
@@ -135,7 +135,7 @@ class AudioOutputManager:
                         self.stream = stream
                     if self.cancelled.is_set() or not valid():
                         return
-                    on_started()
+                    started=False
                     while not self.cancelled.is_set() and valid():
                         while self.paused.is_set() and not self.cancelled.is_set() and valid():time.sleep(.01)
                         if self.cancelled.is_set() or not valid():break
@@ -146,6 +146,7 @@ class AudioOutputManager:
                         pcm=np.clip(samples, -32768, 32767).astype(np.int16).tobytes()
                         if self.reference:self.reference.feed(pcm,source.getframerate())
                         stream.write(pcm)
+                        if not started:started=True;on_started()
         except Exception:
             if not self.cancelled.is_set() and valid():
                 raise AudioError("Luidspreker niet beschikbaar of audio onderbroken. Kies de uitvoer opnieuw.") from None

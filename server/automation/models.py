@@ -39,6 +39,7 @@ class CalendarChange(Input):
     attendees: list[str] = Field(default_factory=list, max_length=50)
     location: str = Field(default="", max_length=500)
     recurrence: list[str] = Field(default_factory=list, max_length=5)
+    reminder_minutes: int | None = Field(default=None, ge=0, le=40320, strict=True)
     etag: str = Field(default="", max_length=256)
     @model_validator(mode="after")
     def dates(self):

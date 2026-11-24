@@ -2,6 +2,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Request, HTTPException
+from typing import Literal
 from pydantic import Field, ValidationError
 
 from server.natural.models import StrictModel, MemoryInput
@@ -58,6 +59,32 @@ class Confirm(StrictModel):
 class SummaryUpdate(StrictModel):
     revision:int=Field(ge=1)
     content:str=Field(min_length=1,max_length=5000)
+
+
+class Metric(StrictModel):
+    event:Literal["native_first_audio_ms","native_stt_ms","native_total_ms","interruption","rejected_interruption","wake_miss"]
+    value:float=Field(ge=0,le=3_600_000,strict=True)
+
+
+class Metrics(StrictModel):
+    items:list[Metric]=Field(min_length=1,max_length=8)
+
+
+@router.get("/diagnostics")
+def diagnostics(request:Request):
+    speech=request.app.state.speech;worker=getattr(speech,"worker",None);process=getattr(worker,"process",None)
+    snapshot=service(request).diagnostics.snapshot(request.state.principal,helper=process.pid if process and process.poll() is None else None,inference_busy=bool(getattr(speech,"slot",None) and speech.slot.locked()))
+    integration=request.app.state.automation.integrations.status()
+    snapshot["integrations"]={"google_connected":bool(integration.get("connected"))}
+    return snapshot
+
+
+@router.post("/diagnostics/metrics")
+def record_metrics(request:Request,body:Metrics):
+    if "chat:write" not in request.state.principal.permissions:raise HTTPException(403,"Chatrecht vereist")
+    service(request).security.store.rate("natural-metrics:"+request.state.principal.device_id,60)
+    for item in body.items:service(request).diagnostics.record(request.state.principal,item.event,item.value)
+    return {"accepted":True}
 
 
 @router.get("/summaries")

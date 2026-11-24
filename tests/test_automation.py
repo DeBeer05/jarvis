@@ -257,6 +257,28 @@ def test_followup_reply_only_proposes_no_external_write(automation):
     assert not e.store.items()
 
 
+def test_calendar_reminder_reaches_google_only_as_reviewed_popup_override(automation):
+    app,c,e=automation;calls=[]
+    def handler(request):
+        calls.append(request)
+        if request.method=="POST":
+            body=json.loads(request.content)
+            assert body["reminders"]=={"useDefault":False,"overrides":[{"method":"popup","minutes":1440}]}
+            return httpx.Response(200,json={**body,"id":"synthetic-event"})
+        return httpx.Response(200,json={"id":"synthetic-event","start":{"dateTime":"2030-01-01T15:30:00+01:00"}})
+    google=IntegrationManager(e.store,app.state.security,vault=TestVault(),transport=httpx.MockTransport(handler))
+    google.vault.put("google",encode({"features":["calendar_read","calendar_write"],"access_token":"synthetic","deadline":e.store.clock()+3600}))
+    payload=validate("CalendarCreate",{"summary":"Test","start":"2030-01-01T15:30:00+01:00","end":"2030-01-01T17:30:00+01:00","reminder_minutes":1440})
+    async def execute():
+        from server.automation.google import WRITE_GUARD
+        context=WRITE_GUARD.set(lambda:None)
+        try:return await google.change("CalendarCreate",payload,"synthetic-reminder-key")
+        finally:WRITE_GUARD.reset(context)
+    assert c.portal.call(execute)["id"]=="synthetic-event"
+    assert sum(request.method=="POST" for request in calls)==1
+    c.portal.call(google.http.aclose)
+
+
 def test_oauth_callback_cross_site_allowed_but_state_required(automation):
     _,c,e=automation
     response=c.get("/oauth/google/callback?state=invalid&code=test",headers={"Sec-Fetch-Site":"cross-site"})

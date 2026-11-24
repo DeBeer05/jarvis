@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 from server.automation.store import fingerprint
 
 DECISION = re.compile(r"\s*(goedkeuren|keur (?:dit |het )?voorstel goed|weiger(?:en)?(?: (?:dit |het )?voorstel)?)\s*[.!]?\s*", re.I)
-YES_NO = re.compile(r"\s*(ja(?:,?\s+(?:graag|doe maar|verstuur(?: hem)?|verzend(?: hem)?|goedkeuren))?|nee(?:,?\s+(?:niet doen|annuleren))?)\s*[.!?]?\s*", re.I)
+YES_NO = re.compile(r"\s*(ja(?:,?\s+(?:graag|doe maar|verstuur(?: hem)?|verzend(?: hem)?|goedkeuren))?|doe maar|dat is goed|is goed|akkoord|nee(?:,?\s+(?:niet doen|annuleren))?|laat maar|annuleer dat)\s*[.!?]?\s*", re.I)
 SHOW = re.compile(r"\s*(?:toon|bekijk|laat zien)(?: mij)?(?: mijn| het| de)?(?: openstaande)? voorstel(?:len)?\s*([0-9a-f-]{36})?\s*[?.!]?\s*", re.I)
 STATUS = re.compile(r"\s*(?:is (?:het|dit) voorstel klaar|wat is de status van (?:het|dit) voorstel)\s*[?.!]?\s*", re.I)
 
@@ -40,13 +40,16 @@ class ChatApprovals:
             text += "\nTijdzone: " + payload["timezone"] + "\nLocatie: " + (payload.get("location") or "Geen")
             text += "\nGenodigden: " + (", ".join(payload.get("attendees", [])) or "Geen")
             text += "\nHerhaling: " + ("; ".join(payload.get("recurrence", [])) or "Geen")
+            if tool!="CalendarDelete":text += "\nHerinnering: " + (str(payload["reminder_minutes"])+" minuten vooraf" if payload.get("reminder_minutes") is not None else "Bestaande agenda-instelling")
             if payload.get("attendees"): text += "\nGoogle Calendar stuurt updates aan de genodigden."
         text = "Ik heb een wijzigingsvoorstel klaargezet.\n"+text
         text += "\nVoorstel-ID: " + row["id"] + "\n\nZal ik dit uitvoeren? Zeg ‘ja’ om dit voorstel te bevestigen, of ‘nee’ om het af te wijzen."
         if c.clean(text)!=text or len(text) > min(16000, c.router.settings.max_response_chars):
             c.remember(run, "pending", [])
             return "Dit voorstel kan niet volledig in de chat worden getoond. Open Automatiseringen → Goedkeuringen voor de volledige controle."
-        c.remember(run, "pending", [{"id":row["id"], "fingerprint":fingerprint([tool,payload]), "preview_hash":fingerprint(text), "request_id":run.request_id, "shown":c.clock()}])
+        previous=c.memory(run).get("pending",[])
+        instruction=run.message if c.write_intent(tool,run.message) else (previous[0].get("instruction","") if len(previous)==1 and previous[0]["id"]==row["id"] else "")
+        c.remember(run, "pending", [{"id":row["id"], "fingerprint":fingerprint([tool,payload]), "preview_hash":fingerprint(text), "request_id":run.request_id, "shown":c.clock(),"instruction":instruction}])
         return text
 
     @staticmethod
@@ -101,7 +104,7 @@ class ChatApprovals:
         challenge = c.engine.approvals.challenge(row["id"],run.principal)
         if challenge["fingerprint"]!=actual: return self.show(run,c.engine.store.get(row["id"]))
         c.guard(run, "automation:approve")
-        approved = not decision[1].casefold().startswith(("weiger","nee"))
+        approved = not decision[1].casefold().startswith(("weiger","nee","laat maar","annuleer"))
         result = c.engine.approvals.decide(row["id"],run.principal,challenge["token"],approved,expected_fingerprint=actual)
         c.remember(run,"pending",[]);c.remember(run,"decision",[{"id":row["id"]}])
         if approved:

@@ -6,6 +6,7 @@ from server.natural.conversation import NaturalConversationManager,State
 from server.natural.context import ContextManager
 from server.natural.store import Conflict
 from server.natural.tasks import TaskMemory
+from server.natural.diagnostics import DiagnosticsManager
 import re
 
 
@@ -18,6 +19,7 @@ class NaturalService:
         self.conversations=NaturalConversationManager(self.store,self.settings,chat)
         self.context=ContextManager(self.store,self.settings,self.memory,chat.settings)
         self.tasks=TaskMemory(self.store,self.settings,automation)
+        self.diagnostics=DiagnosticsManager(self.store,self.settings)
         chat.natural=self
 
     def authorize_conversation(self,principal,conversation):

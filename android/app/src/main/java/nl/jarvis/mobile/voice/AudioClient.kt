@@ -51,6 +51,7 @@ open class AudioClient(private val context: Context) {
     @Volatile var echoActive=false;private set
     @Volatile var noiseActive=false;private set
     var focusLost:(()->Unit)?=null
+    var playbackStarted:(()->Unit)?=null
     open fun supportsBargeIn()=AcousticEchoCanceler.isAvailable()
     open fun echoReady()=echoActive
     open fun pausePlayback() {paused.set(true);try{track?.pause()}catch(_:IllegalStateException){}}
@@ -114,6 +115,7 @@ open class AudioClient(private val context: Context) {
         }
     }}
     open suspend fun play(wav: ByteArray, device: Int,volume: Float=1f) = playbackLock.withLock {withContext(Dispatchers.IO) {
+        val startedCallback=playbackStarted
         val (rate, pcm) = Wav.decode(wav)
         val manager=context.getSystemService(AudioManager::class.java)
         val focus=AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
@@ -128,6 +130,7 @@ open class AudioClient(private val context: Context) {
             if (device != 0) context.getSystemService(AudioManager::class.java).getDevices(AudioManager.GET_DEVICES_OUTPUTS).firstOrNull { it.id == device }?.let { audio.setPreferredDevice(it) }
             track = audio; playing.set(true);audio.setVolume(volume.coerceIn(0f,1f)); audio.play()
             var offset = 0
+            var reported=false
             while (offset < pcm.size && playing.get()) {
                 coroutineContext.ensureActive()
                 while(paused.get() && playing.get()) {coroutineContext.ensureActive();kotlinx.coroutines.delay(10)}
@@ -135,6 +138,7 @@ open class AudioClient(private val context: Context) {
                 val wrote = audio.write(pcm, offset, minOf(1024, pcm.size - offset), AudioTrack.WRITE_BLOCKING)
                 if (wrote <= 0 && !playing.get()) break
                 check(wrote > 0) { "Luidspreker niet beschikbaar" }; offset += wrote
+                if(!reported) {reported=true;startedCallback?.invoke()}
             }
             while(playing.get() && audio.playbackHeadPosition < pcm.size/2) { coroutineContext.ensureActive(); kotlinx.coroutines.delay(10) }
         } finally { playing.set(false); track = null; audio.release(); manager.abandonAudioFocusRequest(focus) }
