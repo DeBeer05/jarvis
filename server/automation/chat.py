@@ -175,6 +175,7 @@ class AutomationChat:
             if len(matching)!=1:raise ValueError("Unknown draft")
             data["input"]={key:matching[0][key] for key in ("draft_id","message_hash","preview")}
         if data["tool"] not in READ:self.guard(run,"automation:write")
+        self.engine.permissions.check_tool(run.principal.device_id,data["tool"])
         payload=self.temporal(data["tool"],data["input"],run.message,run=run)
         return {"tool":data["tool"],"input":validate(data["tool"],payload)}, provider
 
@@ -304,6 +305,7 @@ class AutomationChat:
         return last_result or "Geef de gewenste afspraak of het bericht concreter aan.", provider
 
     async def read(self, run, tool, payload):
+        self.engine.permissions.check_tool(run.principal.device_id,tool)
         guard=REQUEST_GUARD.set(lambda:self.guard(run,"automation:read"))
         try:return await self._read(run,tool,payload)
         finally:REQUEST_GUARD.reset(guard)

@@ -20,6 +20,16 @@ class PermissionManager:
             row=db.execute("SELECT 1 FROM auth_devices d JOIN auth_permissions p ON p.device_id=d.id WHERE d.id=? AND d.trusted=1 AND d.revoked_at IS NULL AND p.permission=?", (device,permission)).fetchone()
         if not row: raise AuthError("permission_denied", "Apparaat heeft geen automatiseringsrecht.", 403)
 
+    def check_tool(self,device,tool):
+        # Preferences only restrict authority; they never create a permission.
+        with self.store.db() as db:
+            row=db.execute("SELECT s.payload FROM natural_settings s JOIN auth_devices d ON d.user_id=s.user_id WHERE d.id=? AND s.scope='user' AND s.device_id=''",(device,)).fetchone()
+        if not row:return
+        autonomy=json.loads(row["payload"])["autonomy"]
+        reads={"CalendarList","CalendarRead","EmailSearch","EmailRead","ReminderList","WorkflowStatus","CalendarSummary","EmailCheck","WaitForReply"}
+        if autonomy["actions"].get(tool)=="block" or autonomy["profile"]=="read_propose" and tool not in reads:
+            raise AuthError("permission_denied","Deze actie is geblokkeerd door je instellingen voor zelfstandigheid.",403)
+
 
 class AuditLogger:
     def __init__(self, store): self.store=store
@@ -245,6 +255,7 @@ class AutomationEngine:
 
     def submit(self, device, tool, payload, key, due=None, repeat="once", timezone="Europe/Amsterdam", parent=None, step=0):
         self.permissions.check(device,"automation:write")
+        self.permissions.check_tool(device,tool)
         if tool in self.store.preference("disabled_tools",[]): raise ValueError("Deze actie is uitgeschakeld door de eigenaar")
         payload=validate(tool,payload)
         if repeat!="once" and REGISTRY[tool][1]: raise ValueError("Externe wijzigingen mogen niet terugkerend worden goedgekeurd")
@@ -279,7 +290,9 @@ class AutomationEngine:
                     except (AuthError,ValueError):
                         with self.store.db(True) as db: db.execute("UPDATE automation_jobs SET status='approval',approval_hash=NULL,approved_device=NULL WHERE id=? AND status='queued'",(row["id"],))
                         continue
-                try: self.permissions.check(row["device_id"],"automation:write")
+                try:
+                    self.permissions.check(row["device_id"],"automation:write")
+                    self.permissions.check_tool(row["device_id"],row["tool"])
                 except AuthError:
                     with self.store.db(True) as db: db.execute("UPDATE automation_jobs SET status='blocked' WHERE id=? AND status='queued'",(row["id"],))
                     continue
@@ -289,6 +302,7 @@ class AutomationEngine:
                 try:
                     def guard():
                         self.permissions.check(row["device_id"],"automation:write")
+                        self.permissions.check_tool(row["device_id"],row["tool"])
                         if row["tool"] in self.store.preference("disabled_tools",[]): raise ValueError("Actie uitgeschakeld")
                         current=self.store.get(row["id"])
                         if current["status"]!="running" or current["payload"]!=row["payload"]: raise ValueError("Actie gewijzigd of gestopt")

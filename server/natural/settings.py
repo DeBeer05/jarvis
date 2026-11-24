@@ -68,4 +68,5 @@ class SettingsManager:
 
     @staticmethod
     def schema():
-        return {"schema_version":SCHEMA_VERSION,"categories":CATEGORIES,"user":UserSettings.model_json_schema(),"device":DeviceSettings.model_json_schema()}
+        from server.automation.models import REGISTRY
+        return {"schema_version":SCHEMA_VERSION,"categories":CATEGORIES,"user":UserSettings.model_json_schema(),"device":DeviceSettings.model_json_schema(),"actions":[*sorted(REGISTRY),"MemorySave","MemoryUpdate"],"mandatory_approval":[name for name,(_,required) in REGISTRY.items() if required]}

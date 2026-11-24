@@ -49,7 +49,18 @@ onafgeronde vragen en job-ID's in bestaande SQLite-tabellen. AutomationEngine
 blijft de enige uitvoerder. Goedkeuringsnonces/previewtijd/decision-authority
 worden nooit hersteld. Geen externe accountmutaties uitgevoerd.
 Volledige regressiesuite na tijd-/taakcontext: **301 geslaagd**, 110,93 s.
-Windows-instellingenmenu is in uitvoering; nog geen nieuwe clientbuild/installatie.
+Windows-instellingenmenu toegevoegd aan Instellingen → Gesprekken en geheugen:
+13 categorieën uit de serverschema's, typed invoer, zoeken, opslaan/annuleren,
+CAS-conflicten, reset/import/export, geheugen-CRUD/export/wissen en wijzigbare
+samenvattingen. Privégegevens verdwijnen bij uitloggen. Volledige schemaweergave
+visueel gecontroleerd met synthetische gegevens; 83 Windows-clienttests geslaagd.
+Instellingen die de nieuwe voice-/intentlagen nodig hebben worden in de volgende
+implementatiestappen aangesloten; het menu alleen bewijst die werking niet.
+Blokkeerregels/read-propose worden nu gecontroleerd bij lezen, indienen en vóór
+uitvoering; instellingen verlenen geen apparaatrechten of approval-bypass.
+Offline geldt ook voor de bestaande losse automation-summary/planner-API.
+Volledige serverregressiesuite: **303 geslaagd**, 108,32 s.
+Nog geen nieuwe clientbuild/installatie; fase 7.5 blijft in uitvoering.
 
 ### Eén gesproken ja voor mail en agenda — 24 november 2026
 

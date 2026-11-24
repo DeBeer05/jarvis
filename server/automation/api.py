@@ -16,6 +16,7 @@ from server.automation.engine import AUTOMATION_SCOPES, EmailPriorityClassifier,
 from server.automation.store import fingerprint, encode
 from server.security.gate import require_permission
 from server.security.types import AuthError
+from server.ai.policy import RequestPolicy, use_policy
 
 async def rate(request:Request):
     principal=getattr(request.state,"principal",None)
@@ -23,7 +24,13 @@ async def rate(request:Request):
         await asyncio.to_thread(request.app.state.security.store.rate,"automation:"+principal.device_id,60)
 
 
-router=APIRouter(dependencies=[Depends(require_loopback),Depends(rate)])
+async def ai_preferences(request:Request):
+    principal=getattr(request.state,"principal",None)
+    document=await asyncio.to_thread(request.app.state.natural.settings.get,principal) if principal else None
+    with use_policy(RequestPolicy.from_document(document) if document else None):yield
+
+
+router=APIRouter(dependencies=[Depends(require_loopback),Depends(rate),Depends(ai_preferences)])
 BASE="/api/v1/automation"
 STATIC=Path(__file__).resolve().parents[1]/"static"
 
@@ -184,16 +191,21 @@ async def callback(request:Request):
 
 
 @router.get(BASE+"/calendar/calendars")
-async def calendars(request:Request): return await engine(request).integrations.calendar_list()
+async def calendars(request:Request):
+    engine(request).permissions.check_tool(request.state.principal.device_id,"CalendarList")
+    return await engine(request).integrations.calendar_list()
 
 
 @router.post(BASE+"/calendar/search")
-async def calendar(request:Request,body:CalendarRead): return await engine(request).integrations.events(body.model_dump(mode="json"))
+async def calendar(request:Request,body:CalendarRead):
+    engine(request).permissions.check_tool(request.state.principal.device_id,"CalendarRead")
+    return await engine(request).integrations.events(body.model_dump(mode="json"))
 
 
 @router.post(BASE+"/reschedule")
 async def reschedule(request:Request,body:CalendarChange):
     e=engine(request)
+    e.permissions.check_tool(request.state.principal.device_id,"CalendarRead")
     return await e.reschedule.analyze(body.model_dump(mode="json"))
 
 
@@ -203,11 +215,13 @@ class MailQuery(Input):
 
 @router.post(BASE+"/email/search")
 async def email_search(request:Request,body:MailQuery):
+    engine(request).permissions.check_tool(request.state.principal.device_id,"EmailSearch")
     return await engine(request).integrations.mail_search(body.query)
 
 
 @router.get(BASE+"/email/{identifier}")
 async def email_read(request:Request,identifier:str,include_body:bool=False):
+    engine(request).permissions.check_tool(request.state.principal.device_id,"EmailRead")
     from server.automation.models import EmailRead
     p=EmailRead(message_id=identifier,include_body=include_body)
     return await engine(request).integrations.mail_read(p.message_id,p.include_body)
@@ -261,6 +275,7 @@ class FollowUp(Input):
 @router.post(BASE+"/followups")
 async def followup(request:Request,body:FollowUp):
     e=engine(request)
+    e.permissions.check_tool(request.state.principal.device_id,"WaitForReply")
     if body.due.tzinfo is None or body.due.timestamp()<=e.store.clock(): raise ValueError("Kies een toekomstig tijdstip met tijdzone")
     data=await e.integrations.api("gmail_read","/gmail/v1/users/me/threads/"+body.thread_id,params={"format":"metadata"})
     from uuid import uuid4

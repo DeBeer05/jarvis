@@ -6,7 +6,7 @@ from PySide6.QtCore import Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QAction, QDesktopServices, QTextCursor
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFormLayout, QFrame, QHBoxLayout,
                               QLabel, QLineEdit, QListWidget, QListWidgetItem, QMainWindow, QMenu,
-                              QMessageBox, QPlainTextEdit, QPushButton, QScrollArea, QStackedWidget,
+                              QMessageBox, QPlainTextEdit, QPushButton, QScrollArea, QStackedWidget, QTabWidget,
                               QSystemTrayIcon, QTextEdit, QVBoxLayout, QWidget)
 
 from jarvis_client import __version__
@@ -17,6 +17,7 @@ from jarvis_client.voice.panel import VoicePanel
 from jarvis_client.settings import Preferences
 from jarvis_client.theme import icon, stylesheet
 from jarvis_client.automations import AutomationPanel
+from jarvis_client.natural_settings import NaturalSettingsPanel
 
 
 def label(text, name=None):
@@ -207,6 +208,8 @@ class MainWindow(QMainWindow):
 
     def make_settings(self):
         body = self.page("Instellingen", "Vertrouwde endpoints, rustig gedrag en voorkeuren voor deze Windows-app.")
+        tabs=QTabWidget();body.addWidget(tabs,1)
+        local=QWidget();tabs.addTab(local,"Deze Windows-app");body=QVBoxLayout(local)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         inner = QWidget()
@@ -253,6 +256,9 @@ class MainWindow(QMainWindow):
         permissions.addWidget(self.local_permission, 1)
         permissions.addWidget(button("Systeeminformatie", self.system_info))
         body.addLayout(permissions)
+        self.natural_settings=NaturalSettingsPanel(self)
+        tabs.addTab(self.natural_settings,"Gesprekken en geheugen")
+        self.natural_settings.tabs.currentChanged.connect(lambda index:self.natural_settings.load_memory() if index==1 and self.principal else None)
 
     def make_account(self):
         body = self.page("Account", "Log in met je bestaande JARVIS-gebruikersnaam en wachtwoord. Je blijft na het afsluiten van de app ingelogd.")
@@ -310,6 +316,8 @@ class MainWindow(QMainWindow):
             self.load_device()
         elif index == 7:
             self.automation_panel.refresh()
+        elif index == 4 and self.natural_settings.document is None:
+            self.natural_settings.refresh()
 
     def show_notice(self, text):
         self.notice.setText(text)
@@ -641,6 +649,7 @@ class MainWindow(QMainWindow):
 
     def clear_private(self):
         if hasattr(self,"automation_panel"): self.automation_panel.clear()
+        if hasattr(self,"natural_settings"):self.natural_settings.clear()
         self.pending_voice = None
         self.voice_panel.set_authorized(False)
         self.render_timer.stop()

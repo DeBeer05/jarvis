@@ -137,3 +137,31 @@ def test_provider_policy_is_task_local_and_direct_cloud_guard(settings):
             with pytest.raises(ProviderError):
                 await anext(TextProvider("gemini",settings).stream([]))
     asyncio.run(run())
+
+
+def test_offline_also_applies_to_existing_automation_summary_api(settings):
+    app,providers=build(settings)
+    with client(app) as c:
+        patch(c,"ai",{"offline":True})
+        response=c.post("/api/v1/automation/summarize",json={"text":"Synthetic external content"})
+        assert response.status_code==200 and response.json()["summary"]=="Antwoord."
+        assert len(providers["ollama"].calls)==1 and not providers["gemini"].calls
+
+
+def test_autonomy_blocks_direct_reads_submissions_and_queued_execution(settings):
+    from uuid import uuid4
+    app,_=build(settings)
+    with client(app) as c:
+        c.portal.call(app.state.automation.scheduler.stop)
+        payload={"tool":"ReminderCreate","input":{"text":"Synthetic reminder","at":"2030-01-01T10:00:00+01:00"},"idempotency_key":str(uuid4())}
+        job=c.post("/api/v1/automation/jobs",json=payload).json()
+        assert job["status"]=="queued"
+        patch(c,"autonomy",{"actions":{"CalendarRead":"block","ReminderCreate":"block"}})
+        period={"start":"2030-01-01T00:00:00+01:00","end":"2030-01-02T00:00:00+01:00"}
+        assert c.post("/api/v1/automation/calendar/search",json=period).status_code==403
+        assert c.post("/api/v1/automation/jobs",json={**payload,"idempotency_key":str(uuid4())}).status_code==403
+        with app.state.automation.store.db(True) as db:db.execute("UPDATE automation_jobs SET due=0 WHERE id=?",(job["id"],))
+        c.portal.call(app.state.automation.tick)
+        assert app.state.automation.store.get(job["id"])["status"]=="blocked"
+        patch(c,"autonomy",{"profile":"read_propose","actions":{}})
+        assert c.post("/api/v1/automation/jobs",json={**payload,"idempotency_key":str(uuid4())}).status_code==403
