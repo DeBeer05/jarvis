@@ -75,3 +75,9 @@ Hoge kwaliteit 10000/2048 en 90 seconden. Aangepast behoudt je eigen waarden.
 Waarden die je tegelijk expliciet wijzigt blijven behouden. Een kleiner budget
 beperkt context/antwoordlengte, maar garandeert geen bepaalde snelheid. Er wordt
 geen model gedownload of automatisch door een groter model vervangen.
+
+Bij Agenda beïnvloeden werkdagen, werktijden en buffertijd de voorgestelde
+alternatieve tijden voor een verplaatsing. Alternatieven en naburige afspraken
+kunnen afzonderlijk worden getoond/uitgeschakeld. Een alternatief is een voorstel,
+geen automatisch uitgevoerde wijziging. De bestaande controle op overlappende
+afspraken vóór uitvoering blijft actief, evenals de exacte goedkeuring.

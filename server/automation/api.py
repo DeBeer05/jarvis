@@ -206,7 +206,7 @@ async def calendar(request:Request,body:CalendarRead):
 async def reschedule(request:Request,body:CalendarChange):
     e=engine(request)
     e.permissions.check_tool(request.state.principal.device_id,"CalendarRead")
-    return await e.reschedule.analyze(body.model_dump(mode="json"))
+    return await e.reschedule.analyze(body.model_dump(mode="json"),request.state.principal.device_id)
 
 
 class MailQuery(Input):

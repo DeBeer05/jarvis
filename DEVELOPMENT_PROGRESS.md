@@ -2,6 +2,15 @@
 
 ## Huidige opdracht
 
+Agenda-instellingen aangesloten op bestaande reschedule-analyse: gebruikersgebonden
+buffertijd, werkdagen/werktijden, alternatieven en naburige afspraken. De uitvoerder
+leest dezelfde voorkeuren; echte overlapcontrole en exacte approvals blijven intact.
+UTC-rekentijd voorkomt verkeerde duur/gapberekening bij zomer-/wintertijd.
+Gerichte API-regressie plus volledige serverregressie: **357 geslaagd**, 170,08 s.
+Lint/typechecks, dependency- en repositorycontrole geslaagd. README/forkroadmap
+verwijzen nu naar fase 7.5 en houden deze expliciet in uitvoering. Definitieve
+builds/installatie, overige instellingen en menselijke audioacceptatie blijven open.
+
 AI-prestatieprofielen daadwerkelijk aangesloten op contextbudget, antwoordlimiet
 en request-time-out. Eigen tegelijk gewijzigde waarden blijven behouden; geen
 modeldownloads/-vervanging of beveiligingswijziging. Gerichte policytest plus

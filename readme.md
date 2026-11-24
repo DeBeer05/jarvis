@@ -11,7 +11,14 @@ automatische accounttests gebruiken synthetische data.
 [Starten en koppelen](docs/CALENDAR_INTEGRATION.md) ·
 [Taken en goedkeuringen](docs/WORKFLOW_ENGINE.md) ·
 [E-mail](docs/GMAIL_INTEGRATION.md) · [Teststatus](docs/PHASE_7_TEST_REPORT.md).
-Stop na fase 7; geen oproepen, publieke toegang of mini-pc-deployment.
+Fase 7.5 is in uitvoering: natuurlijke gesprekken, centrale instellingen,
+SQLite-geheugen en gedeelde Windows-/Android-context. Er is nog geen definitieve
+fase-7.5-vrijgave of hardwareacceptatie. Zie
+[architectuur](docs/NATURAL_CONVERSATION_ARCHITECTURE.md),
+[instellingenhandleiding](docs/SETTINGS_USER_GUIDE.md),
+[testrapport](docs/PHASE_7_5_TEST_REPORT.md) en
+[handmatige proeven](docs/PHASE_7_5_MANUAL_TESTS.md).
+Stop na fase 7.5; geen oproepen, publieke toegang of mini-pc-deployment.
 
 **Android (fase 6):** native Kotlin/Compose-app in `android/`, met dezelfde
 beveiligde chat, eigenaarpairing en servergestuurde Nederlandse spraak.
@@ -904,6 +911,15 @@ It is held in memory only, deliberately: writing it to disk would make a fresh l
 
 
 ---
+
+## Roadmap van deze JARVIS-fork
+
+Fases 1–7 vormen de bestaande lokale server, veilige native clients, spraak en
+automatiseringen. Fase 7.5 breidt die componenten uit met doorlopende gesprekken,
+context/geheugen, instellingen en diagnostiek. De implementatie wordt per onderdeel
+getest; de actuele resterende stappen staan in DEVELOPMENT_PROGRESS.md. Fase 8,
+publieke productie en mini-pc-migratie worden in deze opdracht niet gestart.
+De onderstaande Mark-roadmap blijft de oorspronkelijke upstream-roadmap.
 
 ## 🗺️ Mark Roadmap
 

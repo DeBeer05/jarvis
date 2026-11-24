@@ -201,7 +201,7 @@ class ActionExecutor:
         if tool=="CalendarList": return await e.integrations.calendar_list()
         if tool.startswith("Calendar"):
             if tool=="CalendarUpdate":
-                analysis=await e.reschedule.analyze(p)
+                analysis=await e.reschedule.analyze(p,row["device_id"])
                 if analysis["conflicts"]: raise ValueError("Nieuwe tijd heeft een conflict; kies een alternatief en maak een nieuw voorstel")
             return await e.integrations.change(tool,p,row["key"])
         if tool=="EmailSearch": return await e.integrations.mail_search(p["query"])
