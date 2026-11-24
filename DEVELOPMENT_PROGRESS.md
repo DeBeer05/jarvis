@@ -2,6 +2,30 @@
 
 ## Huidige opdracht
 
+### Fase 7.5 — inspectie en implementatie gestart — 24 november 2026
+
+Volledige specificatie (50 onderdelen) ontvangen. Structuur, architectuur,
+server/chat/router, SQLite, upstream JSON-geheugen/taken, automatiseringen,
+goedkeuringen, native clients en bestaande voicepipeline onderzocht.
+Technisch plan: docs/NATURAL_CONVERSATION_IMPLEMENTATION_PLAN.md.
+Featurebranch natural-conversation-engine vanaf actuele develop 436bb2b;
+werkende PR-24-afhankelijkheid fast-forward meegenomen, zonder develop/main-
+merge of protection-bypass. Bestaande werkboom was schoon. GitHub Actions-
+blokkade blijft bij afronding te controleren. Port 8765, bestaande gegevens,
+credentials en componenten behouden. Fase is nog niet voltooid.
+
+Eerste fundament: schema-5-migratie met backup, centrale strikt gevalideerde
+instellingen in 13 categorieën, revision/CAS/import/export/reset en gescheiden
+apparaatinstellingen; settings/memory-API achter bestaande chatrechten, zonder
+credential-/authinstellingen of uitschakelbare hoogrisicogoedkeuringen.
+SQLite/FTS5 MemoryManager met bronmetadata, correcties, expiry, gevoelige expliciete
+toestemming en bron-/samenvattinginvalidatie bij vergeten. NaturalConversationManager
+met alle 14 staten, leases, epochbeveiliging, expliciete overdracht en timeouts.
+Nieuwe API's en tien tests: volledige regressiesuite 265 geslaagd. Alleen tijdelijke
+testdatabases gemigreerd; de echte server/database is nog niet omgezet naar fase 7.5.
+Nog te doen: chat-/intent-/contextintegratie, audio/streaming, beide client-GUI's,
+volledige geheugen-/samenvattingsflow, metingen, builds en acceptatietests.
+
 ### Eén gesproken ja voor mail en agenda — 24 november 2026
 
 Nieuwe expliciete opdracht vervangt de eerdere beperking op een korte ja:

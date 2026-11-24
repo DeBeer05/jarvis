@@ -89,6 +89,8 @@ class SecurityGate:
                 required = "chat:read"
             elif path == "/api/v1/mobile/push":
                 required = "status:read"
+            elif path.startswith("/api/v1/natural/"):
+                required = "status:read" if path.startswith("/api/v1/natural/diagnostics") else "chat:read" if method in ("GET","HEAD") or path.endswith("/memory/search") else "chat:write"
             elif path.startswith("/api/v1/chat"):
                 required = "chat:read" if method in ("GET", "HEAD") else "chat:delete" if method == "DELETE" else "chat:write"
             elif path in ("/api/v1/status", "/api/v1/ai/providers"):

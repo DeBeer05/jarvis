@@ -31,6 +31,8 @@ from server.mobile import router as mobile_router, SpeechBridge
 from server.automation.api import router as automation_router
 from server.automation.engine import AutomationEngine
 from server.automation.chat import AutomationChat
+from server.natural.service import NaturalService
+from server.natural.api import router as natural_router
 
 logger = logging.getLogger("jarvis.server")
 
@@ -85,6 +87,7 @@ def create_app(
     app.state.speech = SpeechBridge()
     app.state.mobile_push = {}
     app.state.automation = AutomationEngine(database, security)
+    app.state.natural = NaturalService(database,security,chat,app.state.automation)
     chat.automation_chat = AutomationChat(app.state.automation, security, chat.router, store.clean)
     app.add_middleware(SecurityGate, service=security)
     app.add_middleware(RequestGuard, port=settings.port, allowed_origins=settings.allowed_origins)
@@ -95,6 +98,7 @@ def create_app(
     app.include_router(security_router)
     app.include_router(mobile_router)
     app.include_router(automation_router)
+    app.include_router(natural_router)
 
     @app.exception_handler(ValueError)
     async def invalid_automation(request: Request, error: ValueError):
