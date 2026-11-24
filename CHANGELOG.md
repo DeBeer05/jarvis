@@ -4,6 +4,8 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Mailoverzicht standaard in één korte zin, gegroepeerd op afzender en doel met
+  aantallen; zonder aparte kop of herhaalde bespreking van vergelijkbare berichten.
 - AI-mailsamenvattingen gebruiken bij gevoelige inhoud lokaal Ollama in plaats van
   de AI over te slaan. Terugval vermeldt de oorzaak; compacte Unicode voorkomt
   kunstmatige overschrijding van het contextbudget.

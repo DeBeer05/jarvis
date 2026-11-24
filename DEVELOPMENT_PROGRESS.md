@@ -2,6 +2,23 @@
 
 ## Huidige opdracht
 
+Gebruiker vraagt zeer korte mailoverzichten zoals twee PayPal-betaalbewijzen samen
+en één Google Cloud-voorwaardenwijziging. Samenvattingsinstructie aangepast naar één
+zin met aantallen per afzender én doel, zonder kop/opsomming; u/meneer volgens verzoek.
+Geen verzonnen doel bij ontbrekende informatie. Kritieke deadlines blijven behouden.
+Hergebruikt dezelfde backend-/AI-route; geen clientbuild, migratie of fase 8.
+Een prompt alleen bleek bij het lokale model onvoldoende: de synthetische proef
+gaf soms een verkeerde telling. Het model levert nu alleen gevalideerde groepen
+met bronindices en korte doelzinnen. De backend controleert volledige dekking,
+geen duplicaten en gelijke afzenders per groep en maakt zelf de zin/aantallen.
+Letterlijke bronnotities behouden noodzakelijke deadlines; extra modelmetadata
+wordt niet gebruikt als opdracht of telling. Echte lokale synthetische proef gaf
+in 1,44 s correct twee PayPal-betaalbewijzen en één Google Cloud-voorwaardenmail.
+Geen echte mailbox gelezen. Windows-focusprobleem blijft afzonderlijk open.
+Volledige serverregressie: **430 geslaagd**, 188,36 s; laatste kleine formatter-
+correcties daarnaast met alle **13 mailtests geslaagd** gecontroleerd. Ruff/mypy,
+repository-/diffcheck en server-pip-check geslaagd. Alleen backendherstart nodig.
+
 Vervolgmelding: AI-mailsamenvatting valt terug. Twee codepaden hersteld: gevoelige
 inhoud sloeg de AI over, en ASCII-escaping kon het bronpakket onnodig vergroten.
 Nu uitsluitend lokale Ollama voor gevoelige inhoud, geen cloudretry, compacte

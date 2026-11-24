@@ -9,7 +9,17 @@ Er is geen harde woordenknip. Technische budgetten en bronlimieten blijven begre
 de inhoud van maximaal twintig berichten en maakt één gezamenlijke samenvatting.
 JARVIS vraagt hiervoor geen bericht-ID's en geen tweede toestemming om te lezen;
 de bestaande leesrechten en uitgeschakelde tools blijven gelden. Standaard worden
-vijf recente berichten samengevat. ‘Lees de tiende mail’ gebruikt het geverifieerde
+vijf recente berichten samengevat. Het overzicht is standaard één korte zin met
+aantallen per afzender én doel, bijvoorbeeld twee betaalbewijzen van dezelfde
+afzender samen. Een onbekend doel wordt niet ingevuld. Geen inleiding of opsomming;
+alleen noodzakelijke deadlines/waarschuwingen krijgen zo nodig een extra korte zin.
+De gebruiker vroeg hiervoor de aanspreekvorm ‘u’ en afsluiting ‘meneer’.
+De AI geeft brongebonden groepen en korte doelen terug; de backend maakt de zin
+zelf. Elke bronindex moet precies eenmaal voorkomen, verschillende afzenders
+kunnen niet in één groep en aantallen komen uit de groepsgrootte. Extra modelvelden
+worden genegeerd. Kritieke notities moeten letterlijk in de geselecteerde bron staan.
+Ongeldige groepen vallen terug op het gemarkeerde lokale inhoudsoverzicht.
+‘Lees de tiende mail’ gebruikt het geverifieerde
 ID uit dezelfde chat. Er worden geen verzend-/wijzigingsopdrachten aangemaakt.
 Bronselecties en ontbrekende volledige tekst worden vermeld. Een onbeschikbare
 samenvatter geeft een duidelijk gemarkeerd lokaal inhoudsoverzicht als terugval.

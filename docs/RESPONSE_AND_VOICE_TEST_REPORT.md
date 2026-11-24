@@ -1,5 +1,18 @@
 # Antwoord en stem — test-/acceptatierapport
 
+## Kort gegroepeerd mailoverzicht
+
+AI-groepen worden gecontroleerd op volledige dekking, duplicaten en afzender;
+de backend telt en formuleert zelf één korte zin. Nieuwe tests bewijzen de twee
+PayPal-/één Google Cloud-zin en het weigeren van ontbrekende/dubbele indices of
+samengevoegde verschillende afzenders. Alle 13 mailtests slagen op de eindversie.
+Echte lokale synthetische modelproef: 1,44 s, correcte aantallen en doelen in één
+zin. De eerste vrije-promptproeven telden soms fout; daarom is alleen een gewijzigde
+prompt niet als oplossing gebruikt. Er is geen echte mail gelezen.
+Volledige serverregressie: **430 geslaagd**, 188,36 s. Laatste formattercorrecties
+daarna eveneens met alle **13 mailtests geslaagd**; Ruff/mypy en repository-/pip-/
+diffcheck geslaagd. Er is geen nieuwe Windows-build of APK nodig.
+
 ## Herstel: samenvatting niet beschikbaar
 
 Gevoelige mailinhoud gebruikt nu expliciet Ollama, zonder cloudretry; de eerdere
