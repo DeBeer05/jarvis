@@ -120,4 +120,3 @@ VALUES = {'allow': 'Automatisch toestaan',
  'very_proactive': 'Zeer proactief',
  'wake': 'Wake word',
  'within_rules': 'Zelfstandig binnen regels'}
-
