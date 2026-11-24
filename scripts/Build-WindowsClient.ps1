@@ -9,7 +9,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Python-installatie bepalen mislukt.' }
     $env:PATH = @((Split-Path -Parent $JarvisClientPython), $clientBasePython,
         (Join-Path $env:SystemRoot 'System32'), $env:SystemRoot) -join ';'
-    & $JarvisClientPython -m PyInstaller --noconfirm --clean --onedir --windowed --noupx --name JARVIS --paths desktop-client --distpath .local/client-build/dist --workpath .local/client-build/work --specpath .local/client-build --exclude-module tkinter --exclude-module PyQt6 --exclude-module PySide6.QtQml --exclude-module PySide6.QtQuick desktop-client/run_client.py
+    & $JarvisClientPython -m PyInstaller --noconfirm --clean --onedir --windowed --noupx --name JARVIS --paths desktop-client --paths . --distpath .local/client-build/dist --workpath .local/client-build/work --specpath .local/client-build --exclude-module tkinter --exclude-module PyQt6 --exclude-module PySide6.QtQml --exclude-module PySide6.QtQuick desktop-client/run_client.py
     if ($LASTEXITCODE -ne 0) { throw 'Windows-build mislukt.' }
     $clientBundle = Join-Path $JarvisClientRoot '.local\client-build\dist\JARVIS'
     # Python 3.12 carries an older VC runtime. Qt's pinned wheel carries newer

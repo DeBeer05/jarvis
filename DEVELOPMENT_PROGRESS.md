@@ -62,6 +62,19 @@ Offline geldt ook voor de bestaande losse automation-summary/planner-API.
 Volledige serverregressiesuite: **303 geslaagd**, 108,32 s.
 Nog geen nieuwe clientbuild/installatie; fase 7.5 blijft in uitvoering.
 
+Audioproceshergebruik: gedeelde stdlib OwnedVoicePipe voor bestaande Windows-
+en serverhelpers. Server start niet meer per aanvraag een nieuw inferenceproces;
+geladen modellen blijven begrensd beschikbaar en worden na inactiviteit vrijgegeven.
+Annulering, protocolfouten, overlapweigering en frisse verwerking na stoppen zijn
+met een echt synthetisch pipe-subprocess getest. Windows idle/outputstop behoudt
+warme modellen; volledig afsluiten ruimt het eigen proces op.
+Serverregressie **307 geslaagd**, 108,63 s; Windows **83 geslaagd**, 4,17 s.
+Echte lokale synthetische audio op bestaande modellen: Piper koud/warm 1,004/0,098 s,
+Whisper Small CPU 3,321/1,975 s; piek helper-RAM 877,6 MiB. Geen echte microfoon,
+accountmutaties of downloads. Dit is nog geen totale gesprekslatency.
+Zie docs/CONVERSATION_PERFORMANCE.md. Doorlopende modus/AEC/barge-in en Android
+worden hierna aangesloten; geen fase-8- of mini-pc-werk gestart.
+
 ### Eén gesproken ja voor mail en agenda — 24 november 2026
 
 Nieuwe expliciete opdracht vervangt de eerdere beperking op een korte ja:

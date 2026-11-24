@@ -282,7 +282,8 @@ class VoiceConversationManager(QObject):
         self.interruptions.cancel()
         self.input.stop(discard=True)
         self.output.stop()
-        self.worker.cancel()
+        # Keep warmed models when only idle/output audio is being stopped.
+        getattr(self.worker,"cancel_pending",self.worker.cancel)()
         self.recording = self.responding = self.voice_next = False
         self.pending = queue.Queue(maxsize=32)
         if not keep_wake:
@@ -293,3 +294,4 @@ class VoiceConversationManager(QObject):
     def close(self):
         self.closed = True
         self.set_authorized(False)
+        self.worker.cancel()

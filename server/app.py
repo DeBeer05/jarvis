@@ -73,6 +73,7 @@ def create_app(
             runtime["ready"] = False
             await app.state.automation.close()
             await chat.shutdown()
+            if hasattr(app.state.speech,"close"):await app.state.speech.close()
             database.close()
             logger.info("server_stopped")
 
