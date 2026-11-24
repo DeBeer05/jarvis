@@ -2,6 +2,16 @@
 
 ## Huidige opdracht
 
+Streaminginstellingen aangesloten: AI-streaming uit buffert begrensd tot een
+succesvolle generatie; mislukte deeltekst wordt niet zichtbaar en fallback blijft
+vóór zichtbare tekst. Interne providerstream blijft annuleerbaar. Spraakstreaming
+is apart op Windows/Android instelbaar: uit wacht op succesvolle voltooiing en
+spreekt geen geannuleerd/mislukt deelantwoord. Keuze is per beurt vastgezet.
+Volledige serverregressie **361 geslaagd**, 206,12 s; Windows **105 geslaagd**;
+Android unit/lint/debug-build geslaagd. Lint/typechecks, pip/repositorycontrole
+geslaagd. Geen echte telefooninstallatie/accounttest. Fase 7.5 blijft open voor
+overige instellingen, definitieve builds/installatie en hardwareacceptatie.
+
 Meldingsvoorkeuren aangesloten op nieuwe automatiseringsmeldingen: aan/uit,
 rustige uren/tijdzone en uitschakelen/begrenzen van proactieve suggesties.
 Expliciete herinneringen blijven apart van proactiviteit; bestaande inboxberichten

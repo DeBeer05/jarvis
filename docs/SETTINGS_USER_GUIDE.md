@@ -88,3 +88,14 @@ onderdrukken automatische agenda-/mail-/follow-upmeldingen. Expliciet gevraagde
 herinneringen staan daar los van; de algemene meldingenschakelaar geldt wel.
 Eerder opgeslagen meldingen blijven in de bestaande inbox staan. Deze instelling
 verwijdert geen geschiedenis en verandert geen systeembeveiligingsmeldingen.
+
+**AI → Streaming** bepaalt of nieuwe antwoordtekst geleidelijk verschijnt of pas
+na volledige succesvolle generatie. De providerverbinding kan intern streaming
+blijven gebruiken voor annulering en compatibiliteit. Met streaming uit wordt
+geen mislukt deelantwoord getoond; fallback blijft alleen vóór zichtbare tekst
+toegestaan. De buffer blijft begrensd door de bestaande antwoordlimiet.
+
+**Stem en audio → Streaming** bepaalt apart of complete zinnen alvast worden
+uitgesproken. Uitgeschakeld wacht spraak op een succesvol afgerond antwoord.
+Een mislukte of geannuleerde reactie wordt dan niet voorgelezen. Deze keuze wordt
+per spreekbeurt vastgezet; wijzigen tijdens spreken geldt voor de volgende beurt.

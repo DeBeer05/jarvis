@@ -19,15 +19,25 @@ class AIRouter:
         for position, name in enumerate(order):
             provider = self.providers[name]
             started = False
+            buffered=[];buffer_size=0
             try:
                 async with aclosing(provider.stream(messages)) as source:
                     async for text in source:
                         if not text:
                             continue
+                        if policy is not None and not policy.streaming:
+                            buffer_size+=len(text)
+                            if buffer_size>self.settings.max_response_chars:raise ProviderError("response_limit",retryable=False)
+                            buffered.append(text)
+                            continue
                         if not started:
                             started = True
                             yield {"type": "provider", "provider": name, "model": provider.model}
                         yield {"type": "delta", "text": text}
+                if buffered:
+                    started=True
+                    yield {"type":"provider","provider":name,"model":provider.model}
+                    yield {"type":"delta","text":"".join(buffered)}
                 if not started:
                     raise ProviderError("invalid_response")
                 return

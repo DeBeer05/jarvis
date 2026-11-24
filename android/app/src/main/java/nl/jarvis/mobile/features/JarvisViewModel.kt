@@ -331,6 +331,8 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
         val speed=voiceSpeed();val volume=voiceVolume();val succeeded=java.util.concurrent.atomic.AtomicBoolean(false)
         mutable.update {it.copy(busy=true,messages=it.messages+Line("JIJ",text)+Line("JARVIS",""),error="",voiceStatus="JARVIS denkt…")}
         val queue=Channel<String>(32);val segments=SentenceBuffer()
+        val streamAudio=naturalConfig()?.optJSONObject("voice")?.optBoolean("streaming",true) ?: true
+        val deferredSpeech=StringBuilder()
         if(narrate)audioJob=viewModelScope.launch {
             try {
                 for(sentence in queue) {
@@ -361,12 +363,15 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
                     "delta" -> {
                         val delta=event.getString("text")
                         mutable.update {it.copy(messages=it.messages.dropLast(1)+it.messages.last().copy(text=it.messages.last().text+delta))}
-                        if(narrate)segments.add(delta).forEach {check(queue.trySend(it).isSuccess) {"Spraakbuffer vol"}}
+                        if(narrate) {
+                            if(streamAudio)segments.add(delta).forEach {check(queue.trySend(it).isSuccess) {"Spraakbuffer vol"}}
+                            else {check(deferredSpeech.length+delta.length<=18000){"Spraakbuffer vol"};deferredSpeech.append(delta)}
+                        }
                     }
                     "error" -> message(event.optString("message","Antwoord mislukt"))
                     "done" -> {
                         succeeded.set(event.getString("status")=="completed")
-                        if(succeeded.get()&&narrate)segments.add("",true).forEach {check(queue.trySend(it).isSuccess) {"Spraakbuffer vol"}}
+                        if(succeeded.get()&&narrate)segments.add(if(streamAudio)"" else deferredSpeech.toString(),true).forEach {check(queue.trySend(it).isSuccess) {"Spraakbuffer vol"}}
                         else if(!succeeded.get()) {audioJob?.cancel();audio.stop();voiceConversationActive=false;conversationSession.end()}
                     }
                 }}

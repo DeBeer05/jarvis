@@ -54,6 +54,7 @@ class VoiceConversationManager(QObject):
         self.threads = []
         self.sentence = SentenceBuffer()
         self.answer_text = ""
+        self.stream_audio=True
         self.response_started = self.first_token = self.first_audio = 0.
         self.measurements = {}
         self.scheduled = QTimer(self)
@@ -359,6 +360,7 @@ class VoiceConversationManager(QObject):
         if not speak:
             return
         self.responding = True
+        self.stream_audio=not self.options or not self.options["conversations"]["enabled"] or self.options["voice"].get("streaming",True)
         self.sentence, self.answer_text = SentenceBuffer(), ""
         self.response_started = time.perf_counter()
         self.first_token = self.first_audio = 0.
@@ -400,6 +402,7 @@ class VoiceConversationManager(QObject):
             self.measurements["first_token_seconds"] = round(self.first_token - self.response_started, 3)
         self.answer_text += text
         self.answer.emit(self.answer_text)
+        if not self.stream_audio:return
         try:
             for sentence in self.sentence.feed(text):
                 self.pending.put_nowait(sentence)
@@ -414,7 +417,8 @@ class VoiceConversationManager(QObject):
             self.stop()
             return
         try:
-            for sentence in self.sentence.feed("", final=True):
+            deferred=self.answer_text if not self.stream_audio else ""
+            for sentence in self.sentence.feed(deferred, final=True):
                 self.pending.put_nowait(sentence)
             self.pending.put_nowait(None)
         except queue.Full:
