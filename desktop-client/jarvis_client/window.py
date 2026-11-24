@@ -120,6 +120,7 @@ class MainWindow(QMainWindow):
         self.voice_session=ConversationSession(self)
         self.voice.session_ended.connect(self.voice_session.end)
         self.voice.playback_finished.connect(self.voice_session.listened)
+        self.voice.interrupted.connect(lambda:self.stop_answer(stop_voice=False))
         self.pages.addWidget(self.voice_panel)
         self.automation_panel = AutomationPanel(self)
         self.pages.addWidget(self.automation_panel)
@@ -611,7 +612,7 @@ class MainWindow(QMainWindow):
             return
         if self.running:
             self.pending_voice = text
-            self.stop_answer()
+            self.stop_answer(stop_voice=False)
             return
         if self.voice_session.enabled():
             self.voice_session.submit(text)
@@ -650,8 +651,8 @@ class MainWindow(QMainWindow):
             if event["status"] == "completed" and not self.isActiveWindow():
                 self.notify("answer", "Je JARVIS-antwoord staat klaar.")
 
-    def stop_answer(self):
-        self.voice.stop()
+    def stop_answer(self,*,stop_voice=True):
+        if stop_voice:self.voice.stop()
         if not self.running or not self.manager.api:
             return
         self.call("POST", "/api/v1/chat/requests/" + self.request_id + "/cancel", None, lambda _: self.show_notice("Antwoord wordt gestopt."))

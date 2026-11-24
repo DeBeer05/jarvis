@@ -133,6 +133,19 @@ GitHub draft-PR #25 naar develop bestaat. Actions-dispatch retourneert HTTP 422
 Open blijven barge-in, adaptieve beurtanalyse, uitgebreide intent/slots,
 resterende runtime-instellingen/privacy/diagnostiek, documentatie en hardwaretests.
 
+Optionele spraakgestuurde onderbreking aangesloten in beide native clients:
+VAD pauzeert uitvoer, STT bevestigt een nieuwe uitspraak, oude audio/generatie/
+wachtrij worden gestopt en hetzelfde gesprek blijft behouden. Echo/lege tekst
+hervat de uitvoer. Windows gebruikt een begrensde PCM-referentiefilter; Android
+vereist beschikbare en geactiveerde platform-AEC. Tekstguards voorkomen gebruik
+van herkenbare eigen output/approvalwoorden. Geen sprekeridentificatie of garantie
+tegen akoestische echo geclaimd; standaard uit en hardwareacceptatie vereist.
+Geserialiseerde audiostreams en gescheiden STT/TTS-annulering bewaken late callbacks.
+Windows **97 tests geslaagd**; Android unit/lint/build en **12 instrumented tests,
+0 fouten**, inclusief echte STT/TTS met gesimuleerde onderbrekingsaudio/AEC. Geen
+gebruikersmicrofoon geopend. Zie docs/VOICE_STREAMING.md. Uitgebreidere Nederlandse
+afspraakvalidatie en runtime-instellingen worden hierna verder aangesloten.
+
 ### Eén gesproken ja voor mail en agenda — 24 november 2026
 
 Nieuwe expliciete opdracht vervangt de eerdere beperking op een korte ja:

@@ -16,7 +16,10 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
   lopende serveraanvraag af; beveiligingsheaders behouden via pure ASGI.
 - Android: doorlopende voorgrondgesprekken met centrale sessie/epoch, timeouts,
   expliciete overname, audiofocusherstel en beschikbare platform-AEC/ruisfiltering.
-  Tien opeenvolgende synthetische spraakbeurten getest; barge-in volgt nog.
+  Tien opeenvolgende synthetische spraakbeurten getest.
+- Optionele spraakonderbreking in Windows en Android: pauzeren, echo-/tekstguard,
+  geverifieerde vervolguitspraak en annulering van oude audio/generatie met behoud
+  van gesprek/taken. Softwareproeven geslaagd; echte echo-/microfoonacceptatie open.
 - Android: centrale instellingen-/geheugeninterface, typed controls en CAS,
   import/export via Android-bestandsdialoog, lokale hardwarekeuze apart gehouden.
   Alleen ondersteunde/geïnstalleerde spraakkeuzes aangeboden. Drie nieuwe echte

@@ -61,6 +61,7 @@ PTT-/wakeactivatie blijven vereist.
 Een geconfigureerde doorlopende modus behoudt de activatie over meerdere
 beurten. Afsluitzinnen moeten de hele uitspraak zijn: ‘Bedankt JARVIS, maar …’
 is geen afscheid. Wakefraseherkenning is momenteel transcriptiegebonden,
-geen apart getraind wakewordmodel. Echo-/barge-in- en Android-adapters zijn bij
-deze documentversie nog in uitvoering; de 14 statemachinewaarden alleen bewijzen
-niet dat iedere hardwarefunctie is afgerond.
+geen apart getraind wakewordmodel. Windows en Android ondersteunen nu centrale
+leases en onderbreking van spraak/generatie met behoud van duurzame taken.
+De optionele duplexmonitor is in software getest; zie VOICE_STREAMING.md voor
+echo- en hardwarebeperkingen. De 14 waarden alleen bewijzen geen hardwareacceptatie.

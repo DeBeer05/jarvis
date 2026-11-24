@@ -9,6 +9,8 @@ import android.media.audiofx.NoiseSuppressor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -42,11 +44,17 @@ object Wav {
 open class AudioClient(private val context: Context) {
     private val recording = AtomicBoolean(false)
     private val playing = AtomicBoolean(false)
+    private val paused = AtomicBoolean(false)
+    private val recordLock=Mutex();private val playbackLock=Mutex()
     @Volatile private var recorder: AudioRecord? = null
     @Volatile private var track: AudioTrack? = null
     @Volatile var echoActive=false;private set
     @Volatile var noiseActive=false;private set
     var focusLost:(()->Unit)?=null
+    open fun supportsBargeIn()=AcousticEchoCanceler.isAvailable()
+    open fun echoReady()=echoActive
+    open fun pausePlayback() {paused.set(true);try{track?.pause()}catch(_:IllegalStateException){}}
+    open fun resumePlayback() {paused.set(false);try{if(playing.get())track?.play()}catch(_:IllegalStateException){}}
     private var previousMode:Int?=null
     fun beginConversation(): Boolean {
         if(previousMode!=null)return true
@@ -61,7 +69,7 @@ open class AudioClient(private val context: Context) {
     }
     fun finishRecording() { recording.set(false) }
     fun stop() {
-        recording.set(false); playing.set(false)
+        recording.set(false); playing.set(false);paused.set(false)
         try { recorder?.stop() } catch (_: IllegalStateException) { /* read loop also observes cancellation */ }
         try { track?.pause(); track?.flush() } catch (_: IllegalStateException) { /* released concurrently */ }
     }
@@ -71,7 +79,7 @@ open class AudioClient(private val context: Context) {
             .filter { it.type in setOf(AudioDeviceInfo.TYPE_BUILTIN_MIC, AudioDeviceInfo.TYPE_BUILTIN_SPEAKER, AudioDeviceInfo.TYPE_WIRED_HEADSET, AudioDeviceInfo.TYPE_USB_DEVICE, AudioDeviceInfo.TYPE_USB_HEADSET) }
             .map { it.id to it.productName.toString() }
     }
-    open suspend fun record(device: Int,threshold: Float=.015f,silenceMs: Int=1200,maximumSeconds: Int=60,echo: Boolean=false,noise: Boolean=false,level: (Float) -> Unit): ByteArray = withContext(Dispatchers.IO) {
+    open suspend fun record(device: Int,threshold: Float=.015f,silenceMs: Int=1200,maximumSeconds: Int=60,echo: Boolean=false,noise: Boolean=false,level: (Float) -> Unit): ByteArray = recordLock.withLock {withContext(Dispatchers.IO) {
         check(context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) { "Microfoontoestemming nodig" }
         val minimum = AudioRecord.getMinBufferSize(16000, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
         check(minimum > 0) { "Microfoonformaat niet ondersteund" }
@@ -104,8 +112,8 @@ open class AudioClient(private val context: Context) {
             input.release(); data.reset(); level(0f)
             aec?.release();suppression?.release();echoActive=false;noiseActive=false
         }
-    }
-    open suspend fun play(wav: ByteArray, device: Int,volume: Float=1f) = withContext(Dispatchers.IO) {
+    }}
+    open suspend fun play(wav: ByteArray, device: Int,volume: Float=1f) = playbackLock.withLock {withContext(Dispatchers.IO) {
         val (rate, pcm) = Wav.decode(wav)
         val manager=context.getSystemService(AudioManager::class.java)
         val focus=AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
@@ -122,11 +130,13 @@ open class AudioClient(private val context: Context) {
             var offset = 0
             while (offset < pcm.size && playing.get()) {
                 coroutineContext.ensureActive()
+                while(paused.get() && playing.get()) {coroutineContext.ensureActive();kotlinx.coroutines.delay(10)}
+                if(!playing.get())break
                 val wrote = audio.write(pcm, offset, minOf(1024, pcm.size - offset), AudioTrack.WRITE_BLOCKING)
                 if (wrote <= 0 && !playing.get()) break
                 check(wrote > 0) { "Luidspreker niet beschikbaar" }; offset += wrote
             }
             while(playing.get() && audio.playbackHeadPosition < pcm.size/2) { coroutineContext.ensureActive(); kotlinx.coroutines.delay(10) }
         } finally { playing.set(false); track = null; audio.release(); manager.abandonAudioFocusRequest(focus) }
-    }
+    }}
 }

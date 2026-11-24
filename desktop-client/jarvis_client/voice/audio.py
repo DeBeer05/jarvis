@@ -1,6 +1,7 @@
 import io
 import queue
 import threading
+import time
 import wave
 
 import numpy as np
@@ -33,7 +34,7 @@ class AudioInputManager:
     def stop(self, discard=False):
         self.cancelled.set() if discard else self.finish.set()
 
-    def capture(self, settings, *, consent, timeout=6, activity=None):
+    def capture(self, settings, *, consent, timeout=6, activity=None, preprocess=None):
         if not consent:
             raise AudioError("Geef eerst in het spraakpaneel toestemming voor de microfoon.")
         blocks = queue.Queue(maxsize=12)
@@ -65,6 +66,7 @@ class AudioInputManager:
                         continue
                     samples = np.frombuffer(block, dtype=np.int16).astype(np.float32) * settings.input_gain
                     samples = np.clip(samples, -32768, 32767).astype(np.int16)
+                    if preprocess:samples=preprocess(samples)
                     audio.extend(samples.tobytes())
                     rms = float(np.sqrt(np.mean((samples.astype(np.float32) / 32768) ** 2)))
                     outcome = detector.feed(rms, len(samples) / 16000)
@@ -96,9 +98,17 @@ class AudioOutputManager:
         self.cancelled = threading.Event()
         self.stream = None
         self.lock = threading.RLock()
+        self.paused=threading.Event()
+        self.reference=None
+        self.playback_lock=threading.Lock()
+
+    def pause(self):self.paused.set()
+
+    def resume(self):self.paused.clear()
 
     def stop(self):
         self.cancelled.set()
+        self.paused.clear()
         with self.lock:
             stream = self.stream
         if stream:
@@ -108,6 +118,10 @@ class AudioOutputManager:
                 pass
 
     def play(self, data, settings, valid=lambda: True, on_started=lambda: None):
+        with self.playback_lock:
+            if valid():self._play(data,settings,valid,on_started)
+
+    def _play(self,data,settings,valid,on_started):
         self.cancelled.clear()
         try:
             with wave.open(io.BytesIO(data), "rb") as source:
@@ -123,11 +137,15 @@ class AudioOutputManager:
                         return
                     on_started()
                     while not self.cancelled.is_set() and valid():
+                        while self.paused.is_set() and not self.cancelled.is_set() and valid():time.sleep(.01)
+                        if self.cancelled.is_set() or not valid():break
                         block = source.readframes(max(1, source.getframerate() // 50))
                         if not block:
                             break
                         samples = np.frombuffer(block, dtype=np.int16).astype(np.float32) * settings.output_gain
-                        stream.write(np.clip(samples, -32768, 32767).astype(np.int16).tobytes())
+                        pcm=np.clip(samples, -32768, 32767).astype(np.int16).tobytes()
+                        if self.reference:self.reference.feed(pcm,source.getframerate())
+                        stream.write(pcm)
         except Exception:
             if not self.cancelled.is_set() and valid():
                 raise AudioError("Luidspreker niet beschikbaar of audio onderbroken. Kies de uitvoer opnieuw.") from None

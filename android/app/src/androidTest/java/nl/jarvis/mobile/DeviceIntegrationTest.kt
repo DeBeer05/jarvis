@@ -147,6 +147,62 @@ class DeviceIntegrationTest {
             application.graph.settings.save(original)
         }
     }
+    @Test fun syntheticBargeInCancelsPlaybackAndContinuesSameConversation() = runBlocking {
+        val api=api();pair(api)
+        val application=context.applicationContext as JarvisApplication
+        val original=application.graph.settings.values.first()
+        val base=api.json("/api/v1/natural/settings")
+        api.json("/api/v1/natural/settings/listening","PATCH",JSONObject().put("revision",base.getInt("revision")).put("changes",JSONObject().put("barge_in",true)))
+        suspend fun phrase(text:String):ByteArray {
+            val (rate,pcm)=Wav.decode(api.synthesize(text,1f))
+            val samples=java.nio.ByteBuffer.wrap(pcm).order(java.nio.ByteOrder.LITTLE_ENDIAN).asShortBuffer()
+            val converted=java.nio.ByteBuffer.allocate((samples.limit().toLong()*16000/rate).toInt()*2).order(java.nio.ByteOrder.LITTLE_ENDIAN)
+            repeat(converted.capacity()/2) {index->converted.putShort(samples.get((index.toLong()*rate/16000).toInt().coerceAtMost(samples.limit()-1)))}
+            return Wav.encode(converted.array())
+        }
+        val first=phrase("Vertel iets interessants.");val interrupt=phrase("Wacht even, vertel over fietsen.")
+        val recorded=java.util.concurrent.atomic.AtomicInteger();val played=java.util.concurrent.atomic.AtomicInteger()
+        val paused=java.util.concurrent.atomic.AtomicInteger();val cancelled=java.util.concurrent.atomic.AtomicBoolean()
+        val playbackStarted=CompletableDeferred<Unit>()
+        val fake=object:AudioClient(context) {
+            override fun supportsBargeIn()=true
+            override fun echoReady()=true // Scheduling test, not proof of acoustic echo cancellation.
+            override fun pausePlayback() {paused.incrementAndGet()}
+            override fun resumePlayback() {}
+            override suspend fun record(device:Int,threshold:Float,silenceMs:Int,maximumSeconds:Int,echo:Boolean,noise:Boolean,level:(Float)->Unit):ByteArray {
+                when(recorded.incrementAndGet()) {
+                    1->return first
+                    2->{playbackStarted.await();repeat(5){level(.5f)};return interrupt}
+                    else->awaitCancellation()
+                }
+            }
+            override suspend fun play(wav:ByteArray,device:Int,volume:Float) {
+                Wav.decode(wav)
+                if(played.incrementAndGet()==1) {playbackStarted.complete(Unit);try {awaitCancellation()}finally {cancelled.set(true)}}
+                else delay(10)
+            }
+        }
+        val store=androidx.lifecycle.ViewModelStore()
+        val model=withContext(Dispatchers.Main) {nl.jarvis.mobile.features.JarvisViewModel(application,fake).also {store.put("barge",it)}}
+        try {
+            application.graph.settings.save(original.copy(origin="http://127.0.0.1:8765",voiceOutput=true,automatic=true))
+            withContext(Dispatchers.Main){model.active(true)}
+            withTimeout(15000){model.state.first {it.connection.authenticated&&it.naturalSettings.isNotBlank()}}
+            withContext(Dispatchers.Main){model.ptt()}
+            withTimeout(60000) {while(model.state.value.messages.count {it.role=="JIJ"}<2 || model.state.value.busy || played.get()<2) {
+                check(model.state.value.error.isBlank()){model.state.value.error};delay(50)
+            }}
+            assertTrue(paused.get()>0);assertTrue(cancelled.get())
+            val conversation=model.state.value.conversation;assertNotNull(conversation)
+            withContext(Dispatchers.Main){model.stop()}
+            val client=application.graph.api("http://127.0.0.1:8765")
+            assertEquals(2,client.json("/api/v1/chat/conversations/$conversation").getJSONArray("turns").length())
+            val current=client.json("/api/v1/natural/settings")
+            client.json("/api/v1/natural/settings/reset","POST",JSONObject().put("revision",current.getInt("revision")).put("category","listening"))
+            client.json("/api/v1/chat/conversations/$conversation","DELETE")
+            client.json("/api/v1/auth/disconnect","POST");client.forget()
+        } finally {withContext(Dispatchers.Main){model.active(false);store.clear()};application.graph.settings.save(original)}
+    }
     @Test fun realTcpPairRefreshChatHistoryPushAndRevocation() = runBlocking {
         val api=api();assertTrue(api.health());pair(api)
         assertEquals("android",api.json("/api/v1/auth/device").getString("type"))

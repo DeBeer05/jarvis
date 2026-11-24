@@ -60,6 +60,29 @@ de communicatiemode en herstelt haar bij stoppen. Audiofocusverlies stopt ook
 de microfoon/doorloop. Beschikbaar is niet hetzelfde als op echte hardware bewezen.
 Zie de [officiële AEC-documentatie](https://developer.android.com/reference/android/media/audiofx/AcousticEchoCanceler).
 
+## Onderbreken tijdens spreken
+
+`Luisteren → Onderbreken met spraak` is standaard uit. In een bewust geactiveerd
+gesprek kan deze optie invoer en uitvoer tegelijk openen. Waarschijnlijke spraak
+pauzeert de uitvoer; STT bevestigt de nieuwe uitspraak voordat de oude generatie,
+wachtrij en audio worden gestopt. Een leeg/echoresultaat hervat de uitvoer. De
+conversation_id en duurzame externe taak blijven behouden.
+
+Windows gebruikt een begrensde referentie van de afgespeelde PCM (maximaal twee
+seconden), uitlijning op 2 kHz en lineaire echoaftrek bij sterke correlatie. Dit
+is een lichte referentiefilter, geen volledige akoestische echo-canceller of
+sprekeridentificatie. Reflecties en niet-lineaire luidsprekers vereisen een echte
+proef; een headset is bruikbaar wanneer een opstelling veel echo heeft.
+
+Android vereist beschikbare én werkelijk geactiveerde platform-AEC voor deze
+duplexmonitor; anders wordt de spreekknop aangeboden. Afzonderlijke annuleerbare
+STT/TTS-aanvragen en geserialiseerde input-/outputlevenscycli voorkomen dat een oude
+callback een nieuwe opname sluit. Een transcriptguard in beide clients verwerpt
+herkende eigen antwoordtekst en daarin voorkomende korte bevestigingswoorden.
+Een tijdens spreken afgewezen ‘ja’ verleent geen toestemming; na afloop blijft de
+normale afzonderlijke bevestigingsbeurt beschikbaar. De serverapprovalbinding is
+ongewijzigd en krijgt uitsluitend de geverifieerde nieuwe transcripttekst.
+
 ## Bewijs en open werk
 
 De Android ViewModel-lus heeft tien opeenvolgende beurten met één handmatige
@@ -67,7 +90,13 @@ activatie in één centraal gesprek uitgevoerd: echte server-STT en TTS, synthet
 vooraf gemaakte WAV-invoer en een test-outputadapter. Dit bewijst de softwareketen,
 niet echte microfoon-, echokwaliteit of menselijke beurtwisseling.
 
-Spraakgestuurde barge-in, aanvullende end-of-turn-analyse en de optionele
-WebSocket-adapter zijn bij deze documentversie nog in uitvoering. Er is geen
+Windows heeft zeven aanvullende deterministische tests voor referentie-echo,
+echotekst/approvalwoorden, uitvoeronderbreking, contextbehoud en late callbacks.
+De Android-emulatorproef met gesimuleerde AEC en audioapparaten onderbreekt een
+lopende uitvoer en verwerkt een tweede uitspraak via echte server-STT/TTS in
+hetzelfde gesprek. Dit bewijst de softwarecoördinatie, niet echte AEC-kwaliteit.
+
+Aanvullende end-of-turn-analyse en de optionele WebSocket-adapter zijn bij deze
+documentversie nog in uitvoering. Echte hardwareacceptatie staat open. Er is geen
 WebRTC- of telefonie-infrastructuur toegevoegd. Latency-/RAM-metingen staan in
 `CONVERSATION_PERFORMANCE.md`; het doel van 1–3 s is geen garantie.

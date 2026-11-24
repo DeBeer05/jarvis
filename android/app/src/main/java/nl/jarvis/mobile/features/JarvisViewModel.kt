@@ -12,6 +12,8 @@ import nl.jarvis.mobile.core.*
 import nl.jarvis.mobile.data.Preferences
 import nl.jarvis.mobile.voice.AudioClient
 import nl.jarvis.mobile.voice.ConversationSession
+import nl.jarvis.mobile.voice.EchoGuard
+import nl.jarvis.mobile.data.JarvisApi
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
@@ -40,6 +42,47 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
     private var requestId: String? = null
     private val connection = ConnectionManager(application, viewModelScope) { currentApi }
     private var voiceConversationActive=false;private var voiceStarted=0L;private var lastVoice=0L
+    private var interruptionJob:Job?=null;private var failedBargeGeneration:Int?=null
+
+    private fun startInterruptionMonitor(epoch:Int,spoken:String):Job? {
+        val listening=naturalConfig()?.optJSONObject("listening") ?: return null
+        if(!voiceConversationActive || !foreground || !listening.optBoolean("barge_in") || failedBargeGeneration==epoch)return null
+        if(!audio.supportsBargeIn()) {failedBargeGeneration=epoch;message("Dit apparaat biedt geen beschikbare echo-onderdrukking voor spraakonderbrekingen. Gebruik de spreekknop");return null}
+        val api=currentApi ?: return null
+        val threshold=(.028-.023*listening.optDouble("barge_in_sensitivity",.7)).toFloat()
+        interruptionJob=viewModelScope.launch {
+            mutable.update {it.copy(recording=true,voiceStatus="JARVIS spreekt · luistert naar onderbreking")}
+            try {
+                while(isActive && epoch==generation && foreground && voiceConversationActive) {
+                    var voiced=0
+                    val wav=audio.record(mutable.value.preferences.inputDevice,threshold=threshold,
+                        silenceMs=listening.optInt(if(listening.optBoolean("adaptive",true))"thinking_pause_ms" else "normal_silence_ms",2500),
+                        maximumSeconds=listening.optInt("maximum_listen_seconds",60),echo=true,noise=listening.optBoolean("noise_suppression",true)) {level ->
+                        check(audio.echoReady()) {"Echo-onderdrukking kon niet worden geactiveerd"}
+                        voiced=if(level>=threshold*8)voiced+1 else 0
+                        if(voiced==4) {audio.pausePlayback();mutable.update {if(epoch==generation)it.copy(level=level,voiceStatus="Ik hoor je · antwoord gepauzeerd") else it}}
+                    }
+                    ensureActive();if(epoch!=generation)return@launch
+                    if(wav.isEmpty()) {audio.resumePlayback();continue}
+                    audio.pausePlayback();val text=api.transcribe(wav);ensureActive()
+                    if(epoch!=generation || !foreground)return@launch
+                    if(text.isBlank() || EchoGuard.resemblesOutput(text,spoken)) {audio.resumePlayback();continue}
+                    mutable.update {it.copy(transcript=text)}
+                    if(isEnding(text)) {stop();return@launch}
+                    lastVoice=System.nanoTime();cancelTurn(false);send(text,true);return@launch
+                }
+            } catch(cancel:CancellationException) {throw cancel}
+              catch(_:Exception) {if(epoch==generation) {failedBargeGeneration=epoch;audio.resumePlayback();message("Gelijktijdig luisteren lukt niet; gebruik de spreekknop om te onderbreken")}}
+            finally {if(epoch==generation)mutable.update {it.copy(recording=false,level=0f)}}
+        }
+        return interruptionJob
+    }
+
+    private suspend fun finishInterruptionMonitor(api:JarvisApi,monitor:Job?) {
+        if(monitor==null)return
+        if(interruptionJob===monitor) {interruptionJob=null;audio.finishRecording();api.cancelTranscription()}
+        monitor.cancel();monitor.join()
+    }
     private var followupJob: Job?=null
     private val conversationSession=ConversationSession(viewModelScope,{currentApi},{foreground},{voiceProblem(it)},{lease -> mutable.update {it.copy(conversationState=lease?.state ?: "STANDBY")}})
 
@@ -278,7 +321,10 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
             try {
                 for(sentence in queue) {
                     val wav=api.synthesize(sentence,speed);ensureActive();if(epoch!=generation)return@launch
-                    mutable.update {it.copy(voiceStatus="JARVIS spreekt")};audio.play(wav,mutable.value.preferences.outputDevice,volume)
+                    mutable.update {it.copy(voiceStatus="JARVIS spreekt")}
+                    val monitor=startInterruptionMonitor(epoch,(mutable.value.messages.lastOrNull()?.text.orEmpty()+" "+sentence).takeLast(6000))
+                    try {audio.play(wav,mutable.value.preferences.outputDevice,volume)}
+                    finally {finishInterruptionMonitor(api,monitor)}
                 }
                 if(epoch==generation) {mutable.update {it.copy(voiceStatus="Klaar om te luisteren")};if(succeeded.get())continueVoice(true)}
             }catch(error:Exception){if(epoch==generation)voiceProblem(error)}
@@ -362,7 +408,7 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
     private fun cancelTurn(endConversation: Boolean) {
         followupJob?.cancel();followupJob=null
         if(endConversation) {voiceConversationActive=false;conversationSession.end();audio.endConversation()}
-        generation++; audio.stop(); currentApi?.stop(); sendJob?.cancel(); audioJob?.cancel()
+        generation++; audio.stop(); currentApi?.stop(); sendJob?.cancel(); audioJob?.cancel();interruptionJob?.cancel();interruptionJob=null
         val request=requestId; requestId=null
         val api=currentApi
         if (request!=null && api!=null) viewModelScope.launch { try { api.json("/api/v1/chat/requests/$request/cancel", "POST") } catch (_: Exception) { /* disconnect also cancels server work */ } }

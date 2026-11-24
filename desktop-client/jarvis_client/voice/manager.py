@@ -10,6 +10,7 @@ from PySide6.QtCore import QObject, QTimer, Signal, Slot
 from jarvis_client.voice.audio import AudioInputManager, AudioOutputManager
 from jarvis_client.voice.processing import AudioCache, InterruptionController, SentenceBuffer, WakeWordEngine
 from jarvis_client.voice.worker import InferenceWorker
+from jarvis_client.voice.echo import EchoReference, resembles_output
 
 
 class VoiceConversationManager(QObject):
@@ -23,6 +24,7 @@ class VoiceConversationManager(QObject):
     delivered = Signal(object)
     session_ended = Signal(str)
     playback_finished = Signal()
+    interrupted = Signal()
 
     def __init__(self, settings, parent=None, *, worker=None, audio_input=None, audio_output=None):
         super().__init__(parent)
@@ -32,6 +34,10 @@ class VoiceConversationManager(QObject):
         self.input_factory = (lambda: audio_input) if audio_input is not None else AudioInputManager
         self.input = self.input_factory()
         self.output = audio_output or AudioOutputManager()
+        self.echo=EchoReference()
+        self.output.reference=self.echo
+        self.barge_active=False
+        self.barge_failed_generation=None
         self.interruptions = InterruptionController()
         self.cache = AudioCache()
         self.cache_lock = threading.Lock()
@@ -193,6 +199,38 @@ class VoiceConversationManager(QObject):
 
         self._thread(capture)
 
+    def start_barge_capture(self,generation):
+        if self.closed or not self.interruptions.valid(generation) or not self.responding or self.recording:return
+        if self.barge_failed_generation==generation:return
+        if not (self.session_active and self.consent and self.authorized and self.options and self.options["listening"].get("barge_in")):return
+        if not all(hasattr(self.output,name) for name in ("pause","resume")):return
+        self.barge_active=self.recording=True
+        settings=replace(self.effective_settings(),sensitivity=self.options["listening"]["barge_in_sensitivity"])
+        capture_input=self.input=self.input_factory();capture_input.prepare()
+        filtered=self.echo.filter if self.options["listening"].get("echo_suppression",True) else None
+        def capture():
+            voiced_seconds=0.;paused=False
+            def activity(rms,voiced):
+                nonlocal voiced_seconds,paused
+                voiced_seconds=voiced_seconds+.03 if voiced else 0.
+                if voiced_seconds>=.12 and not paused:
+                    paused=True;self.output.pause()
+                    self.delivered.emit((generation,"barge_paused",None))
+            try:
+                audio=capture_input.capture(settings,consent=True,timeout=3,activity=activity,preprocess=filtered)
+                valid=lambda:self.interruptions.valid(generation) and self.responding and not self.closed
+                if not valid():return
+                if audio:
+                    self.output.pause()
+                    result=self.worker.transcribe(audio,settings,valid)
+                else:result={"text":""}
+                self.delivered.emit((generation,"barge_captured",result))
+            except Exception:
+                # A duplex driver failure must leave the answer usable. Report
+                # the disabled monitor once; ordinary PTT remains available.
+                self.delivered.emit((generation,"barge_error",None))
+        self._thread(capture)
+
     @Slot(object)
     def _delivered(self, item):
         generation, kind, payload = item
@@ -242,7 +280,36 @@ class VoiceConversationManager(QObject):
                 self.first_audio = time.perf_counter()
                 self.measurements["first_audio_seconds"] = round(self.first_audio - self.response_started, 3)
             self.set_state("JARVIS spreekt")
+            self.start_barge_capture(generation)
+            if self.barge_active:self.set_state("JARVIS spreekt · luistert naar onderbreking")
+        elif kind == "barge_paused":
+            if self.responding:self.set_state("Ik hoor je · antwoord gepauzeerd")
+        elif kind == "barge_captured":
+            if not self.responding or not self.barge_active:return
+            self.recording=self.barge_active=False
+            text=payload.get("text","").strip()
+            if not text or resembles_output(text,self.answer_text):
+                self.measurements["rejected_interruptions"]=self.measurements.get("rejected_interruptions",0)+bool(text)
+                self.output.resume()
+                QTimer.singleShot(150,lambda:self.start_barge_capture(generation))
+                self.set_state("JARVIS spreekt · luistert naar onderbreking")
+                return
+            self.stop(keep_wake=True)
+            self.measurements["interruptions"]=self.measurements.get("interruptions",0)+1
+            self.interrupted.emit()
+            self.transcript.emit(text)
+            if self.farewell(text):self.end_session("afscheid");return
+            self.last_activity=time.monotonic();self.voice_next=True;self.armed=self.continuous()
+            self.ready_text.emit(text)
+        elif kind == "barge_error":
+            if not self.responding or not self.barge_active:return
+            self.barge_failed_generation=generation
+            self.recording=self.barge_active=False
+            self.output.resume()
+            self.problem.emit("Gelijktijdig luisteren lukt niet met dit audioapparaat. Gebruik de spreekknop om te onderbreken.")
         elif kind == "drained":
+            if self.barge_active:self.input.stop(discard=True)
+            self.recording=self.barge_active=False
             self.responding = False
             self.last_activity=time.monotonic()
             self.measurements["total_seconds"] = round(time.perf_counter() - self.response_started, 3)
@@ -351,9 +418,10 @@ class VoiceConversationManager(QObject):
         self.interruptions.cancel()
         self.input.stop(discard=True)
         self.output.stop()
+        self.echo.clear()
         # Keep warmed models when only idle/output audio is being stopped.
         getattr(self.worker,"cancel_pending",self.worker.cancel)()
-        self.recording = self.responding = self.voice_next = False
+        self.recording = self.responding = self.voice_next = self.barge_active = False
         self.pending = queue.Queue(maxsize=32)
         if not keep_wake:
             self.wake_enabled = self.armed = False
