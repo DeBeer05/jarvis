@@ -26,7 +26,12 @@ Rapport: docs/RESPONSE_AND_VOICE_TEST_REPORT.md. Subjectieve luisteracceptatie v
 Windows-opstartmelding onderzocht: eigen verborgen gestart proces draaide zonder
 zichtbaar venster. Zichtbaar herstart en venster daadwerkelijk teruggevonden.
 Nieuwe build bevat same-user/profile IPC-activatie voor dubbelstart, getest met
-apart proces. Definitieve geïnstalleerde build-/Git-/CI-status wordt na uitrol aangevuld.
+apart proces. Windows 0.7.5 uit .local/client-build-butler zichtbaar gestart;
+bestaande snelkoppeling bijgewerkt, aangemeld/verbonden en Voice Studio-catalogus
+daadwerkelijk opgehaald. Tweede echte start activeert hetzelfde proces en eindigt
+met code 0. Echte telefoon 0.7.5/708, install -r en USB reverse 8765→8765 bevestigd,
+geen datareset/grants. Draft PR26 naar develop, afhankelijk van PR25; actuele CI
+via PR, geen merge. Menselijke luisterproef gevraagd; nog geen geslaagd resultaat.
 Backend blijft localhost 8765, desktop-development. Geen fase 8, migratie of productie.
 
 

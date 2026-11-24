@@ -1,5 +1,10 @@
 # JARVIS — Windows-client en beveiligde AI-webchat
 
+**Nieuwe uitbreiding in uitvoering:** [Antwoordgedrag](docs/INTELLIGENT_RESPONSE_ENGINE.md),
+[Classic Butler](docs/BUTLER_PERSONALITY.md) en [Voice Studio](docs/VOICE_STUDIO.md).
+Lokale Supertonic 3-mannenstemmen naast Piper, met [gemeten prestaties](docs/TTS_BENCHMARKS.md).
+Geen betaalde spraakdienst of servermigratie. [Teststatus](docs/RESPONSE_AND_VOICE_TEST_REPORT.md).
+
 **Fase 7:** centrale automatiseringen, herinneringen, workflows en gecontroleerde
 Google Calendar/Gmail-adapters. Bedien via **Automatiseringen** in Windows/Android
 of op http://127.0.0.1:8765/automations. Bestaande native apparaten krijgen nieuwe
@@ -913,6 +918,10 @@ It is held in memory only, deliberately: writing it to disk would make a fresh l
 ---
 
 ## Roadmap van deze JARVIS-fork
+
+Aan fase 7.5 toegevoegd: korte gesproken antwoorden naast geschreven broninformatie,
+gedeelde lokale TTS-router en native Voice Studio. Hardware-/luisteracceptatie blijft
+vereist; de actuele status staat in DEVELOPMENT_PROGRESS.md. Fase 8 blijft buiten scope.
 
 Fases 1–7 vormen de bestaande lokale server, veilige native clients, spraak en
 automatiseringen. Fase 7.5 breidt die componenten uit met doorlopende gesprekken,

@@ -82,3 +82,36 @@ Definitieve commit/CI- en uitrolgegevens worden na controle hieronder aangevuld.
 Nog niet bewezen: subjectieve stemkwaliteit op echte luidsprekers, microfoonecho op
 beide apparaten, toekomstige mini-pc, GPU-TTS, online Edge en XTTS. Geen productie,
 telefonie, publieke toegang of betaalde dienst geactiveerd.
+
+## Werkelijk uitgerold en gecontroleerd
+
+- Windows portable 0.7.5 staat in .local/client-build-butler/dist/JARVIS. De bestaande
+  bureaubladsnelkoppeling verwijst daarheen. Oude app gecontroleerd afgesloten,
+  nieuwe zichtbaar gestart en verbonden aangetroffen. Een tweede echte start eindigde
+  met code 0 en activeerde hetzelfde venster/proces. Aangemelde Voice Studio haalde de
+  lokale stemkeuzes op. Geen microfoon of stemvoorbeeld door de agent geactiveerd.
+- Echte telefoon: debug 0.7.5/708 met install -r behouden, versie gecontroleerd.
+  USB reverse tcp:8765→tcp:8765 opnieuw bevestigd. Geen datareset of nieuwe grants.
+- Backend op 8765 opnieuw gecontroleerd gestart zonder actieve chat-/automatiseringstaken.
+  Oude instellingen, eigenaar en geheugen behouden; geen nieuwe databaseversie.
+- Branch gepusht; draft PR [#26](https://github.com/DeBeer05/jarvis/pull/26) naar develop,
+  afhankelijk van PR25. Actuele CI-resultaten staan op de PR; geen merge uitgevoerd.
+- Menselijke luister-/onderbrekingsproef is gevraagd en is nog niet als geslaagd geteld.
+  Dit is de resterende acceptatiestap voor subjectieve kwaliteit; geen fase-8-vrijgave.
+
+## Bestanden en configuratie
+
+De nieuwe kern staat in server/natural/responses.py, server/natural/tts.py en
+providers/speech_format.py. Bestaande ChatService, ContextManager, AutomationChat,
+SettingsManager en mobiele spraakroutes zijn uitgebreid. De native wijzigingen
+staan in natural_settings.py, voice/manager.py, voice/server_worker.py en window.py
+op Windows en NaturalSettingsScreen.kt, JarvisViewModel.kt en JarvisApi.kt op Android.
+Het gedeelde Android-contract en de bijbehorende tests zijn bijgewerkt.
+
+De bestaande private inferencehelper kreeg engines.py plus een vastgezette MIT-
+supertonic_helper.py met eigen licentiebestand. scripts/install_supertonic.py voert
+alleen een expliciet goedgekeurde installatie uit; scripts/benchmark_tts.py maakt
+uitsluitend synthetische metingen. Build-WindowsClient.ps1 kan een aparte artifact-
+directory voorbereiden terwijl de huidige app openblijft. Er zijn geen nieuwe
+verplichte Python-packages of SQL-tabellen. Modelbestanden, audioproeven, lokale
+instellingen en gebruikersgeheugen worden niet gecommit.
