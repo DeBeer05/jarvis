@@ -49,4 +49,23 @@ class NaturalSettingsTest {
         compose.onNodeWithTag("natural-address_name").performScrollTo().assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText,AnnotatedString("")))
         compose.onNodeWithText("Niet-opgeslagen wijzigingen").assertDoesNotExist()
     }
+
+    @Test fun contactsRenderSearchAndEditorWithoutChangingApprovals() {
+        val context=InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as JarvisApplication
+        lateinit var model:JarvisViewModel
+        compose.runOnUiThread {model=JarvisViewModel(context);store.put("synthetic-contacts",model)}
+        val contacts="""{"items":[{"id":"synthetic","name":"Noah Test","email":"noah@example.invalid","aliases":["Collega"],"revision":1}]}"""
+        val state=ScreenState(connection=Connection(online=true,authenticated=true),naturalContacts=contacts)
+        compose.setContent {JarvisTheme("dark") {Column {NaturalSettingsScreen(state,model)}}}
+        compose.onNodeWithText("Adresboek").performClick()
+        compose.onNodeWithText("noah@example.invalid").assertExists()
+        compose.onNodeWithText("Zoek naam, alias of e-mailadres").performTextInput("collega")
+        compose.onNodeWithText("noah@example.invalid").assertExists()
+        compose.onNodeWithText("Toevoegen").performClick()
+        compose.onNodeWithText("Contact toevoegen").assertExists()
+        compose.onNodeWithText("E-mailadres").assertExists()
+        compose.onNodeWithText("Annuleren").performClick()
+        compose.onNodeWithText("Contact toevoegen").assertDoesNotExist()
+    }
+
 }

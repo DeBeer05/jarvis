@@ -2,6 +2,21 @@
 
 ## Huidige opdracht
 
+Adresboekuitbreiding lokaal uitgerold op bestaande server/Windows en Android
+0.7.5/707: persoonlijke contactnamen en aliassen, exact e-mailadres, revisiecontrole,
+geen adreswijziging van bestaande voorstellen, lokale verduidelijking bij dubbelzinnigheid.
+Serverregressie **403 geslaagd**, 181,35 s; Windows **108 geslaagd**; Android
+**17 instrumentatietests geslaagd**, unit/lint/debug/release-build geslaagd.
+Schema 6→7 met pre-v7-back-up, quick_check=ok, eigenaarrecord en herinneringen
+behouden. Acht expliciet gevraagde herinneringen lokaal opgeslagen; geen inhoud
+of persoonsgegevens in Git. Laatste twee ook na herstart aanwezig. Computerbediening
+werd bij eindcontrole door Escape gestopt; geen volledige echte luisterproef geclaimd.
+
+Nieuwe gebruikersopdracht: Intelligent Response Engine en Nederlandse butlerstem.
+Inspectie/onderzoek gestart; hergebruik bestaande Context/Settings/AI/SpeechBridge.
+Geen telefonie, migratie of publieke deployment. Fase 7.5-acceptatie blijft open.
+
+
 Acceptatieblokkers gemeld door eigenaar hersteld en lokaal uitgerold (Android
 **0.7.5/706**): natuurlijke aanmaakvormen ‘een afspraak maken’ en vrije titel-/
 persoonsantwoorden blijven aan de bestaande taak gekoppeld. Oude verkeerd als

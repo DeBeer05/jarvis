@@ -112,3 +112,26 @@ toegestaan. De buffer blijft begrensd door de bestaande antwoordlimiet.
 uitgesproken. Uitgeschakeld wacht spraak op een succesvol afgerond antwoord.
 Een mislukte of geannuleerde reactie wordt dan niet voorgelezen. Deze keuze wordt
 per spreekbeurt vastgezet; wijzigen tijdens spreken geldt voor de volgende beurt.
+
+
+## Adresboek
+
+Windows: **Instellingen → Gesprekken en geheugen → Adresboek**.
+Android: **Instellingen → Gesprekken en geheugen → Adresboek** (build 707 of nieuwer).
+Gebruik Toevoegen om een naam, één volledig e-mailadres en optioneel maximaal acht
+aliassen (één per regel) op te slaan. Contacten synchroniseren via dezelfde server;
+Vernieuwen haalt wijzigingen van het andere apparaat op. Maximaal 200 contacten.
+
+Voorbeeld: bewaar `Noah Test`, een eigen gekozen adres en alias `Noah`. Zeg of typ:
+“Maak een mail aan Noah dat ik vrijdag beschikbaar ben.” JARVIS zoekt een exacte naam
+of alias. Bij meerdere contacten met dezelfde naam vraagt hij een unieke volledige
+naam of een letterlijk adres. Alleen de gekozen ontvanger gaat naar de toolplanner,
+nooit het volledige adresboek. Ontbrekende onderwerp-/tekstgegevens worden via de
+bestaande gesprekstaak gevraagd. Het servervoorstel toont het echte adres; verzending
+vereist de bestaande exacte goedkeuring. Er worden geen contactpersonen afgeleid uit
+ontvangen e-mails of stilzwijgend uit voorbeelden toegevoegd.
+
+Wijzigen gebruikt een revisiecontrole. Bij een conflict: sluit de invoer, vernieuw en
+vergelijk opnieuw. Verwijderen wist alleen het contact; oude gesprekken, bestaande
+Gmail-concepten en al getoonde verzendvoorstellen blijven afzonderlijk bestaan.
+Een gewijzigd adres kan zo geen bestaand goedgekeurd voorstel omleiden.

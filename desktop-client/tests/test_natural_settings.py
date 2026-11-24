@@ -99,3 +99,15 @@ def test_personality_preview_uses_unsaved_draft_without_saving(qt):
     assert body["personality"]["humor"]==80
     assert view.document["settings"]["personality"]["humor"]==35 and view.dirty
     window.close()
+
+
+def test_contacts_search_alias_sync_and_logout_clear(qt):
+    window,view=panel(qt)
+    index=next(i for i in range(view.tabs.count()) if view.tabs.tabText(i)=="Adresboek")
+    view.tabs.setCurrentIndex(index)
+    assert window.calls[-1][:3]==("GET","/api/v1/natural/contacts",None)
+    view.contacts_loaded({"items":[{"id":"synthetic","name":"Noah Test","email":"noah@example.invalid","aliases":["Collega"],"revision":1}]})
+    view.contact_search.setText("collega");assert view.contact_list.count()==1
+    view.contact_search.setText("onbekend");assert view.contact_list.count()==0
+    view.clear();assert not view.contact_items and view.contact_list.count()==0 and not view.tabs.isEnabled()
+    window.close()

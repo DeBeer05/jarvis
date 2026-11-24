@@ -3,6 +3,7 @@ package nl.jarvis.mobile
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -96,13 +97,14 @@ internal object SettingsDraft {
     Text(state.naturalStatus.ifBlank {"Globale voorkeuren synchroniseren met Windows. Microfoon en luidspreker blijven lokaal."})
     if(!state.connection.authenticated) { Text("Log in en koppel deze telefoon om je persoonlijke instellingen te openen.");return }
     var page by remember {mutableStateOf("Instellingen")}
-    Row {listOf("Instellingen","Geheugen","Diagnostiek").forEach {name ->FilterChip(selected=page==name,onClick={page=name;if(name=="Geheugen")model.naturalMemory();if(name=="Diagnostiek")model.naturalDiagnostics()},label={Text(name)})}}
+    Row(Modifier.horizontalScroll(rememberScrollState())) {listOf("Instellingen","Geheugen","Adresboek","Diagnostiek").forEach {name ->FilterChip(selected=page==name,onClick={page=name;if(name=="Geheugen")model.naturalMemory();if(name=="Adresboek")model.naturalContacts();if(name=="Diagnostiek")model.naturalDiagnostics()},label={Text(name)})}}
     val context=LocalContext.current;val scope=rememberCoroutineScope();var exportText by remember {mutableStateOf("")}
     val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) {uri -> if(uri!=null) scope.launch {
         try { withContext(Dispatchers.IO) { context.contentResolver.openOutputStream(uri)?.use {it.write(exportText.toByteArray(Charsets.UTF_8))} ?: error("Geen uitvoerbestand") };model.message("Export opgeslagen") }
         catch(_:Exception) {model.message("Export kon niet worden opgeslagen")};exportText=""
     } }
     fun exportData(path: String,name: String) {model.exportNatural(path) {text -> exportText=text;export.launch(name)}}
+    if(page=="Adresboek") {NaturalContacts(state,model);return}
     if(page=="Geheugen") {NaturalMemory(state,model) {exportData("/memory/export","jarvis-geheugen.json")};return}
     if(page=="Diagnostiek") {NaturalDiagnostics(state,model) {exportData("/diagnostics","jarvis-diagnostiek.json")};return}
     if(state.naturalSchema.isBlank() || state.naturalSettings.isBlank()) {Button(onClick=model::naturalRefresh){Text("Instellingen ophalen")};return}
@@ -244,4 +246,44 @@ internal object SettingsDraft {
             TextButton(onClick={model.naturalSummarySave(summary.getString("id"),text,summary.getInt("revision"))}){Text("Samenvatting opslaan")}
         }
     }
+}
+
+
+@Composable private fun NaturalContacts(state:ScreenState,model:JarvisViewModel) {
+    var query by remember {mutableStateOf("")};var editing by remember {mutableStateOf<JSONObject?>(null)}
+    var deleting by remember {mutableStateOf<JSONObject?>(null)}
+    Text("Noem een opgeslagen naam bij het maken van een mail. Controleer het volledige adres in het verzendvoorstel. Maximaal 200 contacten, 8 aliassen per contact.")
+    OutlinedTextField(query,{query=it},label={Text("Zoek naam, alias of e-mailadres")},modifier=Modifier.fillMaxWidth())
+    Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+        Button(onClick={editing=JSONObject()}){Text("Toevoegen")}
+        OutlinedButton(onClick=model::naturalContacts){Text("Vernieuwen")}
+    }
+    val items=objectOrEmpty(state.naturalContacts).optJSONArray("items") ?: JSONArray()
+    Column(Modifier.heightIn(max=500.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+        if(items.length()==0)Text("Nog geen contacten opgehaald of opgeslagen.")
+        (0 until items.length()).map{items.getJSONObject(it)}.filter{item->listOf(item.optString("name"),item.optString("email"),item.optJSONArray("aliases").toString()).any{it.contains(query,true)}}.forEach {item ->
+            Card(Modifier.fillMaxWidth()) {Column(Modifier.padding(12.dp)) {
+                Text(item.getString("name"),style=MaterialTheme.typography.titleMedium);Text(item.getString("email"))
+                Text((item.optJSONArray("aliases") ?: JSONArray()).strings().joinToString(", "))
+                Row {TextButton(onClick={editing=item}){Text("Wijzigen")};TextButton(onClick={deleting=item}){Text("Verwijderen")}}
+            }}
+        }
+    }
+    editing?.let {item ->
+        var name by remember(item) {mutableStateOf(item.optString("name"))};var email by remember(item) {mutableStateOf(item.optString("email"))}
+        var aliases by remember(item) {mutableStateOf((item.optJSONArray("aliases") ?: JSONArray()).strings().joinToString("\n"))}
+        AlertDialog(onDismissRequest={editing=null},title={Text(if(item.has("id"))"Contact wijzigen" else "Contact toevoegen")},text={
+            Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(name,{name=it},label={Text("Naam")},singleLine=true)
+                OutlinedTextField(email,{email=it},label={Text("E-mailadres")},singleLine=true)
+                OutlinedTextField(aliases,{aliases=it},label={Text("Aliassen, één per regel")})
+                Text(state.naturalStatus)
+            }
+        },confirmButton={TextButton(onClick={
+            val data=JSONObject().put("name",name.trim()).put("email",email.trim()).put("aliases",JSONArray(aliases.lines().map{it.trim()}.filter{it.isNotBlank()}))
+            if(item.has("id"))data.put("revision",item.getInt("revision"))
+            model.naturalContactSave(data,if(item.has("id"))item.getString("id") else null){editing=null}
+        }){Text("Opslaan")}},dismissButton={TextButton(onClick={editing=null}){Text("Annuleren")}})
+    }
+    deleting?.let {item ->AlertDialog(onDismissRequest={deleting=null},title={Text("Contact verwijderen?")},text={Text("Bestaande mailvoorstellen blijven ongewijzigd.")},confirmButton={TextButton(onClick={model.naturalContactDelete(item.getString("id"),item.getInt("revision"));deleting=null}){Text("Verwijderen")}},dismissButton={TextButton(onClick={deleting=null}){Text("Annuleren")}})}
 }

@@ -62,3 +62,24 @@ Centrale opslag/UI zijn geïmplementeerd. De overige fase-7.5-audio-, intent-,
 privacyretentie- en diagnostiekonderdelen worden nog aangesloten. Een opgeslagen
 instellingenveld is op zichzelf geen bewijs dat iedere beschreven runtimefunctie
 al beschikbaar is. Zie DEVELOPMENT_PROGRESS.md en het uiteindelijke testrapport.
+
+
+### Personal contacts (schema 7)
+
+`natural_contacts` shares the existing database and authenticated NaturalStore:
+UUID, user_id, name, email, JSON aliases, revision, created, updated. The migration
+backs up an older database before creating this table and its user index. GET/POST
+`/api/v1/natural/contacts`, PUT `/contacts/{uuid}` and DELETE
+`/contacts/{uuid}?revision=...` use existing chat:read/write rights and live sessions.
+PUT/DELETE require the current revision. Mutations audit only event and opaque ID.
+Input rejects control characters, multiple recipients and malformed mailboxes.
+
+The automation planner resolves only explicit user recipient syntax before body
+markers, with normalized exact name/alias matching. Unknown/ambiguous names return
+local clarification before model/account calls. The backend binds EmailDraft.to to
+the chosen address and rechecks the contact revision after planning. EmailSend is
+excluded for new addressed commands: the existing verified Gmail draft and exact
+single-use approval flow are reused. Editing/deleting contacts never modifies an
+existing draft or approval. No contacts are added by model output or received mail.
+The Windows worker and Android coroutine use the existing authenticated API; local
+widgets/state clear on logout. Address-book contents are not public configuration.

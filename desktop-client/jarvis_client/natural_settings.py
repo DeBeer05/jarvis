@@ -64,6 +64,7 @@ class NaturalSettingsPanel(QWidget):
         for title,callback in (("Opslaan",self.save),("Annuleren",self.cancel),("Standaardwaarden",self.reset),("Vernieuwen",self.refresh),("Exporteren",self.export),("Importeren",self.import_data)):
             item=QPushButton(title);item.clicked.connect(callback);actions.addWidget(item)
         audio=QPushButton("Microfoon, luidspreker en stem testen");audio.clicked.connect(lambda:self.window.navigate(6));body.addWidget(audio)
+        self.make_contacts()
         self.make_memory()
         self.make_diagnostics()
         self.clear()
@@ -72,6 +73,7 @@ class NaturalSettingsPanel(QWidget):
         self.document=self.draft=self.schema=None;self.category=None;self.controls={};self.dirty=False
         self.keys=[];self.search.clear();self.memory_search.clear()
         self.categories.clear();self.memory_list.clear();self.memory_items=[];self.summary_list.clear();self.summary_text.clear();self.summary_items=[]
+        self.contact_items=[];self.contact_list.clear();self.contact_search.clear()
         self.diagnostic_document=None
         for value in self.diagnostic_labels.values():value.setText("Nog niet gemeten")
         self.scroll.takeWidget();self.status.setText("Log in om je instellingen en geheugen te openen.")
@@ -337,3 +339,49 @@ class NaturalSettingsPanel(QWidget):
         index=self.summary_list.currentIndex()
         if index<0:return
         item=self.summary_items[index];self.call("PUT","/summaries/"+item["id"],{"revision":item["revision"],"content":self.summary_text.toPlainText()},lambda _:self.load_memory())
+
+
+    def make_contacts(self):
+        page=QWidget();self.tabs.addTab(page,"Adresboek");body=QVBoxLayout(page)
+        body.addWidget(label("Sla bekende ontvangers op. Zeg bijvoorbeeld: Maak een mail aan Noah dat ik vrijdag beschikbaar ben. Controleer het volledige e-mailadres in het verzendvoorstel."))
+        self.contact_search=QLineEdit();self.contact_search.setPlaceholderText("Zoek naam, alias of e-mailadres…");self.contact_search.textChanged.connect(self.filter_contacts);body.addWidget(self.contact_search)
+        self.contact_list=QListWidget();body.addWidget(self.contact_list,1)
+        actions=QHBoxLayout();body.addLayout(actions)
+        for title,callback in (("Vernieuwen",self.load_contacts),("Toevoegen",lambda:self.edit_contact(False)),("Wijzigen",lambda:self.edit_contact(True)),("Verwijderen",self.delete_contact)):
+            button=QPushButton(title);button.clicked.connect(callback);actions.addWidget(button)
+        self.tabs.currentChanged.connect(lambda _:self.load_contacts() if self.tabs.currentWidget() is page and self.document else None)
+
+    def load_contacts(self):self.call("GET","/contacts",None,self.contacts_loaded)
+
+    def contacts_loaded(self,data):
+        self.contact_items=data["items"];self.filter_contacts();self.status.setText("Adresboek gesynchroniseerd.")
+
+    def filter_contacts(self):
+        query=self.contact_search.text().casefold();self.contact_list.clear()
+        self.visible_contacts=[item for item in getattr(self,"contact_items",[]) if query in (item["name"]+" "+item["email"]+" "+" ".join(item["aliases"])).casefold()]
+        self.contact_list.addItems([item["name"]+" — "+item["email"]+(" · "+", ".join(item["aliases"]) if item["aliases"] else "") for item in self.visible_contacts])
+
+    def edit_contact(self,existing):
+        index=self.contact_list.currentRow()
+        if existing and index<0:return
+        item=self.visible_contacts[index] if existing else None
+        dialog=QDialog(self);dialog.setWindowTitle("Contact wijzigen" if item else "Contact toevoegen");dialog.resize(500,260)
+        form=QFormLayout(dialog);name=QLineEdit(item["name"] if item else "");email=QLineEdit(item["email"] if item else "");aliases=QPlainTextEdit("\n".join(item["aliases"]) if item else "")
+        form.addRow("Naam",name);form.addRow("E-mailadres",email);form.addRow("Aliassen (één per regel, maximaal 8)",aliases)
+        error=label("");form.addRow(error)
+        controls=QDialogButtonBox(QDialogButtonBox.StandardButton.Save|QDialogButtonBox.StandardButton.Cancel);controls.rejected.connect(dialog.reject);form.addRow(controls)
+        def save():
+            payload={"name":name.text().strip(),"email":email.text().strip(),"aliases":[value.strip() for value in aliases.toPlainText().splitlines() if value.strip()]}
+            if item:payload["revision"]=item["revision"]
+            controls.setEnabled(False)
+            def done(_):dialog.accept();self.load_contacts()
+            def failed(_):controls.setEnabled(True);error.setText("Niet opgeslagen. Controleer de velden en verbinding. Bij een wijzigingsconflict: sluit en vernieuw het adresboek.")
+            self.window.call("PUT" if item else "POST",BASE+"/contacts"+("/"+item["id"] if item else ""),payload,done,failed)
+        controls.accepted.connect(save);dialog.exec()
+
+    def delete_contact(self):
+        index=self.contact_list.currentRow()
+        if index<0:return
+        item=self.visible_contacts[index]
+        if QMessageBox.question(self,"Contact verwijderen","Dit contact uit het adresboek verwijderen? Bestaande mailvoorstellen blijven ongewijzigd.",QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.No,QMessageBox.StandardButton.No)==QMessageBox.StandardButton.Yes:
+            self.call("DELETE","/contacts/"+item["id"]+"?revision="+str(item["revision"]),None,lambda _:self.load_contacts())

@@ -23,6 +23,8 @@ class NaturalService:
         self.store=NaturalStore(database,security,chat.store.clean)
         self.settings=SettingsManager(self.store)
         self.memory=MemoryManager(self.store)
+        from server.natural.contacts import ContactManager
+        self.contacts=ContactManager(self.store)
         self.security,self.chat,self.automation=security,chat,automation
         self.conversations=NaturalConversationManager(self.store,self.settings,chat)
         self.context=ContextManager(self.store,self.settings,self.memory,chat.settings)

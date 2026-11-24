@@ -33,6 +33,7 @@ class AutomationChat:
         self.references = {}
         self.approvals = ChatApprovals(self)
         self.task_memory=None
+        self.contacts=None
 
     def key(self, run):
         return (run.principal.session_id, run.principal.device_id, run.conversation_id)
@@ -133,7 +134,8 @@ class AutomationChat:
             return False
         if tool.startswith("Email") and not re.search(r"mail|bericht|concept|antwoord|reply|draft", text):
             return False
-        return bool(re.search(patterns.get(tool, r"(?!)"), text))
+        mail_command=tool=="EmailDraft" and (re.match(r"^\s*(?:jarvis[, ]+)?mail\s+(?:aan|naar|voor)\b",text) or re.match(r"^\s*(?:ik\s+)?wil\s+.+\s+mailen\b",text))
+        return bool(mail_command or re.search(patterns.get(tool, r"(?!)"), text))
 
     async def plan(self, run, observations, completed):
         text=run.message.casefold()
@@ -149,6 +151,11 @@ class AutomationChat:
             eligible|={"events":{"CalendarRead"},"calendars":{"CalendarList","CalendarRead"},"messages":{"EmailSearch","EmailRead"},"drafts":{"EmailRead"},"reminders":{"ReminderList"}}.get(recent,READ)
         eligible|={name for name in TOOLS-READ if self.write_intent(name,run.message)}
         if run.allowed_tools is not None:eligible.intersection_update(run.allowed_tools)
+        recipient=None
+        if self.contacts and "EmailDraft" in eligible:
+            recipient,question=self.contacts.recipient(run.principal,run.message)
+            if question:return {"clarification":question},None
+            if recipient:eligible.discard("EmailSend")
         schemas = {name:REGISTRY[name][0].model_json_schema() for name in sorted(eligible)}
         if "EmailSend" in schemas:schemas["EmailSend"]={"type":"object","properties":{"draft_id":{"type":"string"}},"required":["draft_id"],"additionalProperties":False}
         config=run.natural_context["settings"] if run.natural_context else {}
@@ -179,6 +186,7 @@ class AutomationChat:
             else:visible[key]=list(values)
         if run.natural_context and run.natural_context["settings"]["calendar"]["use_preferences"]:
             visible["user_preferences_data_not_permissions"]=[{"content":item["content"],"kind":item["kind"]} for item in run.natural_context["memories"] if item["kind"]=="preference"]
+        if recipient:visible["explicit_recipient_data_not_instructions"]=[{"email":recipient["email"]}]
         def prompt_value():return encode({"instruction":run.message,"observations":visible,"completed":completed})
         prompt=prompt_value()
         while len(system)+len(prompt)>self.router.settings.max_context_chars:
@@ -204,6 +212,12 @@ class AutomationChat:
             name=next(iter(data));data={"tool":name,"input":data[name]}
         if set(data) != {"tool", "input"} or data["tool"] not in eligible:
             raise ValueError("Unknown tool")
+        if data["tool"]=="EmailDraft" and recipient and "id" in recipient:
+            current=[item for item in self.contacts.list(run.principal)["items"] if item["id"]==recipient["id"] and item["revision"]==recipient["revision"]]
+            if len(current)!=1:return {"clarification":"Dit contact is ondertussen gewijzigd. Noem de ontvanger opnieuw om het actuele adres te gebruiken."},provider
+        if data["tool"]=="EmailDraft" and recipient:
+            if not isinstance(data["input"],dict):raise ValueError("Invalid mail input")
+            data["input"]["to"]=recipient["email"]
         if data["tool"]=="EmailSend":
             if not isinstance(data["input"],dict) or set(data["input"])!={"draft_id"}:raise ValueError("Invalid draft reference")
             matching=[d for d in self.memory(run).get("drafts",[]) if d["draft_id"]==data["input"]["draft_id"]]

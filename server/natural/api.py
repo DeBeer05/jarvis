@@ -233,3 +233,26 @@ def export_memories(request:Request):
         if not page["has_more"]:break
         offset+=100
     return {"schema_version":1,"items":items,"original_conversations_included":False}
+
+
+# Personal contacts follow the existing chat:read/chat:write authorization gate.
+from server.natural.contacts import ContactInput, ContactUpdate
+
+
+@router.get("/contacts")
+def contacts(request:Request):return service(request).contacts.list(request.state.principal)
+
+
+@router.post("/contacts")
+def add_contact(request:Request,body:ContactInput):
+    return result(lambda:service(request).contacts.save(request.state.principal,body.model_dump()))
+
+
+@router.put("/contacts/{identifier}")
+def edit_contact(request:Request,identifier:UUID,body:ContactUpdate):
+    return result(lambda:service(request).contacts.save(request.state.principal,body.model_dump(),str(identifier)))
+
+
+@router.delete("/contacts/{identifier}")
+def delete_contact(request:Request,identifier:UUID,revision:int):
+    return result(lambda:service(request).contacts.delete(request.state.principal,str(identifier),revision))

@@ -4,6 +4,13 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Persoonlijk adresboek op Windows en Android (build 707): namen en aliassen
+  koppelen aan één e-mailadres, zoeken, wijzigen, verwijderen en synchroniseren.
+  Backend koppelt expliciet genoemde ontvangers vóór toolplanning; dubbele namen
+  vragen verduidelijking. Verzendgoedkeuring blijft aan het exacte concept gebonden.
+- SQLite schema 7 met voorafgaande back-up; contactwijzigingen gebruiken revisies.
+
+
 - Android-reparatiebuild 706: overname-/stopherstel en afscherming tegen oude
   foutcallbacks. Chatfinalisatie overleeft herhaalde disconnects, zodat een
   gesprek niet blijvend bezet raakt. Overname wacht op annulering van de oude beurt.
