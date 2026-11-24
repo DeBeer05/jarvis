@@ -2,6 +2,71 @@
 
 ## Huidige opdracht
 
+### Eén gesproken ja voor mail en agenda — 24 november 2026
+
+Nieuwe expliciete opdracht vervangt de eerdere beperking op een korte ja:
+mail/agenda voorbereiden en voorlezen, één ja voert het actuele voorstel uit;
+nee weigert. Op bestaande feature/chat-approvals / PR #24 voortgezet, omdat de
+onderliggende wijziging nog door GitHub Actions geblokkeerd is. Geen merge of
+omzeiling van checks. Alle bestaande preview-/sessie-/payload-/vervalguards en
+actuele automation:approve blijven gelden. De bevestiging komt niet bij de AI.
+
+Mailopdracht maakt een geverifieerd Gmail-concept en automatisch een afzonderlijk
+verzendvoorstel. De sendjob heeft een eigen idempotencykey; dezelfde geverifieerde
+snapshot hergebruikt een bestaande sendjob. Geen dubbele verzending bij herhaling.
+‘Alleen een concept’ of ‘niet versturen’ blijft concept-only. Ja zonder voorstel
+in hetzelfde gesprek bevestigt niets; een dubbele ja na succes leest de status.
+
+51 gerichte tests geslaagd, inclusief synthetische STT→chat→TTS→STT ‘Ja, graag’
+→eenmalige executor voor zowel mail als agenda; nee, ontbrekend approverrecht,
+ander/onderbroken gesprek en alleen-concept. Geen echte accountmutatie uitgevoerd.
+Volledige regressiesuite: 255 servertests geslaagd. Echte Groq/GPT-OSS 120B met
+tijdelijke SQLite en gemockte Google: mail maken→preview→één ja→eenmalig verzonden,
+en afspraak→preview→één ja→aangemaakt geslaagd. Extra ja voert niet opnieuw uit.
+Geen echte accountmutatie. Pip check, repository-/whitespacecontrole geslaagd;
+Bandit nul middel/hoge signalen. Geen actieve chat-/externe taken bij de
+gecontroleerde serverherstart op loopback:8765; credentials/voorstellen behouden.
+Windows/Android gebruiken dezelfde spraak-/chatroute; geen client-/APK-rebuild.
+
+### Goedkeuren in chat en vervolggegevens — 24 november 2026
+
+PR #23 met spraak-/dagvragen na tien groene jobs gemerged naar develop 436bb2b.
+Gebruiker vraagt expliciet agenda- en mailacties in dezelfde chat goed te keuren.
+Featurebranch feature/chat-approvals vanaf die basis. Het eerdere bevestigings-
+loopje kwam doordat vervolggegevens (‘Maak hem van 11 tot 12’) buiten de planner
+vielen. Eigen gebruikersgegevens blijven nu bij de direct voorafgaande vraag;
+een onderbroken oude vraag kan niet door een losse ja worden hervat.
+
+Volledige serverpreview met jaartal, datum/tijd/zone, titel, agenda, locatie,
+genodigden/herhaling of volledige e-mail. Expliciet Goedkeuren/Weigeren gebruikt
+de bestaande ApprovalManager, actuele scopes en nonce-digest. De modelplanner
+heeft geen goedkeurtool. Fingerprint wordt ook binnen de beslistransactie
+gecontroleerd; laatste voltooide assistantantwoord en vijfminuten-geldigheid
+moeten overeenkomen. Geen korte ja als approval. Grote/onvolledige/niet volledig
+toonbare voorstellen blijven in de bestaande eigenaarinterface. Toon mijn
+voorstellen / Toon voorstel ID herstelt context na herstart of meerdere keuzes.
+Resultaat wordt alleen na echte completed-engine-status als uitgevoerd gemeld.
+
+Gerichte tests dekken aanmaken, weigeren, mailverzending, scopes, dubbele
+bevestiging, veranderde/verlopen/onderbroken preview, race tijdens challenge,
+ontbrekende tijden en vervolgcontext. Echte Groq/GPT-OSS 120B-proef met tijdelijke
+SQLite en gesimuleerde executor geslaagd: vraag → gegevens → voorstel → Goedkeuren
+→ completed. Geen echte afspraak of e-mail namens de gebruiker uitgevoerd.
+Verificatie: 45 gerichte tests en 249 volledige servertests geslaagd; pip check,
+repository-/whitespace-/indexgeheimcontrole geslaagd; Bandit nul middel/hoge
+bevindingen. De server bleek bij activering niet meer actief; bestaande helpers
+hebben hem gecontroleerd gestart. Health/ready 200 en anonieme automation-API 401.
+Geen actieve chatvragen of externe taken bij de start; bestaande voorstellen en
+credentials behouden. Remote CI en integratie via feature-PR naar develop.
+GitHub-blokkade op PR #24: geen push-/PR-checks aangemaakt. Alle vier handmatige
+workflow_dispatch-pogingen geweigerd met HTTP 422: ‘Actions has been disabled for
+this repository’, terwijl permissions.enabled=true en workflows active melden.
+Geen oorzaak als billing/policy aangenomen en geen instellingen of bescherming
+gewijzigd. Code gepusht en lokaal actief; PR blijft open, niet gemerged zonder
+groene CI. Eigenaar moet de Actions-/accountblokkade bij GitHub oplossen.
+Windows 0.7.1/Android 0.7.0 gebruiken dezelfde chatroute; geen rebuild of APK nodig.
+Stop na fase 7; accounts, main en private credentials behouden.
+
 ### Spraakagenda en Android-verbinding herstellen — 23 november 2026
 
 Windows-/rechtenuitbreiding via PR #22 geïntegreerd naar develop 237b10c na tien
