@@ -38,11 +38,12 @@ class ApprovalManager:
             db.execute("UPDATE automation_jobs SET approval_hash=?,approval_expires=?,approval_device=? WHERE id=?",(digest(secret),now+300,principal.device_id,identifier))
         return {"token":secret,"expires_at":now+300,"fingerprint":fingerprint([row["tool"],json.loads(row["payload"])])}
 
-    def decide(self, identifier, principal, secret, approve):
+    def decide(self, identifier, principal, secret, approve, *, expected_fingerprint=None):
         e=self.engine; e.permissions.check(principal.device_id,"automation:approve")
         with e.store.db(True) as db:
             row=db.execute("SELECT * FROM automation_jobs WHERE id=? AND status='approval'",(identifier,)).fetchone()
             if not row or row["approval_device"]!=principal.device_id or not row["approval_hash"] or row["approval_expires"]<=e.store.clock() or not hmac.compare_digest(row["approval_hash"],digest(secret)): raise ValueError("Goedkeuring verlopen of al gebruikt")
+            if expected_fingerprint is not None and fingerprint([row["tool"],json.loads(row["payload"])])!=expected_fingerprint:raise ValueError("Voorstel gewijzigd; bekijk het opnieuw")
             db.execute("UPDATE automation_jobs SET status=?,approval_hash=NULL,approved_device=?,updated=? WHERE id=?",("queued" if approve else "denied",principal.device_id,e.store.clock(),identifier))
             e.store.event(db,"approved" if approve else "denied",identifier,principal.device_id)
         return e.store.public(e.store.get(identifier))

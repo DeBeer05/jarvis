@@ -132,6 +132,11 @@ en rechten voorstellen; alleen de eigenaar bevestigt de daadwerkelijke grant.
 De headless chat mag uitsluitend gevalideerde geregistreerde automatiseringstools
 gebruiken, onder de bestaande apparaatrechten. Externe mutaties blijven gebonden
 aan een afzonderlijke exacte goedkeuring; een gesproken/getypt ja is geen approval.
+De gebruiker heeft goedkeuren in de chat expliciet opgedragen. ‘Goedkeuren’ of
+‘Weigeren’ mag de bestaande eenmalige approval afhandelen, uitsluitend nadat het
+volledige servervoorstel als laatste antwoord in dezelfde sessie/apparaat/chat
+is getoond. Bind aan payloadfingerprint, toon gewijzigde/verlopen voorstellen
+opnieuw en controleer actuele automation:approve. De AI kan nooit goedkeuren.
 Ontvangen mail-/agendatekst kan nooit een nieuwe opdracht autoriseren. Geen door
 AI gegenereerde code, shellcommando's of willekeurige plugins uitvoeren.
 STOP na fase 7; geen oproepen, productie of mini-pc-deployment.

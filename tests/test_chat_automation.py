@@ -103,7 +103,7 @@ def test_calendar_change_is_only_an_approval_proposal_and_ja_is_not_approval(too
     assert "wijzigingsvoorstel" in result["message"]
     rows=app.state.automation.store.items();assert len(rows)==1 and rows[0]["status"]=="approval"
     response=call(c,"ja",result["conversation_id"]).json()
-    assert "kort ja" in response["message"] and app.state.automation.store.get(rows[0]["id"])["status"]=="approval"
+    assert "Goedkeuren" in response["message"] and app.state.automation.store.get(rows[0]["id"])["status"]=="approval"
 
 
 def test_ambiguous_calendar_selection_is_not_silently_changed(tools_chat):
@@ -397,3 +397,158 @@ def test_personal_tool_question_does_not_return_false_model_access_claim(tools_c
     app,c,router=tools_chat;router.plans=[{"chat":True}]
     answer=call(c,"Hoe ziet mijn agenda er deze week uit?").json()
     assert "Ik kan je agenda" in answer["message"] and len(router.planning_calls)==1
+
+
+def create_proposal(tools_chat):
+    app,c,router=tools_chat
+    router.plans=[{"tool":"CalendarCreate","input":{"summary":"Test","start":"2030-01-01T23:00:00+01:00","end":"2030-01-02T00:00:00+01:00"}}]
+    response=call(c,"Maak een afspraak in mijn agenda op 1 januari 2030 van 23:00 tot 00:00 met titel Test").json()
+    return response,app.state.automation.store.items()[0]
+
+
+def complete_after_decision(app,c,row,calls):
+    async def execute(job):calls.append(job["id"]);return {"id":"synthetic-google-confirmation"}
+    app.state.automation.executor.execute=execute
+    async def finish():
+        for _ in range(200):
+            if app.state.automation.store.get(row["id"])["status"]=="queued":
+                await app.state.automation.tick();return
+            await asyncio.sleep(.01)
+        raise AssertionError("Expected queued approved job")
+    return c.portal.start_task_soon(finish)
+
+
+def test_chat_approves_exact_shown_calendar_and_executes_once(tools_chat):
+    app,c,router=tools_chat;shown,row=create_proposal(tools_chat);calls=[]
+    assert "01-01-2030 23:00" in shown["message"] and "02-01-2030 00:00" in shown["message"]
+    assert "Goedkeuren" in shown["message"] and row["status"]=="approval"
+    background=complete_after_decision(app,c,row,calls)
+    answer=call(c,"Goedkeuren",shown["conversation_id"]).json();background.result(timeout=5)
+    assert "afspraak is aangemaakt" in answer["message"] and calls==[row["id"]]
+    again=call(c,"Goedkeuren",shown["conversation_id"]).json()
+    assert calls==[row["id"]] and app.state.automation.store.get(row["id"])["status"]=="completed"
+    assert "afspraak is aangemaakt" in call(c,"Wat is de status van het voorstel?",shown["conversation_id"]).json()["message"]
+
+
+def test_chat_rejects_without_execution_and_requires_approval_permission(tools_chat):
+    app,c,router=tools_chat;shown,row=create_proposal(tools_chat)
+    with app.state.automation.store.db(True) as db:db.execute("DELETE FROM auth_permissions WHERE permission='automation:approve'")
+    assert "automation:approve" in call(c,"Goedkeuren",shown["conversation_id"]).json()["message"]
+    assert app.state.automation.store.get(row["id"])["status"]=="approval"
+
+
+def test_chat_refusal_is_bound_to_preview(tools_chat):
+    app,c,router=tools_chat;shown,row=create_proposal(tools_chat)
+    answer=call(c,"Weigeren",shown["conversation_id"]).json()
+    assert "geweigerd" in answer["message"] and app.state.automation.store.get(row["id"])["status"]=="denied"
+
+
+def test_changed_or_old_preview_is_shown_again_before_decision(tools_chat):
+    app,c,router=tools_chat;shown,row=create_proposal(tools_chat)
+    with app.state.automation.store.db(True) as db:
+        payload=json.loads(row["payload"]);payload["summary"]="Gewijzigde titel"
+        db.execute("UPDATE automation_jobs SET payload=? WHERE id=?",(json.dumps(payload),row["id"]))
+    refreshed=call(c,"Goedkeuren",shown["conversation_id"]).json()
+    assert "Gewijzigde titel" in refreshed["message"] and app.state.automation.store.get(row["id"])["status"]=="approval"
+    app.state.chat.automation_chat.clock=lambda:__import__('time').monotonic()+301
+    expired=call(c,"Goedkeuren",shown["conversation_id"]).json()
+    assert "Goedkeuren" in expired["message"] and app.state.automation.store.get(row["id"])["status"]=="approval"
+
+
+def test_intervening_chat_and_other_conversation_do_not_approve_unseen_proposal(tools_chat):
+    app,c,router=tools_chat;shown,row=create_proposal(tools_chat)
+    call(c,"Hallo",shown["conversation_id"])
+    refreshed=call(c,"Goedkeuren",shown["conversation_id"]).json()
+    assert "Voorstel-ID" in refreshed["message"] and app.state.automation.store.get(row["id"])["status"]=="approval"
+    other=call(c,"Goedkeuren").json()
+    assert "Voorstel-ID" in other["message"] and app.state.automation.store.get(row["id"])["status"]=="approval"
+
+
+def test_cancelled_preview_is_not_treated_as_fully_seen(tools_chat):
+    app,c,router=tools_chat;shown,row=create_proposal(tools_chat)
+    with app.state.automation.store.db(True) as db:db.execute("UPDATE chat_turns SET status='cancelled' WHERE id=?",(shown["request_id"],))
+    result=call(c,"Goedkeuren",shown["conversation_id"]).json()
+    assert "Voorstel-ID" in result["message"] and app.state.automation.store.get(row["id"])["status"]=="approval"
+
+
+def test_decision_rechecks_preview_fingerprint_inside_transaction(tools_chat):
+    app,c,router=tools_chat;shown,row=create_proposal(tools_chat);manager=app.state.automation.approvals;original=manager.challenge
+    def change_after_challenge(*args):
+        challenge=original(*args)
+        with app.state.automation.store.db(True) as db:
+            payload=json.loads(row["payload"]);payload["summary"]="Changed during challenge"
+            db.execute("UPDATE automation_jobs SET payload=? WHERE id=?",(json.dumps(payload),row["id"]))
+        return challenge
+    manager.challenge=change_after_challenge
+    call(c,"Goedkeuren",shown["conversation_id"])
+    assert app.state.automation.store.get(row["id"])["status"]=="approval"
+
+
+def test_existing_proposal_can_be_recovered_and_email_approved_in_chat(tools_chat):
+    app,c,router=tools_chat;e=app.state.automation
+    principal=app.state.security.store.authenticate(c.cookies.get("jarvis_access"))
+    row=e.submit(principal.device_id,"EmailSend",{"draft_id":"synthetic-draft","message_hash":"a"*64,"preview":"Aan: example@example.invalid\nOnderwerp: Test\nHallo"},str(uuid4()))
+    shown=call(c,"Toon mijn voorstellen").json();assert "example@example.invalid" in shown["message"]
+    calls=[];background=complete_after_decision(app,c,row,calls)
+    answer=call(c,"Keur dit voorstel goed",shown["conversation_id"]).json();background.result(timeout=5)
+    assert "e-mail is verzonden" in answer["message"] and calls==[row["id"]]
+
+
+def test_write_clarification_keeps_original_user_task_and_can_be_cancelled(tools_chat):
+    app,c,router=tools_chat
+    router.plans=[{"clarification":"Op welke datum en van hoe laat tot hoe laat?"}]
+    first=call(c,"Maak een afspraak in mijn agenda met titel test").json()
+    router.plans=[{"tool":"CalendarCreate","input":{"summary":"test","start":"2030-01-01T11:00:00+01:00","end":"2030-01-01T12:00:00+01:00"}}]
+    second=call(c,"Maak hem op 1 januari 2030 van 11 tot 12",first["conversation_id"]).json()
+    assert "wijzigingsvoorstel" in second["message"] and "Maak een afspraak" in router.planning_calls[-1][0][1]["content"]
+    assert app.state.automation.store.items()[0]["status"]=="approval"
+    router.plans=[{"clarification":"Wanneer?"}]
+    another=call(c,"Maak een afspraak in mijn agenda").json()
+    assert "gestopt" in call(c,"Laat maar",another["conversation_id"]).json()["message"]
+    assert len(app.state.automation.store.items())==1
+
+
+def test_unrelated_turn_cannot_revive_an_old_write_clarification(tools_chat):
+    app,c,router=tools_chat;router.plans=[{"clarification":"Wanneer?"}]
+    first=call(c,"Maak een afspraak in mijn agenda").json()
+    call(c,"Hallo",first["conversation_id"])
+    result=call(c,"Ja",first["conversation_id"]).json()
+    assert "Herhaal de volledige" in result["message"] and not app.state.automation.store.items()
+
+
+def test_model_cannot_invent_missing_calendar_times(tools_chat):
+    app,c,router=tools_chat
+    router.plans=[{"tool":"CalendarCreate","input":{"summary":"test","start":"2030-01-01T11:00:00+01:00","end":"2030-01-01T12:00:00+01:00"}}]
+    result=call(c,"Maak een afspraak in mijn agenda met titel test").json()
+    assert "van hoe laat" in result["message"] and not app.state.automation.store.items()
+
+
+def test_multiple_proposals_require_selection_and_full_preview(tools_chat):
+    app,c,router=tools_chat;first,row=create_proposal(tools_chat);_,other=create_proposal(tools_chat)
+    listed=call(c,"Toon mijn voorstellen").json()
+    assert row["id"] in listed["message"] and other["id"] in listed["message"]
+    result=call(c,"Goedkeuren",listed["conversation_id"]).json()
+    assert "bekijk het exacte" in result["message"]
+    selected=call(c,"Toon voorstel "+row["id"],listed["conversation_id"]).json()
+    assert "01-01-2030" in selected["message"]
+    assert all(x["status"]=="approval" for x in app.state.automation.store.items())
+
+
+def test_oversized_preview_cannot_be_approved_without_showing_full_content(tools_chat):
+    app,c,router=tools_chat;e=app.state.automation
+    principal=app.state.security.store.authenticate(c.cookies.get("jarvis_access"))
+    row=e.submit(principal.device_id,"EmailSend",{"draft_id":"synthetic","message_hash":"a"*64,"preview":"x"*18000},str(uuid4()))
+    first=call(c,"Toon mijn voorstellen").json()
+    assert "niet volledig" in first["message"]
+    call(c,"Goedkeuren",first["conversation_id"])
+    assert e.store.get(row["id"])["status"]=="approval"
+
+
+def test_calendar_delete_without_full_date_cannot_be_approved_from_incomplete_preview(tools_chat):
+    app,c,router=tools_chat;e=app.state.automation
+    principal=app.state.security.store.authenticate(c.cookies.get("jarvis_access"))
+    row=e.submit(principal.device_id,"CalendarDelete",{"event_id":"synthetic","etag":"version1","summary":"Hele dag"},str(uuid4()))
+    shown=call(c,"Toon mijn voorstellen").json()
+    assert "datum en tijd ontbreken" in shown["message"]
+    call(c,"Goedkeuren",shown["conversation_id"])
+    assert e.store.get(row["id"])["status"]=="approval"

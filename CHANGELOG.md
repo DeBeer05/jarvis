@@ -4,6 +4,12 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Agenda- en mailvoorstellen in dezelfde chat goedkeuren/weigeren, met volledige
+  serverpreview, actuele approverrechten en eenmalige payloadbinding. Verlopen,
+  gewijzigde of niet als laatste getoonde previews vragen opnieuw controle.
+  Ontbrekende afspraakgegevens blijven bij de oorspronkelijke vervolgvraag;
+  geen door het model verzonnen tijdstip. Geen nieuwe client of APK nodig.
+
 - Spraakagenda: ‘Wat stond er voor vandaag in mijn agenda?’ en vergelijkbare
   complete dagvragen halen rechtstreeks echte toolresultaten op, met dezelfde
   rechtencontrole. ‘En morgen?’ behoudt de gekozen agenda; geen willekeurige

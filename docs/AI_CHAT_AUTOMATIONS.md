@@ -39,10 +39,25 @@ automatisch. Alleen goedkeuren als het apparaat dat ook werkelijk nodig heeft.
 Google-consent en de apparaatrechten zijn twee afzonderlijke controles.
 
 Agenda aanmaken/wijzigen/verwijderen en e-mail verzenden leveren eerst een
-voorstel op. Open **Automatiseringen → Goedkeuringen**, controleer exacte inhoud,
-ontvangers en gevolgen en keur het daar goed. Een getypt of gesproken `ja` geeft
-geen goedkeuring. Een concept wordt wel in Gmail aangemaakt, maar niet verzonden.
+voorstel op. De chat toont titel, volledige datums/tijden, agenda, genodigden en
+gevolgen of de volledige e-mail. Controleer die en antwoord in hetzelfde gesprek
+**Goedkeuren** of **Weigeren**. Een getypt of gesproken `ja` geeft geen goedkeuring.
+**Automatiseringen → Goedkeuringen** blijft ook beschikbaar. Een concept wordt
+wel in Gmail aangemaakt, maar niet verzonden.
 Een opgeslagen taak is pas uitgevoerd wanneer de engine dit heeft bevestigd.
+
+Goedkeuren vereist het apparaatrecht `automation:approve` (**Goedkeuren** in de
+eigenaarinterface). Zonder dat recht worden geen rechten bijgegeven. De preview
+is vijf minuten geldig en moet het laatste antwoord zijn. Na een ander antwoord,
+wijziging of herstart toont JARVIS hem eerst opnieuw. `Toon mijn voorstellen`
+haalt openstaande voorstellen terug. Bij meerdere: `Toon voorstel VOORSTEL-ID`.
+Na goedkeuring kun je vragen: `Is het voorstel klaar?`. Alleen een bevestigde
+engine-uitvoering wordt als aangemaakt/verzonden/verwijderd gemeld.
+
+Bij een vraag naar ontbrekende afspraakgegevens kun je gewoon antwoorden met
+bijvoorbeeld `Maak hem morgen van 11 tot 12`. De oorspronkelijke opdracht blijft
+bij die vervolgvraag; `Laat maar` stopt het voorbereiden. Een ontbrekend tijdstip
+wordt niet namens jou gekozen.
 
 ## Gegevens en grenzen
 
