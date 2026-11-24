@@ -2,6 +2,15 @@
 
 ## Huidige opdracht
 
+Android adaptieve opname aangesloten op speculatieve STT: normale stilte start
+herkenning terwijl opname doorgaat; nieuwe spraak maakt het fragment ongeldig.
+Een geldige transcriptie wordt hergebruikt; voorlopige tekst voert niets uit.
+Pure Kotlin-beurttest toegevoegd. Unit/lint/debug-build geslaagd. Emulatorregressie
+geslaagd: 14 instrumented tests zonder fouten. Dit test de bestaande gespreksflow,
+niet menselijke pauzes of akoestiek. Eerste apparaatrun stopgezet omdat een inmiddels aangesloten echte
+telefoon ook werd geselecteerd; herhaling expliciet met ANDROID_SERIAL=emulator-5556.
+Geen geslaagde hardwareacceptatie geclaimd. Fase 7.5 blijft in uitvoering.
+
 Windows adaptieve beurtanalyse uitgebreid: tijdens de normale stilte begint
 speculatieve STT terwijl de microfoon blijft opnemen. Een complete uitspraak
 kan eerder afronden; onafgemaakte tekst wacht tot de maximale denkpauze. Nieuwe

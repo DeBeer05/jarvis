@@ -9,6 +9,10 @@ import android.media.audiofx.NoiseSuppressor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.ByteArrayOutputStream
@@ -52,6 +56,9 @@ open class AudioClient(private val context: Context) {
     @Volatile var noiseActive=false;private set
     var focusLost:(()->Unit)?=null
     var playbackStarted:(()->Unit)?=null
+    var turnRecognizer:(suspend(ByteArray)->String)?=null
+    var normalSilenceMs=900
+    @Volatile var lastTranscript:String?=null;private set
     open fun supportsBargeIn()=AcousticEchoCanceler.isAvailable()
     open fun echoReady()=echoActive
     open fun pausePlayback() {paused.set(true);try{track?.pause()}catch(_:IllegalStateException){}}
@@ -81,6 +88,9 @@ open class AudioClient(private val context: Context) {
             .map { it.id to it.productName.toString() }
     }
     open suspend fun record(device: Int,threshold: Float=.015f,silenceMs: Int=1200,maximumSeconds: Int=60,echo: Boolean=false,noise: Boolean=false,level: (Float) -> Unit): ByteArray = recordLock.withLock {withContext(Dispatchers.IO) {
+        val recognize=turnRecognizer;val normal=normalSilenceMs.coerceIn(200,silenceMs.coerceAtLeast(200))
+        lastTranscript=null
+        var revision=0;var tried=-1;var pendingRevision=-1;var pending:Deferred<String?>?=null
         check(context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) { "Microfoontoestemming nodig" }
         val minimum = AudioRecord.getMinBufferSize(16000, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
         check(minimum > 0) { "Microfoonformaat niet ondersteund" }
@@ -101,14 +111,29 @@ open class AudioClient(private val context: Context) {
                 var energy=0.0;for(index in 0 until read) {val sample=block[index].toDouble()/32768;energy+=sample*sample}
                 val rms = sqrt(energy/read).toFloat()
                 level((rms * 8).coerceIn(0f, 1f))
-                if (rms > threshold.coerceIn(.001f,.2f)) { speech += read; quiet = 0 } else quiet += read
+                if (rms > threshold.coerceIn(.001f,.2f)) { speech += read; quiet = 0;revision++ } else quiet += read
                 val bytes = ByteBuffer.allocate(read * 2).order(ByteOrder.LITTLE_ENDIAN)
                 repeat(read) { bytes.putShort(block[it]) }; data.write(bytes.array()); count += read
+                if(recognize!=null && speech>=3360 && quiet>=16*normal && tried!=revision && pending?.isActive!=true) {
+                    val snapshot=Wav.encode(data.toByteArray());tried=revision;pendingRevision=revision
+                    pending=CoroutineScope(coroutineContext).async(Dispatchers.IO) {
+                        try {recognize(snapshot)}catch(cancel:CancellationException){throw cancel}catch(_:Exception){null}
+                    }
+                }
+                if(pending?.isCompleted==true && pendingRevision==revision && quiet>=16*normal) {
+                    val text=pending.await()
+                    if(text!=null && TurnBoundary.complete(text))break
+                }
                 if ((speech >= 3360 && quiet >= 16*silenceMs.coerceIn(200,8000)) || (speech < 3360 && count >= 96000)) break
             }
+            // Close the microphone before waiting for the final speculative result.
+            try {input.stop()}catch(_:IllegalStateException){}
+            val partial=pending?.await()
+            if(pendingRevision==revision)lastTranscript=partial
             if (speech < 3360) byteArrayOf() else Wav.encode(data.toByteArray())
         } finally {
             recording.set(false); recorder = null
+            pending?.cancel()
             try { input.stop() } catch (_: IllegalStateException) { /* already stopped */ }
             input.release(); data.reset(); level(0f)
             aec?.release();suppression?.release();echoActive=false;noiseActive=false
