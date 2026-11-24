@@ -20,7 +20,8 @@ def resident_bytes(pid):
         class Counters(ctypes.Structure):
             _fields_=[("cb",wintypes.DWORD),("PageFaultCount",wintypes.DWORD),
                 *[(key,ctypes.c_size_t) for key in ("PeakWorkingSetSize","WorkingSetSize","QuotaPeakPagedPoolUsage","QuotaPagedPoolUsage","QuotaPeakNonPagedPoolUsage","QuotaNonPagedPoolUsage","PagefileUsage","PeakPagefileUsage")]]
-        kernel=ctypes.WinDLL("kernel32",use_last_error=True);api=ctypes.WinDLL("psapi",use_last_error=True)
+        windows_library=getattr(ctypes,"WinDLL")
+        kernel=windows_library("kernel32",use_last_error=True);api=windows_library("psapi",use_last_error=True)
         kernel.OpenProcess.restype=wintypes.HANDLE
         kernel.OpenProcess.argtypes=[wintypes.DWORD,wintypes.BOOL,wintypes.DWORD]
         kernel.CloseHandle.argtypes=[wintypes.HANDLE]

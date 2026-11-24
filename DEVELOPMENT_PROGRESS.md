@@ -172,6 +172,12 @@ over Actionsblokkade is daarmee achterhaald; nieuwe commits krijgen nieuwe check
 Nog in uitvoering: overige runtime-instellingen/bewaarbeleid, rijkere geheugen-
 en taakflows, adaptieve beurtanalyse, definitieve builds/documentatie/hardwareacceptatie.
 
+CI voor 3e8f0dc: Windows-server, Windows-build, Android en structuurchecks geslaagd.
+Linux stopte bij mypy: ctypes.WinDLL bestaat niet in Linux-typestubs, hoewel de
+uitvoering al door os.name wordt afgeschermd. Windows-only loader wordt nu pas
+binnen die platformtak opgezocht. Zowel Linux- als Windows-typeprofiel lokaal
+gecontroleerd; nieuwe remote run volgt. Geen applicatie- of beveiligingscheck omzeild.
+
 ### Eén gesproken ja voor mail en agenda — 24 november 2026
 
 Nieuwe expliciete opdracht vervangt de eerdere beperking op een korte ja:
