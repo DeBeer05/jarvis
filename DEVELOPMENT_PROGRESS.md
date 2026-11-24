@@ -2,6 +2,16 @@
 
 ## Huidige opdracht
 
+Meldingsvoorkeuren aangesloten op nieuwe automatiseringsmeldingen: aan/uit,
+rustige uren/tijdzone en uitschakelen/begrenzen van proactieve suggesties.
+Expliciete herinneringen blijven apart van proactiviteit; bestaande inboxberichten
+worden niet verwijderd. Jobgebonden meldingen vinden voorkeuren via het bestaande
+apparaat/gebruikersverband. Geen nieuwe pushdienst, accounttest of oproep.
+Volledige regressie **359 geslaagd**, 172,98 s; gerichte meldings-/automationtests
+25 geslaagd. Lint/typechecks, pip check en repositorycontrole geslaagd.
+Fase 7.5 blijft in uitvoering; overige instellingen, definitieve builds/installatie
+en echte microfoon-/echoacceptatie blijven open.
+
 Agenda-instellingen aangesloten op bestaande reschedule-analyse: gebruikersgebonden
 buffertijd, werkdagen/werktijden, alternatieven en naburige afspraken. De uitvoerder
 leest dezelfde voorkeuren; echte overlapcontrole en exacte approvals blijven intact.

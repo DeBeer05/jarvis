@@ -81,3 +81,10 @@ alternatieve tijden voor een verplaatsing. Alternatieven en naburige afspraken
 kunnen afzonderlijk worden getoond/uitgeschakeld. Een alternatief is een voorstel,
 geen automatisch uitgevoerde wijziging. De bestaande controle op overlappende
 afspraken vóór uitvoering blijft actief, evenals de exacte goedkeuring.
+
+Bij Meldingen sturen aan/uit, rustige uren en tijdzone het aanmaken/inplannen
+van nieuwe automatiseringsmeldingen. Proactiviteit uit en nul suggesties per uur
+onderdrukken automatische agenda-/mail-/follow-upmeldingen. Expliciet gevraagde
+herinneringen staan daar los van; de algemene meldingenschakelaar geldt wel.
+Eerder opgeslagen meldingen blijven in de bestaande inbox staan. Deze instelling
+verwijdert geen geschiedenis en verandert geen systeembeveiligingsmeldingen.

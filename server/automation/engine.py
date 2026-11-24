@@ -61,8 +61,22 @@ class ApprovalManager:
 
 class NotificationManager:
     def __init__(self, store): self.store=store
-    def send(self, category, text, key, job=None):
+    def send(self, category, text, key, job=None, *,device=None,proactive=False):
         now=self.store.clock(); rules=self.store.preference("notifications",{"quiet_start":22,"quiet_end":7,"max_hour":10,"categories":["urgent","appointments","important","news"],"timezone":"Europe/Amsterdam"})
+        preferences=None
+        with self.store.db() as db:
+            if device is None and job:
+                owner=db.execute("SELECT device_id FROM automation_jobs WHERE id=?",(job,)).fetchone()
+                device=owner["device_id"] if owner else None
+            if device:
+                saved=db.execute("SELECT s.payload FROM natural_settings s JOIN auth_devices d ON d.user_id=s.user_id WHERE d.id=? AND s.scope='user' AND s.device_id=''",(device,)).fetchone()
+                preferences=json.loads(saved["payload"]) if saved else None
+        if preferences:
+            notification=preferences["notifications"]
+            if not notification["enabled"] or proactive and (notification["proactivity"]=="off" or notification["suggestions_per_hour"]==0):return {"suppressed":True}
+            rules={**rules,"quiet_start":notification["quiet_start"],"quiet_end":notification["quiet_end"],"timezone":preferences["general"]["timezone"]}
+            if proactive:rules["max_hour"]=min(rules["max_hour"],notification["suggestions_per_hour"])
+        if rules["max_hour"]<=0:return {"suppressed":True}
         from zoneinfo import ZoneInfo
         hour=datetime.fromtimestamp(now,UTC).astimezone(ZoneInfo(rules["timezone"])).hour
         start,end=rules["quiet_start"],rules["quiet_end"]
@@ -133,7 +147,7 @@ class FollowUpManager:
                 continue
             new=[m for m in data.get("messages",[]) if m["id"] not in json.loads(row["baseline"]) and "SENT" not in m.get("labelIds",[]) and "DRAFT" not in m.get("labelIds",[])]
             # Replies never imply permission to change an event. The owner reviews them.
-            e.notifications.send("important","Er is een antwoord om te beoordelen." if new else "Nog geen antwoord op je verzoek.","followup:"+row["id"])
+            e.notifications.send("important","Er is een antwoord om te beoordelen." if new else "Nog geen antwoord op je verzoek.","followup:"+row["id"],device=row["device_id"],proactive=True)
             with e.store.db(True) as db:
                 db.execute("UPDATE automation_followups SET status=?,due=? WHERE id=?",("reply_review" if new else "waiting",e.store.clock()+86400,row["id"]))
                 db.execute("UPDATE automation_jobs SET status=?,result=? WHERE id=? AND tool='WaitForReply' AND status='waiting'",("completed" if new else "blocked",encode({"reply_requires_review":bool(new),"accepted":False}),row["id"]))
@@ -183,14 +197,14 @@ class ActionExecutor:
             events=data.get("items",[])
             previews=[str(item.get("start",{}).get("dateTime",item.get("start",{}).get("date","")))+" "+str(item.get("summary","Afspraak"))[:80] for item in events[:3]]
             text=(f"Je agenda bevat {len(events)} afspraken op {start.date()}. "+"; ".join(previews)+(" De lijst is mogelijk onvolledig." if data.get("nextPageToken") else ""))[:500]
-            return e.notifications.send("appointments",text,row["key"]+":"+str(row["due"]),row["id"])
+            return e.notifications.send("appointments",text,row["key"]+":"+str(row["due"]),row["id"],proactive=True)
         if tool=="EmailCheck":
             data=await e.integrations.mail_search(p["query"])
             for message in data.get("messages",[])[:30]:
                 mail=await e.integrations.mail_read(message["id"])
                 headers={h["name"].lower():h["value"] for h in mail.get("payload",{}).get("headers",[])}
                 priority=EmailPriorityClassifier().classify(headers.get("from",""),headers.get("subject",""),"unsubscribe" if "list-unsubscribe" in headers else "",e.store.preference("email_rules",{}))
-                if priority["priority"] in ("urgent","important"):e.notifications.send("important","Er is een mogelijk belangrijk bericht. Controleer je inbox.","mail:"+message["id"],row["id"])
+                if priority["priority"] in ("urgent","important"):e.notifications.send("important","Er is een mogelijk belangrijk bericht. Controleer je inbox.","mail:"+message["id"],row["id"],proactive=True)
             return {"checked":len(data.get("messages",[])),"urgency_verified":False}
         if tool=="WaitForReply":
             data=await e.integrations.api("gmail_read","/gmail/v1/users/me/threads/"+p["thread_id"],params={"format":"metadata"})
