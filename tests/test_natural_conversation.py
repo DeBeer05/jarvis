@@ -1,4 +1,8 @@
 from uuid import uuid4
+import asyncio
+from contextlib import aclosing,suppress
+from server.chat_service import Generation
+from server.natural.store import Conflict
 
 
 from server.natural.conversation import State,TRANSITIONS,is_ending
@@ -73,6 +77,76 @@ def test_client_cannot_claim_executing_state_or_foreign_conversation(natural):
     with app.state.natural.store.transaction(app.state.security.store.authenticate(c.cookies.get('jarvis_access')),write=True) as (db,user):
         db.execute('UPDATE natural_conversation_owners SET user_id=2 WHERE conversation_id=?',(session['conversation_id'],))
     assert c.get('/api/v1/natural/conversations/'+session['conversation_id']+'/state').status_code==400
+
+
+def test_takeover_releases_reserved_voice_turn_before_returning(natural):
+    app,c=natural
+    session=c.post('/api/v1/natural/conversations/start',json={}).json()
+    event(c,session,'listening');event(c,session,'processing')
+    principal=app.state.security.store.authenticate(c.cookies.get('jarvis_access'))
+    async def scenario():
+        run=await app.state.chat.prepare("Synthetisch",principal=principal,conversation_id=session['conversation_id'],channel='voice',session_epoch=session['epoch'])
+        taken=await app.state.natural.conversations.claim(principal,session['conversation_id'],takeover=True)
+        assert run.cancel.is_set() and not app.state.chat.busy(session['conversation_id'])
+        return taken
+    taken=c.portal.call(scenario)
+    assert taken['epoch']>session['epoch']
+    event(c,taken,'listening');event(c,taken,'processing')
+    reply=c.post('/api/v1/chat',json={'message':'Nieuwe beurt','channel':'voice','session_epoch':taken['epoch'],'conversation_id':taken['conversation_id']})
+    assert reply.status_code==200
+
+
+def test_takeover_waits_for_cleanup_without_holding_state_lock(natural):
+    app,c=natural;session=c.post('/api/v1/natural/conversations/start',json={}).json()
+    principal=app.state.security.store.authenticate(c.cookies.get('jarvis_access'))
+    async def scenario():
+        run=Generation('synthetic-cleanup',session['conversation_id'],'ollama','',principal=principal,channel='voice',session_epoch=session['epoch'],started=True)
+        app.state.chat.active[run.request_id]=run
+        async def cleanup():
+            await run.cancel.wait()
+            try:await app.state.natural.conversations.transition(principal,session['conversation_id'],State.LISTENING,session['epoch'])
+            except Conflict:pass
+            await asyncio.sleep(.05)
+            app.state.chat.active.pop(run.request_id,None)
+        pending=asyncio.create_task(cleanup())
+        taken=await asyncio.wait_for(app.state.natural.conversations.claim(principal,session['conversation_id'],takeover=True),2)
+        await pending
+        assert not app.state.chat.busy(session['conversation_id'])
+        return taken
+    assert c.portal.call(scenario)['epoch']>session['epoch']
+
+
+def test_repeated_disconnect_cannot_interrupt_final_cleanup(natural):
+    app,c=natural;session=c.post('/api/v1/natural/conversations/start',json={}).json()
+    event(c,session,'listening');event(c,session,'processing')
+    principal=app.state.security.store.authenticate(c.cookies.get('jarvis_access'))
+    async def scenario():
+        run=await app.state.chat.prepare('Synthetisch',principal=principal,conversation_id=session['conversation_id'],channel='voice',session_epoch=session['epoch'])
+        yielded=asyncio.Event();cleanup=asyncio.Event();release=asyncio.Event();never=asyncio.Event()
+        original=app.state.natural.phase
+        async def delayed_phase(current,target):
+            if target==State.LISTENING:
+                cleanup.set();await release.wait()
+            return await original(current,target)
+        app.state.natural.phase=delayed_phase
+        async def consume():
+            async with aclosing(app.state.chat.events(run)) as source:
+                async for item in source:
+                    if item['type']=='delta':yielded.set();await never.wait()
+        task=asyncio.create_task(consume())
+        try:
+            await asyncio.wait_for(yielded.wait(),2)
+            task.cancel();await asyncio.wait_for(cleanup.wait(),2)
+            task.cancel()
+            with suppress(asyncio.CancelledError):await task
+            release.set()
+            if app.state.chat.persistence_tasks:await asyncio.gather(*list(app.state.chat.persistence_tasks))
+            assert run.request_id not in app.state.chat.active
+            assert app.state.chat.store.get(run.conversation_id)['turns'][-1]['status']=='cancelled'
+        finally:
+            release.set();app.state.natural.phase=original
+            if not task.done():task.cancel()
+    c.portal.call(scenario)
 
 
 def test_ten_voice_turns_use_one_conversation_and_real_lifecycle(natural):

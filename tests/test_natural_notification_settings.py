@@ -25,3 +25,14 @@ def test_user_quiet_hours_and_timezone_are_used_for_delivery(automation):
     result=engine.notifications.send("important","Synthetic","quiet-local",device=principal.device_id)
     with engine.store.db() as db:row=db.execute("SELECT at FROM automation_notifications WHERE id=?",(result["notification_id"],)).fetchone()
     assert row["at"]==datetime(2030,1,2,6,0,tzinfo=UTC).timestamp()
+
+
+def test_proactivity_profiles_change_default_frequency_and_keep_custom_limits(automation):
+    app,c,engine=automation
+    patch(c,"notifications",{"proactivity":"minimal"})
+    assert c.get("/api/v1/natural/settings").json()["settings"]["notifications"]["suggestions_per_hour"]==1
+    patch(c,"notifications",{"proactivity":"proactive"})
+    assert c.get("/api/v1/natural/settings").json()["settings"]["notifications"]["suggestions_per_hour"]==5
+    patch(c,"notifications",{"proactivity":"very_proactive","suggestions_per_hour":2})
+    patch(c,"notifications",{"proactivity":"normal"})
+    assert c.get("/api/v1/natural/settings").json()["settings"]["notifications"]["suggestions_per_hour"]==2

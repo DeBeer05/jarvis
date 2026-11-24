@@ -14,6 +14,9 @@ import json
 import uuid
 from server.natural.store import encode
 
+CAPABILITIES=re.compile(r"(?:jarvis[, ]+)?(?:wat (?:kan|kun) (?:je|jij|u)(?: allemaal)?(?: voor (?:me|mij))?(?: doen)?|wat zijn (?:je|jouw) (?:functies|mogelijkheden))[?.!]*",re.I)
+OPEN_TASKS=re.compile(r"(?:jarvis[, ]+)?(?:welke taken staan (?:er )?nog open|wat zijn mijn openstaande taken|toon mijn openstaande taken)[?.!]*",re.I)
+
 
 class NaturalService:
     def __init__(self,database,security,chat,automation):
@@ -66,7 +69,19 @@ class NaturalService:
     def command(self,run):
         """Explicit memory commands are executed locally, never by generated code."""
         message=run.message.strip();config=run.natural_context["settings"]
-        if re.fullmatch(r"(?:jarvis[, ]+)?(?:welke taken staan (?:er )?nog open|wat zijn mijn openstaande taken|toon mijn openstaande taken)[?.!]*",message,re.I):
+        if CAPABILITIES.fullmatch(message):
+            features=self.automation.integrations.status().get("features",[])
+            permissions=run.principal.permissions
+            abilities=["met je praten en vragen beantwoorden"]
+            if config["memory"]["long_term"]:abilities.append("op jouw verzoek voorkeuren onthouden en vergeten")
+            if "automation:read" in permissions:
+                if "calendar_read" in features:abilities.append("je agenda opvragen")
+                if "gmail_read" in features:abilities.append("e-mails zoeken en op verzoek lezen")
+            if "automation:write" in permissions and config["autonomy"]["profile"]!="read_propose":
+                if "calendar_write" in features:abilities.append("afspraken voorbereiden")
+                if "gmail_compose" in features:abilities.append("mailconcepten voorbereiden")
+            return "Ik kan "+", ".join(abilities)+". Agenda wijzigen of een mail versturen gebeurt alleen na het volledige voorstel en jouw goedkeuring. Je kunt bijvoorbeeld zeggen: ‘Ik wil een afspraak maken’, en daarna de gegevens aanvullen."
+        if OPEN_TASKS.fullmatch(message):
             self.automation.permissions.check(run.principal.device_id,"automation:read")
             with self.store.transaction(run.principal) as (db,user):
                 rows=db.execute("SELECT j.id,j.tool,j.status FROM automation_jobs j JOIN auth_devices d ON d.id=j.device_id WHERE d.user_id=? AND j.status IN ('approval','queued','waiting','paused','blocked','uncertain') ORDER BY j.updated DESC LIMIT 21",(user,)).fetchall()
@@ -157,4 +172,4 @@ class NaturalService:
 
     @staticmethod
     def is_command(run):
-        return bool(re.match(r"^(?:jarvis[, ]+)?(?:onthou(?:d)?\b|vergeet\b|wat (?:weet|onthoud) je (?:nog )?(?:over|van) mij[?.!]*$)",run.message.strip(),re.I))
+        return bool(CAPABILITIES.fullmatch(run.message.strip()) or OPEN_TASKS.fullmatch(run.message.strip()) or re.match(r"^(?:jarvis[, ]+)?(?:onthou(?:d)?\b|vergeet\b|wat (?:weet|onthoud) je (?:nog )?(?:over|van) mij[?.!]*$)",run.message.strip(),re.I))

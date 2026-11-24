@@ -47,3 +47,57 @@ def test_task_resume_can_be_disabled(settings):
         principal=app.state.security.store.authenticate(c.cookies.get("jarvis_access"))
         run=Generation("synthetic",first["conversation_id"],"ollama","",principal=principal)
         assert app.state.natural.tasks.load(run)=={}
+
+
+def test_slot_questions_follow_user_policy_and_configured_timezone(settings):
+    router=PlannedRouter(settings);app=create_app(settings,ai_router=router)
+    with client(app) as c:
+        c.portal.call(app.state.automation.scheduler.stop)
+        assert c.patch("/api/v1/natural/settings/tasks",json={"revision":0,"changes":{"combine_questions":False}}).status_code==200
+        assert c.patch("/api/v1/natural/settings/general",json={"revision":1,"changes":{"timezone":"Asia/Tokyo"}}).status_code==200
+        router.plans=[{"clarification":"Wanneer wil je afspreken?"}]
+        response=c.post("/api/v1/chat",json={"message":"Maak een afspraak met Noah","provider":"ollama"}).json()
+        assert response["status"]=="completed"
+        system=router.planning_calls[-1][0][0]["content"]
+        assert "uitsluitend één noodzakelijk ontbrekend gegeven" in system and "+09:00" in system
+
+
+def test_calendar_results_are_displayed_in_configured_timezone(settings):
+    router=PlannedRouter(settings);app=create_app(settings,ai_router=router)
+    with client(app) as c:
+        c.portal.call(app.state.automation.scheduler.stop)
+        assert c.patch("/api/v1/natural/settings/general",json={"revision":0,"changes":{"timezone":"Asia/Tokyo"}}).status_code==200
+        async def events(_):return {"items":[{"id":"synthetic","summary":"Test","start":{"dateTime":"2030-01-01T12:00:00+00:00"},"end":{"dateTime":"2030-01-01T13:00:00+00:00"}}]}
+        app.state.automation.integrations.events=events
+        result=c.post("/api/v1/chat",json={"message":"Wat staat er morgen in mijn agenda?","provider":"ollama"}).json()
+        assert result["status"]=="completed" and "01-01 21:00" in result["message"] and "01-01 22:00" in result["message"]
+
+
+def test_natural_create_and_free_form_title_keep_all_previous_slots(settings):
+    router=PlannedRouter(settings);app=create_app(settings,ai_router=router)
+    with client(app) as c:
+        c.portal.call(app.state.automation.scheduler.stop)
+        router.plans=[{"clarification":"Wat is de titel?"}]
+        first=c.post("/api/v1/chat",json={"message":"Ik wil morgen om drie uur een afspraak maken","provider":"ollama"}).json()
+        cid=first["conversation_id"]
+        router.plans=[{"clarification":"Hoe lang duurt de afspraak?"}]
+        title=c.post("/api/v1/chat",json={"message":"Bioscoop met Noah","conversation_id":cid,"provider":"ollama"}).json()
+        assert title["status"]=="completed" and "Hoe lang" in title["message"]
+        router.plans=[{"tool":"CalendarCreate","input":{"summary":"Bioscoop met Noah"}}]
+        result=c.post("/api/v1/chat",json={"message":"Twee uur","conversation_id":cid,"provider":"ollama"}).json()
+        assert result["status"]=="completed" and "Voorstel-ID" in result["message"]
+        instruction=router.planning_calls[-1][0][-1]["content"]
+        assert all(text in instruction for text in ("morgen om drie uur","Bioscoop met Noah","Twee uur"))
+        jobs=app.state.automation.store.items()
+        assert len(jobs)==1 and jobs[0]["tool"]=="CalendarCreate" and jobs[0]["status"]=="approval"
+
+
+def test_capabilities_are_server_facts_and_open_tasks_use_local_route(settings):
+    router=PlannedRouter(settings);app=create_app(settings,ai_router=router)
+    app.state.automation.integrations.status=lambda:{"connected":True,"features":["calendar_read","calendar_write","gmail_read","gmail_compose"]}
+    with client(app) as c:
+        response=c.post("/api/v1/chat",json={"message":"Wat kan je allemaal doen?","provider":"ollama"}).json()
+        assert response["status"]=="completed" and "je agenda opvragen" in response["message"] and "afspraken voorbereiden" in response["message"]
+        assert not router.planning_calls
+        tasks=c.post("/api/v1/chat",json={"message":"Welke taken staan nog open?","provider":"ollama"}).json()
+        assert "geen openstaande" in tasks["message"] and not router.planning_calls

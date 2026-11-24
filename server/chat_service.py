@@ -205,12 +205,31 @@ class ChatService:
             logger.warning("chat_timeout")
         except (asyncio.CancelledError, GeneratorExit):
             run.status = "cancelled"
+            run.cancel.set()
             raise
         except Exception as error:
             run.status = "error"
             run.error = {"code": "internal_error", "message": "Het antwoord kon niet worden verwerkt."}
             logger.error("chat_failed", extra={"error_type": type(error).__name__})
         finally:
+            # HTTP/AnyIO cancellation can be delivered repeatedly, including
+            # during a finally block. Own the complete cleanup in a separate
+            # task so a second disconnect cannot leave a permanent busy entry.
+            cleanup=asyncio.create_task(self._finalize(run,pending,cancellation))
+            self.persistence_tasks.add(cleanup)
+            def completed(task):
+                self.persistence_tasks.discard(task)
+                if not task.cancelled() and task.exception():
+                    logger.error("chat_cleanup_failed",extra={"error_type":type(task.exception()).__name__})
+            cleanup.add_done_callback(completed)
+            try:await asyncio.shield(cleanup)
+            except asyncio.CancelledError:pass
+        if run.error:
+            yield {"type": "error", **run.error}
+        yield {"type": "done", **run.public()}
+
+    async def _finalize(self,run,pending,cancellation):
+        try:
             if self.natural and run.session_epoch is not None:
                 try:
                     target=run.wait_state if run.status=="completed" and run.wait_state else State.ERROR if run.status=="error" else State.LISTENING if run.status=="cancelled" else None
@@ -227,22 +246,13 @@ class ChatService:
             with suppress(asyncio.CancelledError):
                 await cancellation
             run.text = self.store.clean(run.text)
-            persistence = asyncio.create_task(asyncio.to_thread(
+            await asyncio.to_thread(
                 self.store.finish, run.request_id, run.text if run.persist_history else "", run.provider, run.model,
                 run.status, run.error["code"] if run.error else None,
-            ))
-            self.persistence_tasks.add(persistence)
-            persistence.add_done_callback(self.persistence_tasks.discard)
-            try:
-                await asyncio.shield(persistence)
-            except asyncio.CancelledError:
-                # Shielded database cleanup continues even after an HTTP disconnect.
-                pass
-            finally:
-                if self.natural and run.principal and run.natural_context and run.status in ("completed","cancelled"):
-                    try:await asyncio.to_thread(self.natural.context.complete,run)
-                    except Exception:logger.debug("private_context_unavailable")
-                self.active.pop(run.request_id, None)
+            )
+            if self.natural and run.principal and run.natural_context and run.status in ("completed","cancelled"):
+                try:await asyncio.to_thread(self.natural.context.complete,run)
+                except Exception:logger.debug("private_context_unavailable")
             if self.natural and run.principal and run.status=="completed":
                 try:
                     await asyncio.to_thread(self.natural.automatic_memory,run)
@@ -252,9 +262,8 @@ class ChatService:
             if self.natural and run.principal:
                 try:await asyncio.to_thread(self.natural.diagnostics.response,run)
                 except Exception:logger.debug("diagnostics_unavailable")
-        if run.error:
-            yield {"type": "error", **run.error}
-        yield {"type": "done", **run.public()}
+        finally:
+            self.active.pop(run.request_id,None)
 
     def cancel(self, request_id: str) -> bool:
         run = self.active.get(request_id)

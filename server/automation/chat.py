@@ -77,11 +77,34 @@ class AutomationChat:
         if re.match(r"\s*(wat (is|betekent)|hoe werkt|leg (me |mij )?uit|kun je uitleggen)\b",run.message,re.I):
             return False
         memory=self.memory(run)
+        if self.slot_answer(run,memory):return True
         if (memory.get("pending") or memory.get("decision")) and self.approvals.is_answer(run.message):return True
         if memory.get("pending") and re.match(r"\s*(?:nee[, ]+toch|pas eerst|toch maar|verander)\b",run.message,re.I):return True
         if memory.get("write_question") and (CONTINUE_WRITE.match(run.message) or re.fullmatch(r"\s*(nee|laat maar|annuleer)[.!\s]*",run.message,re.I)):return True
         day_followup=memory.get("recent")==[{"kind":"events"}] and re.fullmatch(r"\s*(?:en\s+)?(?:vandaag|morgen|overmorgen)(?:\s+dan)?\s*[?.!]*",run.message,re.I)
         return bool(TOPIC.search(run.message) or day_followup or memory.get("read_question") or (REFERENCE.search(run.message) and memory))
+
+    def task_question(self,memory):
+        if memory.get("write_question"):return memory["write_question"][0]
+        # Repair older task checkpoints misclassified as read questions because
+        # natural Dutch infinitives were not recognized as write intent.
+        old=memory.get("read_question",[{}])[0] if memory.get("read_question") else {}
+        if any(self.write_intent(tool,old.get("instruction","")) for tool in TOOLS-READ):
+            return {"instruction":old["instruction"],"question_hash":fingerprint(self.clean(old.get("question","")))}
+        return None
+
+    def slot_answer(self,run,memory):
+        question=self.task_question(memory)
+        if not question:return False
+        if CONTINUE_WRITE.match(run.message):return True
+        current={tool for tool in TOOLS-READ if self.write_intent(tool,run.message)}
+        original={tool for tool in TOOLS-READ if self.write_intent(tool,question["instruction"])}
+        if current:return bool(current & original)
+        previous=run.history[-1] if run.history else {}
+        if fingerprint(previous.get("content",""))!=question.get("question_hash"):return False
+        # Plain titles, people and descriptions are valid slot answers. Keep
+        # unrelated questions and explicit read requests on their own route.
+        return not re.match(r"\s*(?:wat (?:is|betekent)|hoe (?:werkt|kan)|leg\b|vertel\b|toon\b|lees\b|zoek\b|hallo\b|hoi\b)",run.message,re.I)
 
     def guard(self, run, permission):
         if run.cancel.is_set():
@@ -95,11 +118,11 @@ class AutomationChat:
         """Independent of model output and external content. No action from a read request."""
         text = re.sub(r'"[^"\n]*"|“[^”\n]*”|```[\s\S]*?```', "", message).partition("\n")[0].casefold()
         patterns = {
-            "CalendarCreate": r"\b(maak|plan|boek|voeg|zet|create|schedule)\b",
+            "CalendarCreate": r"\b(maak|maken|aanmaken|plan|plannen|inplannen|boek|boeken|voeg|toevoegen|zet|zetten|create|schedule)\b",
             "CalendarUpdate": r"\b(verzet\w*|verschuif\w*|wijzig\w*|verplaats\w*|update|reschedule)\b",
             "CalendarDelete": r"\b(verwijder\w*|annuleer\w*|schrap\w*|delete|cancel)\b",
-            "EmailDraft": r"\b(maak\w*|concept\w*|schrijf\w*|antwoord\w*|stuur\w*|verstuur\w*|verzend\w*|draft|reply)\b|\bstel\b.*\bop\b",
-            "EmailSend": r"\b(stuur\w*|verstuur\w*|verzend\w*|send)\b",
+            "EmailDraft": r"\b(maak\w*|maken|concept\w*|schrijf\w*|schrijven|antwoord\w*|stuur\w*|sturen|verstuur\w*|versturen|verzend\w*|draft|reply)\b|\bstel\b.*\bop\b",
+            "EmailSend": r"\b(stuur\w*|sturen|verstuur\w*|versturen|verzend\w*|send)\b",
             "ReminderCreate": r"\bherinner\w*\s+(me|mij|ons)\b|\b(maak|plan|zet)\b.*\bherinnering\w*\b|\bremind me\b",
             "ReminderCancel": r"\b(verwijder\w*|annuleer\w*|schrap\w*|stop|cancel)\b",
             "NotificationSend": r"\b(stuur|maak|geef|toon|plan)\b.*\b(melding\w*|notificatie\w*|notification)\b",
@@ -128,7 +151,8 @@ class AutomationChat:
         if run.allowed_tools is not None:eligible.intersection_update(run.allowed_tools)
         schemas = {name:REGISTRY[name][0].model_json_schema() for name in sorted(eligible)}
         if "EmailSend" in schemas:schemas["EmailSend"]={"type":"object","properties":{"draft_id":{"type":"string"}},"required":["draft_id"],"additionalProperties":False}
-        now = datetime.now(ZoneInfo("Europe/Amsterdam")).isoformat()
+        config=run.natural_context["settings"] if run.natural_context else {}
+        now = datetime.now(ZoneInfo(config.get("general",{}).get("timezone","Europe/Amsterdam"))).isoformat()
         system = (
             "Je bent de toolplanner van JARVIS. Geef uitsluitend één JSON-object: "
             '{"tool":"naam","input":{...}}, {"clarification":"gerichte vraag"}, of {"chat":true} voor gewone uitleg zonder persoonlijke gegevens. '
@@ -145,6 +169,8 @@ class AutomationChat:
             "ReminderCreate plant de herinnering, niet NotificationSend. Herhaal een completed tool niet. "
             f"Nu: {now}. Standaardtijdzone Europe/Amsterdam. Schemas: " + encode(schemas)
         )
+        system+=(" Combineer noodzakelijke ontbrekende gegevens in één gerichte vraag." if config.get("tasks",{}).get("combine_questions",True)
+            else " Vraag per beurt uitsluitend één noodzakelijk ontbrekend gegeven; bewaar alle al bekende gegevens.")
         visible={}
         for key,values in observations.items():
             if key=="events":
@@ -243,6 +269,10 @@ class AutomationChat:
 
     async def answer(self, run):
         observations = dict(self.memory(run))
+        question=self.task_question(observations)
+        if question and not observations.get("write_question"):
+            observations["write_question"]=[question];observations.pop("read_question",None)
+            self.remember(run,"write_question",[question]);self.remember(run,"read_question",[])
         if REPLY_STATUS.fullmatch(run.message):return await self.reply_status(run,observations),None
         completed = []
         last_result = ""
@@ -270,7 +300,7 @@ class AutomationChat:
             if re.fullmatch(r"\s*(nee|laat maar|annuleer)[.!\s]*",run.message,re.I):
                 self.remember(run,"write_question",[])
                 return "Het voorbereiden is gestopt. Er is niets uitgevoerd.",None
-            if CONTINUE_WRITE.match(run.message):
+            if self.slot_answer(run,observations):
                 previous=run.history[-1] if run.history else {}
                 if fingerprint(previous.get("content",""))!=observations["write_question"][0].get("question_hash") and self.approvals.is_answer(run.message):
                     self.remember(run,"write_question",[])
@@ -442,7 +472,8 @@ class AutomationChat:
             self.guard(run,"automation:read")
             self.remember(run,"events",events)
             self.remember(run,"calendar_query",[payload])
-            lines = [f"{i+1}. {item.get('summary','Afspraak')} — {self.when(item.get('start',{}))} tot {self.when(item.get('end',{}))}" for i,item in enumerate(events)]
+            zone=run.natural_context["settings"]["general"]["timezone"] if run.natural_context else "Europe/Amsterdam"
+            lines = [f"{i+1}. {item.get('summary','Afspraak')} — {self.when(item.get('start',{}),zone)} tot {self.when(item.get('end',{}),zone)}" for i,item in enumerate(events)]
             text = "Je agenda:\n"+"\n".join(lines) if lines else "Je hebt geen afspraken in de opgevraagde agenda en periode."
             if data.get("nextPageToken") or len(data.get("items",[])) > 20:
                 text += "\nDit zijn de eerste resultaten. Kies een kortere periode voor een volledig overzicht."
@@ -581,9 +612,9 @@ class AutomationChat:
         return f"Taak opgeslagen bij Automatiseringen: {tool}, status {row['status']}. Uitvoering is nog niet bevestigd."
 
     @staticmethod
-    def when(value):
+    def when(value,zone="Europe/Amsterdam"):
         if value.get("dateTime"):
-            return datetime.fromisoformat(value["dateTime"]).astimezone(ZoneInfo("Europe/Amsterdam")).strftime("%d-%m %H:%M")
+            return datetime.fromisoformat(value["dateTime"]).astimezone(ZoneInfo(zone)).strftime("%d-%m %H:%M")
         return value.get("date", "onbekend tijdstip")+" (hele dag)"
 
     @classmethod

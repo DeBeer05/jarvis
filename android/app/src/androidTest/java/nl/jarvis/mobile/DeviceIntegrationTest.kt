@@ -283,6 +283,60 @@ class DeviceIntegrationTest {
         // Emulator host audio is disabled: capture tests driver lifecycle, not user's voice.
         api.json("/api/v1/auth/disconnect","POST");api.forget()
     }
+    @Test fun alreadyEndedAudioLeaseDoesNotBlockTextOrExplicitTakeover() = runBlocking {
+        val api=api();pair(api)
+        val scope=CoroutineScope(SupervisorJob()+Dispatchers.Default)
+        val failures=java.util.concurrent.atomic.AtomicInteger()
+        val session=ConversationSession(scope,{api},{true},{failures.incrementAndGet()},{})
+        try {
+            val first=session.prepare(null,processing=false)
+            api.json("/api/v1/natural/conversations/${first.conversation}/events","POST",JSONObject().put("event","ending").put("epoch",first.epoch))
+            // A late close receives 409, but the lease is already inactive.
+            session.endBeforeText()
+            val chat=api.json("/api/v1/chat","POST",JSONObject().put("message","Hallo").put("provider","ollama"))
+            assertEquals("completed",chat.getString("status"))
+            val again=session.prepare(first.conversation,takeover=true,processing=false)
+            assertEquals(first.conversation,again.conversation)
+            assertEquals("LISTENING",again.state)
+            val otherLease=api.json("/api/v1/natural/conversations/start","POST",JSONObject().put("conversation_id",first.conversation).put("takeover",true))
+            try {session.endBeforeText();fail("An active superseding lease must require explicit takeover")}
+            catch(error:MobileError){assertEquals(409,error.status)}
+            assertEquals(otherLease.getInt("epoch"),api.json("/api/v1/natural/conversations/${first.conversation}/state").getInt("epoch"))
+            assertEquals("LISTENING",session.prepare(first.conversation,takeover=true,processing=false).state)
+            assertEquals(0,failures.get())
+        } finally {session.end();scope.cancel()}
+    }
+
+    @Test fun repeatedNativeTakeoverAndStopKeepOneConversationUsable() = runBlocking {
+        val api=api();pair(api)
+        val application=context.applicationContext as JarvisApplication
+        val original=application.graph.settings.values.first()
+        val recordings=java.util.concurrent.atomic.AtomicInteger()
+        val fake=object:AudioClient(context) {
+            override suspend fun record(device:Int,threshold:Float,silenceMs:Int,maximumSeconds:Int,echo:Boolean,noise:Boolean,level:(Float)->Unit):ByteArray {
+                recordings.incrementAndGet();level(.3f);awaitCancellation()
+            }
+        }
+        val store=androidx.lifecycle.ViewModelStore()
+        val model=withContext(Dispatchers.Main){nl.jarvis.mobile.features.JarvisViewModel(application,fake).also{store.put("takeover-recovery",it)}}
+        try {
+            application.graph.settings.save(original.copy(origin="http://127.0.0.1:8765",voiceOutput=false,automatic=false))
+            withContext(Dispatchers.Main){model.active(true)}
+            withTimeout(15000){model.state.first{it.connection.authenticated&&it.naturalSettings.isNotBlank()}}
+            var conversation:String?=null
+            repeat(5) {round->
+                withContext(Dispatchers.Main){model.takeOverConversation()}
+                val state=withTimeout(10000){model.state.first{it.recording&&it.conversationState=="LISTENING"&&recordings.get()>round&&it.error.isBlank()}}
+                if(conversation==null)conversation=state.conversation else assertEquals(conversation,state.conversation)
+                delay(100);assertTrue(model.state.value.recording);assertTrue(model.state.value.error.isBlank())
+                withContext(Dispatchers.Main){model.stop()}
+            }
+        } finally {
+            withContext(Dispatchers.Main){model.active(false);store.clear()}
+            application.graph.settings.save(original)
+        }
+    }
+
     @Test fun notificationChannelsAreRealAndPrivate() {
         Notifications(context).channels()
         val manager=context.getSystemService(NotificationManager::class.java)

@@ -115,6 +115,7 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
         if(responseFinished)lastVoice=System.nanoTime()
         followupJob?.cancel()
         if(!foreground || !voiceConversationActive)return
+        val epoch=generation
         followupJob=viewModelScope.launch {try {
             if(naturalEnabled())conversationSession.listening()
             val config=naturalVoice() ?: return@launch
@@ -125,7 +126,7 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
             }
             delay(450)
             if(foreground&&voiceConversationActive)captureVoice(false)
-        } catch(error:Exception){voiceProblem(error)}}
+        } catch(error:Exception){if(epoch==generation)voiceProblem(error)}}
     }
     init {
         audio.focusLost={viewModelScope.launch {stop();message("Audiofocus verloren; de microfoon en spraak zijn gestopt")}}
@@ -423,10 +424,11 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
         if(!foreground||!mutable.value.connection.authenticated)return message("Open de app en log in voordat je een gesprek overneemt")
         if(mutable.value.busy)return
         cancelTurn(false);val epoch=generation
+        mutable.update {it.copy(busy=true,error="",voiceStatus="Gesprek overnemen…")}
         audioJob=viewModelScope.launch {try {
             val lease=conversationSession.prepare(mutable.value.conversation,true);conversationSession.listening()
-            if(epoch==generation) {mutable.update {it.copy(conversation=lease.conversation)};activateVoice();audioJob=null;captureVoice(false)}
-        }catch(error:Exception){voiceProblem(error)}}
+            if(epoch==generation) {mutable.update {it.copy(conversation=lease.conversation,error="",busy=false)};activateVoice();audioJob=null;captureVoice(false)}
+        }catch(error:Exception){if(epoch==generation)voiceProblem(error)}}
     }
     fun sample() {
         if (!mutable.value.connection.authenticated) return message("Log eerst in")

@@ -4,7 +4,7 @@ import re
 import uuid
 from enum import StrEnum
 
-from server.chat_store import now as chat_time
+from server.chat_store import now as chat_time,ChatError
 from server.natural.store import Conflict
 
 
@@ -91,8 +91,20 @@ class NaturalConversationManager:
             # Superseded voice generations cannot survive a new lease. Durable
             # tasks are independent; a text generation only stops on explicit takeover.
             for run in list(self.chat.active.values()):
-                if run.conversation_id==snapshot["conversation_id"] and (takeover or run.session_epoch is not None):run.cancel.set()
-            return snapshot
+                if run.conversation_id==snapshot["conversation_id"] and (takeover or run.session_epoch is not None):
+                    run.cancel.set()
+                    if not run.started:self.chat.expire(run)
+        # Cleanup can itself need the mutation lock. Never hold it while waiting
+        # for the previous generation to release the conversation admission slot.
+        deadline=asyncio.get_running_loop().time()+8
+        while self.chat.busy(snapshot["conversation_id"]):
+            if asyncio.get_running_loop().time()>=deadline:
+                raise ChatError("conversation_busy","Het vorige antwoord wordt nog afgesloten. Wacht even en druk opnieuw op de spreekknop.",409)
+            await asyncio.sleep(.025)
+        current=await self.get(principal,snapshot["conversation_id"])
+        if current["epoch"]!=snapshot["epoch"] or current["device_id"]!=snapshot["device_id"]:
+            raise Conflict("Dit gesprek is inmiddels overgenomen")
+        return current
 
     def _get(self,principal,conversation):
         with self.store.transaction(principal,write=True) as (db,user):

@@ -36,6 +36,10 @@ class SettingsManager:
             from server.natural.capabilities import voice_capabilities
             from server.natural.personality import PROFILES
             previous=self.get(principal)["settings"]
+            notification=validated["notifications"];old_notification=previous["notifications"]
+            levels={"off":3,"minimal":1,"normal":3,"proactive":5,"very_proactive":10}
+            if notification["proactivity"]!=old_notification["proactivity"] and notification["suggestions_per_hour"]==old_notification["suggestions_per_hour"]==levels[old_notification["proactivity"]]:
+                notification["suggestions_per_hour"]=levels[notification["proactivity"]]
             from server.natural.performance import PROFILES as PERFORMANCE
             ai=validated["ai"]
             if ai["performance"]!=previous["ai"]["performance"]:

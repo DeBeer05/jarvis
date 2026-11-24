@@ -15,10 +15,12 @@ data class AudioLease(val conversation: String,val device: String,val epoch: Int
 class ConversationSession(private val scope: CoroutineScope,private val api:()->JarvisApi?,private val foreground:()->Boolean,private val lost:(Throwable)->Unit,private val changed:(AudioLease?)->Unit) {
     private val lock=Mutex();private var heartbeat: Job?=null
     private var session: AudioLease?=null;private var transport: JarvisApi?=null
-    private var serial=0
+    @Volatile private var serial=0
+    @Volatile private var heartbeatVersion=0
     private suspend fun send(client: JarvisApi,lease: AudioLease,event: String): AudioLease = AudioLease.parse(client.json("/api/v1/natural/conversations/${lease.conversation}/events","POST",JSONObject().put("event",event).put("epoch",lease.epoch)))
 
     private fun keepAlive() {
+        val version=++heartbeatVersion
         heartbeat?.cancel();heartbeat=scope.launch {
             while(isActive && foreground()) {
                 delay(20000)
@@ -27,7 +29,12 @@ class ConversationSession(private val scope: CoroutineScope,private val api:()->
                     if(client!==api() || !foreground())return@withLock
                     session=send(client,lease,"heartbeat");changed(session)
                 }} catch(cancel: CancellationException) {throw cancel}
-                  catch(error: Exception) {session=null;changed(null);lost(error);return@launch}
+                  catch(error: Exception) {
+                      if(isActive)lock.withLock {
+                          if(isActive && version==heartbeatVersion && foreground()) {session=null;changed(null);lost(error)}
+                      }
+                      return@launch
+                  }
             }
         }
     }
@@ -60,7 +67,7 @@ class ConversationSession(private val scope: CoroutineScope,private val api:()->
     }
 
     fun end() {
-        serial++;heartbeat?.cancel();heartbeat=null
+        serial++;heartbeatVersion++;heartbeat?.cancel();heartbeat=null
         val previous=session;val client=transport;session=null;transport=null;changed(null)
         if(previous!=null && client!=null)scope.launch {
             try {withTimeout(3000) {send(client,previous,"ending")}}catch(_:Exception) { /* Server lease also expires; never retry an action. */ }
@@ -69,10 +76,16 @@ class ConversationSession(private val scope: CoroutineScope,private val api:()->
 
     suspend fun endBeforeText() {
         val previous=session;val client=transport
-        serial++;heartbeat?.cancel();heartbeat=null;session=null;transport=null;changed(null)
+        serial++;heartbeatVersion++;heartbeat?.cancel();heartbeat=null;session=null;transport=null;changed(null)
         if(previous!=null && client!=null) {
             try {send(client,previous,"ending")}catch(cancel:CancellationException){throw cancel}
-            catch(_:Exception){throw MobileError("conversation_conflict",409,"De spraaksessie kon niet veilig worden afgesloten. Hervat het gesprek voordat je opnieuw verstuurt")}
+            catch(error:Exception){
+                if(error is MobileError && error.status==409) {
+                    val remote=AudioLease.parse(client.json("/api/v1/natural/conversations/${previous.conversation}/state"))
+                    if(remote.state in setOf("STANDBY","ENDING","RECONNECTING"))return
+                }
+                throw MobileError("conversation_conflict",409,"De spraaksessie is nog actief. Neem dit gesprek hier expliciet over of start een nieuw gesprek.")
+            }
         }
     }
 }
