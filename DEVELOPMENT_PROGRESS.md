@@ -32,6 +32,12 @@ bevindingen. De server bleek bij activering niet meer actief; bestaande helpers
 hebben hem gecontroleerd gestart. Health/ready 200 en anonieme automation-API 401.
 Geen actieve chatvragen of externe taken bij de start; bestaande voorstellen en
 credentials behouden. Remote CI en integratie via feature-PR naar develop.
+GitHub-blokkade op PR #24: geen push-/PR-checks aangemaakt. Alle vier handmatige
+workflow_dispatch-pogingen geweigerd met HTTP 422: ‘Actions has been disabled for
+this repository’, terwijl permissions.enabled=true en workflows active melden.
+Geen oorzaak als billing/policy aangenomen en geen instellingen of bescherming
+gewijzigd. Code gepusht en lokaal actief; PR blijft open, niet gemerged zonder
+groene CI. Eigenaar moet de Actions-/accountblokkade bij GitHub oplossen.
 Windows 0.7.1/Android 0.7.0 gebruiken dezelfde chatroute; geen rebuild of APK nodig.
 Stop na fase 7; accounts, main en private credentials behouden.
 
