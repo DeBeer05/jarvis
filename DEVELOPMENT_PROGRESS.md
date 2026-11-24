@@ -2,6 +2,31 @@
 
 ## Huidige opdracht
 
+Acceptatieblokkers gemeld door eigenaar hersteld en lokaal uitgerold (Android
+**0.7.5/706**): natuurlijke aanmaakvormen ‘een afspraak maken’ en vrije titel-/
+persoonsantwoorden blijven aan de bestaande taak gekoppeld. Oude verkeerd als
+leesvraag opgeslagen opdrachten worden herkend. ‘Wat kan je allemaal doen?’
+gebruikt serverfuncties/rechten en geen generieke modelontkenning.
+Een dubbele disconnect kon finalisatie onderbreken en de actieve chat permanent
+bezet houden. Dat is met een falende vooraf-/geslaagde achteraftest gereproduceerd;
+volledige opruiming loopt nu in een afgeschermde, getrackte taak. Overname wacht
+begrensd op de vorige generatie, buiten het statemachineslot. Android negeert
+verouderde foutcallbacks en kan een reeds afgesloten spraaksessie veilig loslaten.
+Volledige regressie **381 geslaagd**, 172,76 s; Android **16 instrumentatietests
+geslaagd** op dezelfde herstelde backend, plus unit/lint/debug/release-build.
+Eigenaar meldde algemene gesprekken als goed, maar agenda en Android-herstel
+als onvoldoende vóór reparatie. Nieuwe echte acceptatie is aangevraagd, nog
+niet als geslaagd geteld. Fase 7.5 blijft open; geen fase-8-vrijgave.
+
+Lokale gebruikersserver gecontroleerd herstart op **0.7.5/8765**. Schema **5→6**
+met automatische pre-v6-back-up; eigenaarrecord exact behouden, herinneringenaantal
+behouden, quick_check=ok. Health/ready=200 en persoonlijke instellingen zonder
+login=401. Windows portable gestart; snelkoppeling ‘JARVIS 0.7.5’ op bureaublad.
+Echte telefoon: 0.7.5/705 via install -r geïnstalleerd en geopend; alleen USB
+reverse 8765→8765, geen rechten toegekend of gegevensreset. De gebruiker heeft
+aangegeven de Windows-proef te gaan doen; dat is nog geen geslaagd resultaat.
+Hardwareacceptatie en resterende functionele punten blijven expliciet open.
+
 Afrondingsbuild **0.7.5** gemaakt voor server, Windows en Android (versionCode705).
 Toegevoegd: blijvende opt-in mailopvolging, brongebonden antwoordstatus in chat,
 openstaande-takenopdracht, persoonlijkheidsvoorbeeld zonder opslag/toolrechten,

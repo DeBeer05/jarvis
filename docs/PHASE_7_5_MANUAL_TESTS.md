@@ -1,8 +1,10 @@
 # Handmatige acceptatie — fase 7.5
 
-Status: testhandleiding in uitvoering. De nieuwe code staat op de featurebranch;
-de echte server en geïnstalleerde clients zijn nog niet naar deze versie omgezet.
-Voer de hardwareproeven pas na de gecontroleerde build/installatie uit. De
+Status: acceptatie in uitvoering. De lokale server draait op 0.7.5/8765, schema 6;
+Windows 0.7.5 en Android 0.7.5/705 zijn beschikbaar/geïnstalleerd. De eigenaar
+heeft problemen gemeld met agendacontext en Android-herstel. Deze zijn in build
+706/serverherstel aangepast; een nieuwe proef is nodig. Noteer het resultaat; starten met testen is geen
+geslaagde acceptatie. De
 automatische emulatorproeven gebruiken synthetische audio en bewijzen geen
 menselijke microfoon-/echokwaliteit.
 
@@ -21,6 +23,11 @@ Echte mails/uitnodigingen vereisen vooraf je afzonderlijke toestemming; gebruik
 voor een schrijfproef een herkenbare testafspraak/concept en controleer het voorstel.
 
 ## Scenario's
+
+Herhaal vóór de overige scenario's de gemelde fouten: vraag op Android wat JARVIS
+kan, stop/overneem en praat opnieuw; begin op Windows met ‘Ik wil een afspraak
+maken’ en geef de titel als vrij antwoord. Controleer dat eerdere gegevens in het
+voorstel blijven staan. Zeg ‘nee’ om deze proef zonder externe wijziging af te sluiten.
 
 1. **Doorlopend gesprek:** activeer Windows één keer met de wakefrase, voer tien
    beurten en minstens twee vervolgvragen uit. Android start handmatig één keer.

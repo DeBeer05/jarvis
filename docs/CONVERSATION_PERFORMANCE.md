@@ -2,6 +2,11 @@
 
 ## Gemeten op 24 november 2026
 
+Na de gecontroleerde lokale 0.7.5-installatie bedroeg een momentopname van de
+working set **72,5 MiB voor het API-proces** en **163,3 MiB voor de Windows-client**.
+Dit zijn procesmetingen, geen pieken en geen totale systeemmeting; de afzonderlijke
+voicehelper, Ollama en GPU-geheugen zijn hierin niet inbegrepen.
+
 Ontwikkeldesktop: Ryzen 7 5700X, RTX 4060, 32 GB RAM. De onderstaande proef
 gebruikte daadwerkelijk de bestaande Piper Ronnie en Whisper Small in de
 geïsoleerde voice-runtime, via de bestaande SpeechBridge. Geen microfoon,

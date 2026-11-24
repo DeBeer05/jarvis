@@ -28,6 +28,12 @@ opslag, vóór generatie en vóór het afleveren van antwoorddelen.
 
 ## Sessies en races
 
+Een overname annuleert de vorige spraakgeneratie en wacht maximaal acht seconden
+op vrijgave van de chattoelating. Dit wachten gebeurt buiten het statemachineslot,
+omdat oude finalisatie dat slot nog kan nodig hebben. Bij overschrijding volgt
+`conversation_busy`, geen automatische herhaling van een opdracht. HTTP-disconnects
+kunnen de getrackte finalisatietaak niet onderbreken; opslag en vrijgave lopen door.
+
 Handmatige spraakactivatie op Windows en Android reserveert eerst de centrale
 lease en wacht op LISTENING voordat opname begint. Een conflict opent geen
 microfoon; stoppen maakt nog onderweg zijnde activatiecallbacks ongeldig.

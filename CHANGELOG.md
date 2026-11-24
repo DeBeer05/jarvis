@@ -4,6 +4,13 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Android-reparatiebuild 706: overname-/stopherstel en afscherming tegen oude
+  foutcallbacks. Chatfinalisatie overleeft herhaalde disconnects, zodat een
+  gesprek niet blijvend bezet raakt. Overname wacht op annulering van de oude beurt.
+- Natuurlijke afspraak-aanmaak en vrije slotantwoorden behouden eerdere gegevens;
+  mogelijkhedenvragen gebruiken feitelijke serverfuncties. Vervolgvragen volgen
+  de ingestelde combineerkeuze; proactiviteitspresets en plannertijdzone aangesloten.
+
 - 0.7.5-kandidaat: optionele persistente mailopvolging en contextgebonden vraag
   naar ontvangen antwoorden; controles gebruiken bestaande leesrechten en
   kunnen geen nieuwe verzending autoriseren.
