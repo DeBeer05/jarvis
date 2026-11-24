@@ -62,12 +62,38 @@ def test_disabled_read_prevents_even_search(tools_chat):
     assert 'veilige' in result['message'] and not router.planning_calls
 
 
-def test_sensitive_body_uses_local_fallback_without_cloud_call(tools_chat):
+def test_sensitive_body_uses_local_ai_without_cloud_call(tools_chat):
     app,c,router=tools_chat
     async def search(_):return {'messages':[{'id':'private'}]}
     async def read(*args):return {'id':'private','snippet':'Medisch bericht: reactie uiterlijk vrijdag.','payload':{'headers':[]}}
     app.state.automation.integrations.mail_search=search;app.state.automation.integrations.mail_read=read
+    router.plans=['Je hebt een medisch bericht ontvangen; reageer uiterlijk vrijdag.']
     result=call(c,'Vat mijn laatste mail samen',provider='groq').json()
     assert result['status']=='completed' and 'vrijdag' in result['message']
-    assert 'niet beschikbaar' in result['message'] and not router.planning_calls
+    assert 'Korte inhoud per bericht' not in result['message']
+    assert len(router.planning_calls)==1 and router.planning_calls[0][1]=='ollama'
     assert not app.state.automation.store.items()
+
+
+def test_sensitive_local_failure_explains_reason_without_cloud_retry(tools_chat):
+    from server.ai.providers import ProviderError
+    app,c,router=tools_chat;providers=[]
+    async def search(_):return {'messages':[{'id':'private'}]}
+    async def read(*args):return {'id':'private','snippet':'Medisch bericht: reageer vrijdag.','payload':{'headers':[]}}
+    async def unavailable(messages,mode=None):providers.append(mode);raise ProviderError('unavailable')
+    app.state.automation.integrations.mail_search=search;app.state.automation.integrations.mail_read=read;router.bounded_result=unavailable
+    result=call(c,'Vat mijn laatste mail samen',provider='groq').json()
+    assert providers==['ollama'] and 'privacyredenen lokaal' in result['message']
+    assert 'niet bereikbaar' in result['message'] and 'vrijdag' in result['message']
+
+
+def test_unicode_content_does_not_artificially_exceed_context_budget(tools_chat):
+    app,c,router=tools_chat
+    async def search(_):return {'messages':[{'id':str(i)} for i in range(10)]}
+    async def read(identifier,*args):return {'id':identifier,'snippet':'é🙂 '*1000,'payload':{'headers':[]}}
+    app.state.automation.integrations.mail_search=search;app.state.automation.integrations.mail_read=read
+    router.plans=['Er zijn tien nieuwsbrieven binnengekomen.']
+    result=call(c,'Vat mijn laatste tien mails samen',provider='groq').json()
+    assert 'tien nieuwsbrieven' in result['message'] and len(router.planning_calls)==1
+    prompt=router.planning_calls[0][0][1]['content']
+    assert '🙂' in prompt and len(prompt)+1400<=router.settings.max_context_chars

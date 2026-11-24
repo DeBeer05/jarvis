@@ -2,6 +2,21 @@
 
 ## Huidige opdracht
 
+Vervolgmelding: AI-mailsamenvatting valt terug. Twee codepaden hersteld: gevoelige
+inhoud sloeg de AI over, en ASCII-escaping kon het bronpakket onnodig vergroten.
+Nu uitsluitend lokale Ollama voor gevoelige inhoud, geen cloudretry, compacte
+Unicode en een concrete terugvalreden. Werkelijke aanleiding van de specifieke
+gebruikersmail is niet vastgesteld door diens privéberichten te lezen.
+Synthetische proef op het echte lokale Ollama-model: eerste koude aanvraag liep
+tegen de bestaande providerdeadline; warme herhaling leverde binnen 3,49 s een
+samenvatting met behoud van de deadline. Geen privémail of cloudaanroep gebruikt.
+Koude-startlatency blijft dus een beperking; de terugvalmelding noemt de reden.
+Volledige serverregressie op deze wijziging: **429 geslaagd**, 180,77 s.
+Ruff/mypy, repository-/diffcheck en server-pip-check geslaagd. Geen clientwijziging
+of nieuwe APK nodig voor deze backendcorrectie; Windows-focusonderzoek blijft open.
+Gebruiker meldt dat Windows na vensterwissel nog blijft luisteren zonder reactie;
+eerdere heartbeatfix loste dit niet volledig op. Microfoon-/focusacceptatie blijft open.
+
 Aanvullende herstelopdracht: gebruiker bedoelt met wegklikken een ander venster/
 programma openen. Geen focusgebonden stop gevonden; wel een reproduceerbare race
 waarbij een oude heartbeatfout na een epochwissel de nieuwe spraakbeurt stopte.

@@ -1,5 +1,18 @@
 # Antwoord en stem — test-/acceptatierapport
 
+## Herstel: samenvatting niet beschikbaar
+
+Gevoelige mailinhoud gebruikt nu expliciet Ollama, zonder cloudretry; de eerdere
+implementatie sloeg de AI daarbij helemaal over. JSON-bronpakketten houden Unicode
+compact. De lokale terugval meldt nu de reden in plaats van algemene onbeschikbaarheid.
+Mocktests controleren privacyrouting, lokale uitval en emoji-/accentrijke bronpakketten.
+Een echte proef met uitsluitend synthetische inhoud en het bestaande lokale model
+liep koud tegen de bestaande providerdeadline; de warme herhaling gaf in **3,49 s**
+een niet-lege samenvatting met behoud van ‘vrijdag’. Geen echte mailbox gelezen.
+Dit bewijst geen gegarandeerde koude-starttijd of verwerking van privéberichten.
+Volledige serverregressie op deze correctie: **429 geslaagd**, 180,77 s;
+Ruff/mypy, repository-/diffcheck en server-pip-check geslaagd.
+
 ## Herstel: spraak na vensterwissel en recente mailinhoud
 
 Windows negeert oude heartbeatreacties van een eerdere gespreksepoch. Intrekking/

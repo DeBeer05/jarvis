@@ -4,6 +4,9 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- AI-mailsamenvattingen gebruiken bij gevoelige inhoud lokaal Ollama in plaats van
+  de AI over te slaan. Terugval vermeldt de oorzaak; compacte Unicode voorkomt
+  kunstmatige overschrijding van het contextbudget.
 - Recente mails: maximaal twintig berichten daadwerkelijk lezen en gezamenlijk
   samenvatten; geverifieerde verwijzingen tot en met de twintigste mail behouden.
   Specifieke zoekfilters blijven via de bestaande gevalideerde zoekroute lopen.

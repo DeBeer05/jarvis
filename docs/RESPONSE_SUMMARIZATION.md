@@ -13,7 +13,12 @@ vijf recente berichten samengevat. ‘Lees de tiende mail’ gebruikt het geveri
 ID uit dezelfde chat. Er worden geen verzend-/wijzigingsopdrachten aangemaakt.
 Bronselecties en ontbrekende volledige tekst worden vermeld. Een onbeschikbare
 samenvatter geeft een duidelijk gemarkeerd lokaal inhoudsoverzicht als terugval.
-Gevoelige inhoud gaat niet naar cloud-AI wanneer het privacybeleid dat verbiedt.
+Gevoelige inhoud gaat niet naar cloud-AI wanneer het privacybeleid dat verbiedt:
+JARVIS gebruikt dan uitsluitend de bestaande lokale Ollama-route, zonder cloudretry.
+Als samenvatten faalt, noemt het overzicht de oorzaak (bijvoorbeeld lokale AI niet
+bereikbaar, quota, time-out of contextlimiet) naast het lokale inhoudsoverzicht.
+Unicode blijft compact in het bronpakket; accenten en emoji vergroten het budget
+niet kunstmatig door JSON-escapetekst.
 
 Specifieke zoekfilters en verzoeken om alleen onderwerpen blijven op de bestaande
 zoekroute: zulke overzichten benoemen de opgehaalde hoeveelheid en mogelijke relevante
