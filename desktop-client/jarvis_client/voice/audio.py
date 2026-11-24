@@ -34,7 +34,7 @@ class AudioInputManager:
     def stop(self, discard=False):
         self.cancelled.set() if discard else self.finish.set()
 
-    def capture(self, settings, *, consent, timeout=6, activity=None, preprocess=None):
+    def capture(self, settings, *, consent, timeout=6, activity=None, preprocess=None,turns=None):
         if not consent:
             raise AudioError("Geef eerst in het spraakpaneel toestemming voor de microfoon.")
         blocks:queue.Queue[bytes] = queue.Queue(maxsize=12)
@@ -49,6 +49,7 @@ class AudioInputManager:
                 overflow.set()
 
         detector = VoiceActivityDetector(settings.sensitivity, settings.silence_seconds, settings.max_seconds, timeout)
+        self.transcription=None
         audio = bytearray()
         try:
             device = None if settings.input_device == -1 else settings.input_device
@@ -70,6 +71,11 @@ class AudioInputManager:
                     audio.extend(samples.tobytes())
                     rms = float(np.sqrt(np.mean((samples.astype(np.float32) / 32768) ** 2)))
                     outcome = detector.feed(rms, len(samples) / 16000)
+                    if turns:
+                        if rms>=detector.threshold:turns.voiced()
+                        if detector.speech>=.21:
+                            turns.probe(audio,detector.quiet)
+                            if turns.finished(detector.quiet):outcome="finish"
                     if activity:
                         activity(rms, rms >= detector.threshold)
                     if overflow.is_set():
@@ -84,6 +90,7 @@ class AudioInputManager:
                 output.setsampwidth(2)
                 output.setframerate(16000)
                 output.writeframes(audio)
+            if turns:self.transcription=turns.finish()
             return result.getvalue()
         except AudioError:
             raise

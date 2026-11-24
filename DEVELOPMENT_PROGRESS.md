@@ -2,6 +2,15 @@
 
 ## Huidige opdracht
 
+Windows adaptieve beurtanalyse uitgebreid: tijdens de normale stilte begint
+speculatieve STT terwijl de microfoon blijft opnemen. Een complete uitspraak
+kan eerder afronden; onafgemaakte tekst wacht tot de maximale denkpauze. Nieuwe
+spraak maakt de oude transcriptiesnapshot ongeldig. Voorlopige tekst verschijnt
+alleen als transcript, niet als opdracht. Geldige herkenning wordt hergebruikt
+zonder een tweede modelkopie. Vier deterministische tests toegevoegd; Windows
+**103 tests geslaagd**, 5,37 s. Lint/typechecks schoon. Android-adaptatie en echte
+spraak-/pauzeacceptatie blijven open; fase 7.5 nog niet voltooid.
+
 ### Fase 7.5 — inspectie en implementatie gestart — 24 november 2026
 
 Volledige specificatie (50 onderdelen) ontvangen. Structuur, architectuur,

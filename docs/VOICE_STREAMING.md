@@ -49,9 +49,12 @@ serveraanvraag stopt en dat daarna een nieuwe aanvraag slaagt.
 
 ## Luisteren en Android-platformaudio
 
-De stilte- en VAD-drempels komen uit de gedeelde instellingen. De huidige
-adaptieve stand is conservatief en gebruikt de ingestelde maximale denkpauze;
-incrementele STT/contextuele end-of-turn-analyse wordt nog uitgebreid.
+De stilte- en VAD-drempels komen uit de gedeelde instellingen. Windows begint
+bij normale stilte speculatieve STT terwijl opname doorgaat. Een complete
+uitspraak kan eerder afronden; onvolledige tekst wacht tot de maximale denkpauze.
+Nieuwe spraak maakt de eerdere snapshot ongeldig. Alleen de definitieve transcriptie
+gaat naar chat; een geldige eerdere herkenning wordt hergebruikt. Android gebruikt
+nog de conservatieve maximale denkpauze. Echte hardwareacceptatie blijft open.
 Wakefraseherkenning op Windows is transcriptiegebonden, geen los getraind wake-model.
 
 Android koppelt beschikbare `AcousticEchoCanceler` en `NoiseSuppressor` aan de

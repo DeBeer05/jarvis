@@ -11,6 +11,7 @@ from jarvis_client.voice.audio import AudioInputManager, AudioOutputManager
 from jarvis_client.voice.processing import AudioCache, InterruptionController, SentenceBuffer, WakeWordEngine
 from jarvis_client.voice.worker import InferenceWorker
 from jarvis_client.voice.echo import EchoReference, resembles_output
+from jarvis_client.voice.turns import AdaptiveTurn
 
 
 class VoiceConversationManager(QObject):
@@ -190,11 +191,16 @@ class VoiceConversationManager(QObject):
                     if now - previous >= .1:
                         previous = now
                         self.delivered.emit((generation, "activity", (rms, voiced, wake_gate)))
-                audio = capture_input.capture(settings, consent=True, timeout=timeout, activity=activity)
+                turns=None
+                if self.options and self.options["listening"]["adaptive"] and not wake_gate:
+                    turns=AdaptiveTurn(lambda audio,valid:self.worker.transcribe(audio,settings,valid),lambda:self.interruptions.valid(generation) and not self.closed,
+                        normal=self.options["listening"]["normal_silence_ms"]/1000,thinking=self.options["listening"]["thinking_pause_ms"]/1000,
+                        partial=lambda result,revision,controller:self.delivered.emit((generation,"partial",(result,revision,controller))))
+                audio = capture_input.capture(settings, consent=True, timeout=timeout, activity=activity,turns=turns)
                 if not self.interruptions.valid(generation):
                     return
                 self.delivered.emit((generation, "transcribing", None))
-                result = self.worker.transcribe(audio, settings, lambda: self.interruptions.valid(generation)) if audio else {"text": "", "seconds": 0}
+                result = (getattr(capture_input,"transcription",None) or self.worker.transcribe(audio, settings, lambda: self.interruptions.valid(generation))) if audio else {"text": "", "seconds": 0}
                 self.delivered.emit((generation, "captured", (result, wake_gate)))
             except Exception as error:
                 self.delivered.emit((generation, "error", str(error)))
@@ -242,6 +248,11 @@ class VoiceConversationManager(QObject):
             rms, voiced, wake_gate = payload
             self.level.emit(min(1.0, rms * 8))
             self.set_state("Ik hoor je…" if voiced else ("Ik wacht op Hé JARVIS" if wake_gate else "Ik luister…"))
+        elif kind == "partial":
+            result,revision,controller=payload
+            if self.recording and controller.revision==revision and result.get("text"):
+                self.transcript.emit(result["text"])
+                self.set_state("Voorlopige herkenning · wacht op je vervolg" if not controller.finished(controller.normal) else "Uitspraak afronden…")
         elif kind == "transcribing":
             self.recording = False
             self.level.emit(0)
