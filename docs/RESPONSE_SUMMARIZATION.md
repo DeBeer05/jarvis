@@ -5,9 +5,20 @@ en Gebalanceerd voor schriftelijke uitvoer. Het model krijgt eerst de directe vr
 stijl en relevant geselecteerde context. Belangrijke informatie heeft voorrang op lengte.
 Er is geen harde woordenknip. Technische budgetten en bronlimieten blijven begrensd.
 
-Mailoverzichten benoemen de opgehaalde hoeveelheid en mogelijke relevante onderwerpen;
-ze zeggen uitdrukkelijk dat de inhoud nog niet is gelezen. Een mail met alleen onderwerp
-is niet bewezen belangrijk of urgent. Gelezen mail wordt extractief samengevat, met
+‘Wat staat in mijn laatste tien mails?’ zoekt zelf de recente inboxberichten, leest
+de inhoud van maximaal twintig berichten en maakt één gezamenlijke samenvatting.
+JARVIS vraagt hiervoor geen bericht-ID's en geen tweede toestemming om te lezen;
+de bestaande leesrechten en uitgeschakelde tools blijven gelden. Standaard worden
+vijf recente berichten samengevat. ‘Lees de tiende mail’ gebruikt het geverifieerde
+ID uit dezelfde chat. Er worden geen verzend-/wijzigingsopdrachten aangemaakt.
+Bronselecties en ontbrekende volledige tekst worden vermeld. Een onbeschikbare
+samenvatter geeft een duidelijk gemarkeerd lokaal inhoudsoverzicht als terugval.
+Gevoelige inhoud gaat niet naar cloud-AI wanneer het privacybeleid dat verbiedt.
+
+Specifieke zoekfilters en verzoeken om alleen onderwerpen blijven op de bestaande
+zoekroute: zulke overzichten benoemen de opgehaalde hoeveelheid en mogelijke relevante
+onderwerpen en zeggen wanneer de inhoud nog niet is gelezen. Een mail met alleen
+onderwerp is niet bewezen belangrijk of urgent. Individuele gelezen mail wordt extractief samengevat, met
 extra behoud van regels over deadlines, waarschuwingen, fouten, kosten en onzekerheid.
 Dit is een heuristiek: een ingewikkelde impliciete deadline kan aanvullende lezing vergen.
 

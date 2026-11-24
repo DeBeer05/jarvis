@@ -4,6 +4,12 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Recente mails: maximaal twintig berichten daadwerkelijk lezen en gezamenlijk
+  samenvatten; geverifieerde verwijzingen tot en met de twintigste mail behouden.
+  Specifieke zoekfilters blijven via de bestaande gevalideerde zoekroute lopen.
+- Windows-spraak: verouderde heartbeatreacties stoppen geen nieuwere spraakbeurt;
+  autorisatiefouten blijven stoppen en een late timer heropent na Stop geen microfoon.
+
 - Intelligent Response Engine: kanaalgebonden lengte/profielen, korte toolspraak naast
   geschreven broninformatie, behoud van deadlines/goedkeuringen, contextgebonden
   mailvervolgvragen en gesloten tijdelijke/permanente gesproken instellingen.

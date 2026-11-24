@@ -40,7 +40,7 @@ def test_compound_reads_share_context_and_combine_real_results(tools_chat):
 def test_failed_part_does_not_block_an_independent_calendar_read(tools_chat):
     app,c,router=tools_chat
     router.plans=[{"steps":[{"kind":"email_search","text":"Lees mijn laatste mails"},{"kind":"calendar_read","text":"bekijk mijn agenda voor morgen"}]},
-                  {"tool":"EmailSearch","input":{}},calendar_plan()]
+                  calendar_plan()]
     async def unavailable(_):raise ValueError("Synthetic unavailable integration")
     async def events(_):return {"items":[example_event()]}
     app.state.automation.integrations.mail_search=unavailable;app.state.automation.integrations.events=events

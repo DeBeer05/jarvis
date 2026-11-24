@@ -1,7 +1,23 @@
 # Handmatige acceptatie — fase 7.5
 
-Status: acceptatie in uitvoering. De lokale server draait op 0.7.5/8765, schema 6;
-Windows 0.7.5 en Android 0.7.5/705 zijn beschikbaar/geïnstalleerd. De eigenaar
+## Aanvullende regressieproef: ander venster en mails
+
+Start bewust een spraakgesprek op Windows en wacht tot het antwoord klaar is.
+Open een ander programma en spreek binnen de ingestelde inactiviteitstime-out
+een vervolgzin uit. Controleer luisteren, transcriptie en gesproken antwoord.
+Herhaal tijdens een antwoord met onderbreken en na minimaliseren. Stop daarna
+expliciet; een vertraagde melding/timer mag de microfoon niet heropenen.
+
+Vraag ‘Wat staat in mijn laatste tien mails?’ uitsluitend als je je eigen
+gekoppelde account wilt gebruiken. Verwacht één inhoudelijk overzicht, met
+relevante deadlines/acties en gegroepeerde nieuwsbrieven; geen vraag om ID's.
+Vraag daarna ‘Lees de tiende mail’. Controleer de koppeling met dezelfde lijst.
+Er wordt niets verstuurd en geen afspraak gewijzigd door deze leesproef.
+De automatische tests gebruiken uitsluitend synthetische berichten; deze proef
+op een echt account is niet namens de gebruiker uitgevoerd.
+
+Status: acceptatie in uitvoering. De lokale server draait op 0.7.5/8765, schema 7;
+Windows 0.7.5 en Android 0.7.5/708 zijn beschikbaar/geïnstalleerd. De eigenaar
 heeft problemen gemeld met agendacontext en Android-herstel. Deze zijn in build
 706/serverherstel aangepast; een nieuwe proef is nodig. Noteer het resultaat; starten met testen is geen
 geslaagde acceptatie. De

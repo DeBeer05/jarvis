@@ -124,7 +124,7 @@ def test_email_search_then_read_followup_uses_verified_id(tools_chat):
         return {"id":identifier,"payload":{"headers":[{"name":"Subject","value":"Testbericht"}],"mimeType":"text/plain","body":{"data":base64.urlsafe_b64encode("Hallo café".encode()).decode()}}}
     app.state.automation.integrations.mail_search=search;app.state.automation.integrations.mail_read=read
     found=call(c,"Toon mijn laatste e-mails").json()
-    assert "Testbericht" in found["message"] and reads==[("mail1",False)]
+    assert "Testbericht" in found["message"] and reads==[("mail1",True)]
     router.plans=[{"tool":"EmailRead","input":{"message_id":"mail1","include_body":True}}]
     result=call(c,"Lees de eerste email",found["conversation_id"]).json()
     assert "Hallo café" in result["message"] and reads[-1]==("mail1",True)

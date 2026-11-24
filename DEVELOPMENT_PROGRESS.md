@@ -2,6 +2,25 @@
 
 ## Huidige opdracht
 
+Aanvullende herstelopdracht: gebruiker bedoelt met wegklikken een ander venster/
+programma openen. Geen focusgebonden stop gevonden; wel een reproduceerbare race
+waarbij een oude heartbeatfout na een epochwissel de nieuwe spraakbeurt stopte.
+Callbacks zijn nu aan hun sessie/epoch gebonden; 401/403 blijven stoppen. Een late
+vervolgtimer mag na Stop geen microfoon openen. Synthetische deactivatieproef en
+raceproef toegevoegd; echte achtergrondmicrofoonproef blijft nodig.
+Recente mailvragen lezen nu zelf maximaal twintig geverifieerde berichtinhouden en
+vragen één gezamenlijke samenvatting via de bestaande AI-router. Geen ID-vraag,
+extra goedkeuring, nieuwe rechten of echte accounttest. Zoekfilters blijven behouden.
+Geen SQL-migratie, fase 8, productie of mini-pc-migratie.
+Herstelvalidatie: volledige serverregressie 426 geslaagd (178,13 s), daarna alle
+tien mailgerichte tests inclusief extra privacyproef geslaagd; Windows 114 geslaagd.
+Ruff/mypy, repositorycheck, diffcheck en server-/client-pip-check geslaagd.
+Windows-build mail-resume zichtbaar geopend en verbonden, snelkoppeling bijgewerkt;
+portable smoke-test opent acht pagina's zonder netwerk/microfoon/helper. Tweede
+echte start eindigt met code 0 en behoudt hetzelfde proces. Schema 7/quick_check ok,
+acht herinneringen behouden; favoriete stem M3 bevestigd vóór de appwissel.
+Werkelijke focus-/microfoonproef blijft nodig; geen echte mails namens gebruiker gelezen.
+
 Intelligent Response Engine & Dutch Butler Voice geïmplementeerd op
 feature/intelligent-response-butler-voice, voortbouwend op b2948b1/PR25 omdat develop
 fase 7.5 nog niet bevat. Nieuwe antwoordmodi/profielen, apart speech-SSE-protocol,

@@ -1,5 +1,27 @@
 # Antwoord en stem — test-/acceptatierapport
 
+## Herstel: spraak na vensterwissel en recente mailinhoud
+
+Windows negeert oude heartbeatreacties van een eerdere gespreksepoch. Intrekking/
+autorisatiefouten blijven de microfoon stoppen; Stop blokkeert late vervolgtimers.
+Synthetische window-deactivation en tien doorlopende beurten blijven slagen.
+De daadwerkelijke microfoon in een ander programma moet nog door de gebruiker
+worden beoordeeld; de oorspronkelijke focusfout is niet fysiek gereproduceerd.
+
+Recente inboxvragen lezen rechtstreeks maximaal twintig geverifieerde mails en
+maken één inhoudelijke samenvatting. Filterverzoeken blijven op de bestaande
+zoekroute. Tests bewijzen tien body-reads, deadlinebehoud, de tiende vervolgmail,
+begrenzing, uitgeschakelde leestools en geen cloudcall bij gevoelige inhoud.
+Geen echte mailbox gelezen, geen berichten verzonden of apparaatrechten gewijzigd.
+
+Volledige serverregressie: **426 geslaagd**, 178,13 s. Extra mailprivacyproef daarna
+toegevoegd: alle **10 mailtests geslaagd**. Windows: **114 geslaagd**, 5,38 s.
+Ruff/mypy, repository-/diffcheck en beide relevante pip checks geslaagd.
+Nieuwe portable Windows-build: acht pagina's, microfoon/netwerk/helper uit bij
+smoke-test; zichtbaar aangemeld en verbonden gestart. Dubbelstart exit 0 met één
+proces. Android-bron/APK niet gewijzigd: gedeelde backendfix geldt ook voor Android.
+De eerder gemeten TTS-prestaties hieronder zijn niet opnieuw gemeten.
+
 De bestaande fase-7.5-acceptatie is hiermee niet automatisch afgerond. Deze uitbreiding
 is gebouwd voor lokale beoordeling; subjectieve stemkwaliteit blijft een menselijke proef.
 

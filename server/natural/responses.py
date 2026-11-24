@@ -118,6 +118,7 @@ class IntelligentResponseManager:
         if mode in ('full','extended') or not config['responses']['summaries'] or run.wait_state is not None:return text
         from server.natural.intents import compound_candidate
         if compound_candidate(run.message):return text
+        if data and data['tool']=='EmailDigest':return text
         if data and data['tool']=='CalendarRead' and config['responses']['calendar']:
             events=data['items']
             if not events:return text
