@@ -58,6 +58,7 @@ def create_app(
             database.initialize()
             security.initialize()
             app.state.automation.store.recover()
+            app.state.natural.conversations.recover()
             if settings.automations_enabled:
                 app.state.automation.scheduler.start()
             runtime["ready"] = True

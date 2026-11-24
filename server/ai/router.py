@@ -2,6 +2,7 @@
 from contextlib import aclosing
 from server.ai.providers import ProviderError, TextProvider
 from server.config import Settings
+from server.ai.policy import current_policy
 
 
 class AIRouter:
@@ -12,6 +13,9 @@ class AIRouter:
     async def stream(self, messages: list[dict], mode: str):
         preferred = self.settings.preferred_provider
         order = [preferred, "gemini" if preferred == "ollama" else "ollama"] if mode == "auto" else [mode]
+        policy = current_policy.get()
+        if policy is not None:
+            order = policy.order(mode, preferred)
         for position, name in enumerate(order):
             provider = self.providers[name]
             started = False
@@ -45,7 +49,8 @@ class AIRouter:
         import asyncio
         result=""
         provider=None
-        async with asyncio.timeout(self.settings.ai_timeout_seconds):
+        policy = current_policy.get()
+        async with asyncio.timeout(policy.timeout_seconds if policy else self.settings.ai_timeout_seconds):
             async with aclosing(self.stream(messages,mode or self.settings.ai_provider)) as source:
                 async for event in source:
                     if event["type"]=="delta": result+=event["text"]

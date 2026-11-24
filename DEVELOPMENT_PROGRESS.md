@@ -23,8 +23,21 @@ toestemming en bron-/samenvattinginvalidatie bij vergeten. NaturalConversationMa
 met alle 14 staten, leases, epochbeveiliging, expliciete overdracht en timeouts.
 Nieuwe API's en tien tests: volledige regressiesuite 265 geslaagd. Alleen tijdelijke
 testdatabases gemigreerd; de echte server/database is nog niet omgezet naar fase 7.5.
-Nog te doen: chat-/intent-/contextintegratie, audio/streaming, beide client-GUI's,
-volledige geheugen-/samenvattingsflow, metingen, builds en acceptatietests.
+Contextintegratie: bestaande ChatService/AIRouter gebruikt begrensde bronbewuste
+ContextManager, aparte Nederlandse voiceprompt/persoonlijkheid, lokale extractieve
+samenvattingen met wijzigbare versies en expliciete onthoud-/vergeetopdrachten.
+Offline en provider/modelvoorkeuren zijn request-local, ook voor interne
+toolplanner-/samenvattingsaanroepen; geen gedeelde providermutaties. Geheugen
+gaat alleen met opt-in naar cloud; gevoelig geheugen uitsluitend naar een
+lokale-only route. Vergeten invalideert samenvattingen en bron-/afgeleide beurten;
+lopende gewone generaties stoppen bij een geheugenwijziging. Regels toegepast
+op de bestaande chatroute, geen tweede router/database/pipeline.
+Volledige regressiesuite na contextintegratie: **272 geslaagd**, 105,04 s.
+Aanvullende tests: echte geauthenticeerde API met synthetische providers,
+herstartpersistentie, cloud/offline, afgeleid vergeten, samenvattings-CAS,
+budgetfouten en gelijktijdige request-local providerconfiguratie.
+Nog te doen: uitgebreidere intent-/taakcontext, audio/streaming, beide client-GUI's,
+overige geheugen-/samenvattingsflow, metingen, builds en acceptatietests.
 
 ### Eén gesproken ja voor mail en agenda — 24 november 2026
 

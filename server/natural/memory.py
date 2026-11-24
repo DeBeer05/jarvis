@@ -53,11 +53,17 @@ class MemoryManager:
 
     @staticmethod
     def invalidate_summaries(db,user,identifier):
-        db.execute("DELETE FROM natural_summaries WHERE user_id=? AND id IN (SELECT summary_id FROM natural_summary_sources WHERE memory_id=?)",(user,identifier))
+        # Conservative invalidation includes summaries containing an earlier source
+        # utterance, even if that memory was created after the summary itself.
+        db.execute("DELETE FROM natural_summaries WHERE user_id=?",(user,))
 
     def forget_source(self,db,user,row):
         if row["source_turn"]:
             db.execute("INSERT OR IGNORE INTO natural_forgotten VALUES (?,?,?,?)",(user,row["source_turn"],hashlib.sha256(row["content"].encode()).hexdigest(),self.store.clock()))
+        # Also exclude turns that consumed this memory; their answers may quote it.
+        dependents=db.execute("SELECT DISTINCT p.id FROM natural_pending p,json_each(p.payload) j WHERE p.user_id=? AND p.kind='memory_context' AND j.value=?",(user,row["id"])).fetchall()
+        for item in dependents:
+            db.execute("INSERT OR IGNORE INTO natural_forgotten VALUES (?,?,?,?)",(user,item["id"],hashlib.sha256(row["content"].encode()).hexdigest(),self.store.clock()))
 
     def list(self,principal,*,query="",category=None,status=None,limit=50,offset=0,include_sensitive=True):
         limit=max(1,min(100,int(limit)));offset=max(0,min(10000,int(offset)))

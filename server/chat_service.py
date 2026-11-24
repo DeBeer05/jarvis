@@ -11,6 +11,7 @@ from server.ai.providers import ProviderError
 from server.ai.router import AIRouter
 from server.chat_store import ChatError, ChatStore
 from server.config import Settings
+from server.ai.policy import next_with_policy
 
 logger = logging.getLogger("jarvis.server")
 
@@ -35,6 +36,12 @@ class Generation:
     started: bool = False
     expiry: asyncio.TimerHandle | None = field(default=None, repr=False)
     principal: object | None = field(default=None, repr=False)
+    channel: str = "text"
+    session_epoch: int | None = None
+    natural_context: dict | None = field(default=None, repr=False)
+    context_messages: list | None = field(default=None, repr=False)
+    context_metrics: dict = field(default_factory=dict)
+    ai_policy: object | None = field(default=None, repr=False)
 
     def public(self) -> dict:
         return {"request_id": self.request_id, "conversation_id": self.conversation_id,
@@ -49,8 +56,9 @@ class ChatService:
         self.admissions = deque()
         self.persistence_tasks: set[asyncio.Task] = set()
         self.automation_chat = None
+        self.natural = None
 
-    async def prepare(self, message: str, mode: str | None = None, conversation_id: str | None = None, request_id: str | None = None, *, principal=None) -> Generation:
+    async def prepare(self, message: str, mode: str | None = None, conversation_id: str | None = None, request_id: str | None = None, *, principal=None,channel="text",session_epoch=None) -> Generation:
         if len(message) > self.settings.max_message_chars or not message.strip():
             raise ChatError("invalid_message", "Het bericht is leeg of te lang.", 422)
         if len(message) + len(self.settings.system_prompt) > self.settings.max_context_chars:
@@ -69,12 +77,22 @@ class ChatService:
             raise ChatError("duplicate_request", "Dit verzoek loopt al.", 409)
         run = Generation(request_id, conversation_id, mode or self.settings.ai_provider, self.store.clean(message.strip()))
         run.principal = principal
+        run.channel,run.session_epoch=channel,session_epoch
         self.active[request_id] = run  # Reserve before the first await; no unbounded wait queue.
         self.admissions.append(tick)
         try:
             run.conversation_id, run.history = await asyncio.to_thread(self.store.start, request_id, conversation_id, run.message)
         except BaseException:
             self.active.pop(request_id, None)
+            raise
+        try:
+            if self.natural and principal:
+                run.natural_context,run.context_messages,run.context_metrics=await asyncio.to_thread(self.natural.prepare,run)
+                run.ai_policy=run.natural_context["policy"]
+        except BaseException:
+            # start succeeded: finish only this new turn, never a duplicate ID.
+            await asyncio.to_thread(self.store.finish,request_id,"",None,None,"error","context_rejected")
+            self.active.pop(request_id,None)
             raise
         run.expiry = asyncio.get_running_loop().call_later(self.settings.ai_timeout_seconds + 5, self.expire, run)
         return run
@@ -92,6 +110,8 @@ class ChatService:
             task.add_done_callback(self.persistence_tasks.discard)
 
     def context(self, run: Generation) -> list[dict]:
+        if run.context_messages is not None:
+            return run.context_messages
         # Keep complete user/assistant pairs, newest first within a strict character budget.
         remaining = self.settings.max_context_chars - len(run.message) - len(self.settings.system_prompt)
         kept = []
@@ -108,17 +128,21 @@ class ChatService:
     async def events(self, run: Generation):
         run.started = True
         pending = None
+        memory_command=bool(self.natural and run.natural_context and self.natural.is_command(run))
         cancellation = asyncio.create_task(run.cancel.wait())
         try:
             yield {"type": "meta", "request_id": run.request_id, "conversation_id": run.conversation_id}
             if run.cancel.is_set():
                 raise GenerationCancelled
-            source = self.automation_chat.stream(run) if self.automation_chat and self.automation_chat.candidate(run) else self.router.stream(self.context(run), run.mode)
+            if memory_command:
+                source=self.natural.stream_command(run)
+            else:
+                source = self.automation_chat.stream(run) if self.automation_chat and self.automation_chat.candidate(run) else self.router.stream(self.context(run), run.mode)
             async with aclosing(source) as stream:
                 try:
-                    async with asyncio.timeout(self.settings.ai_timeout_seconds):
+                    async with asyncio.timeout(run.ai_policy.timeout_seconds if run.ai_policy else self.settings.ai_timeout_seconds):
                         while True:
-                            pending = asyncio.create_task(anext(stream))
+                            pending = asyncio.create_task(next_with_policy(stream,run.ai_policy))
                             done, _ = await asyncio.wait((pending, cancellation), return_when=asyncio.FIRST_COMPLETED)
                             if cancellation in done:
                                 run.status = "cancelled"
@@ -128,6 +152,11 @@ class ChatService:
                             except StopAsyncIteration:
                                 run.status = "completed"
                                 break
+                            if self.natural and run.natural_context and not memory_command:
+                                version=await asyncio.to_thread(self.natural.context.memory_version,run.principal)
+                                if version!=run.natural_context["memory_version"]:
+                                    run.status="cancelled"
+                                    break
                             if event["type"] == "delta":
                                 if len(run.text) + len(event["text"]) > self.settings.max_response_chars:
                                     raise ProviderError("response_limit", retryable=False)
@@ -182,6 +211,11 @@ class ChatService:
                 pass
             finally:
                 self.active.pop(run.request_id, None)
+            if self.natural and run.principal and run.status=="completed":
+                try:
+                    await asyncio.to_thread(self.natural.context.summarize,run.principal,run.conversation_id)
+                except Exception as error:
+                    logger.warning("summary_unavailable",extra={"error_type":type(error).__name__})
         if run.error:
             yield {"type": "error", **run.error}
         yield {"type": "done", **run.public()}

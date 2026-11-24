@@ -55,6 +55,20 @@ class Confirm(StrictModel):
     confirmed:bool=False
 
 
+class SummaryUpdate(StrictModel):
+    revision:int=Field(ge=1)
+    content:str=Field(min_length=1,max_length=5000)
+
+
+@router.get("/summaries")
+def summaries(request:Request):return service(request).context.summaries(request.state.principal)
+
+
+@router.put("/summaries/{identifier}")
+def edit_summary(request:Request,identifier:UUID,body:SummaryUpdate):
+    return result(lambda:service(request).context.edit_summary(request.state.principal,str(identifier),body.content,body.revision))
+
+
 class ConversationStart(StrictModel):
     conversation_id:str|None=Field(default=None,pattern=r"^[0-9a-fA-F-]{36}$")
     takeover:bool=False
