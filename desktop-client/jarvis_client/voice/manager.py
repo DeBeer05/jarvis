@@ -354,6 +354,8 @@ class VoiceConversationManager(QObject):
                 return
             if self.continuous() and not config["auto_listen"]:return
         if self.consent and self.authorized and not self.responding:
+            # Never open the microphone from a late timer after Stop/timeout.
+            if not (self.wake_enabled or self.armed or self.continuous()):return
             self.start_recording(automatic=True)
 
     def begin_response(self):

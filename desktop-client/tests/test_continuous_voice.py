@@ -93,3 +93,36 @@ def test_manual_capture_waits_for_ownership_and_stop_invalidates_activation(qt,t
     callback=calls[-1][3];controller.clear();callback(session)
     assert opened==[True] and controller.current is None
     app.closing=True;app.voice_panel.close_voice();app.tray.hide();app.close()
+
+
+def test_old_heartbeat_cannot_stop_newer_voice_epoch(qt,tmp_path,vault):
+    app=window(tmp_path,vault);calls=[]
+    app.call=lambda method,path,body,done,failure=None:calls.append((done,failure))
+    controller=app.voice_session
+    controller.current={'conversation_id':'same','epoch':4,'revision':1,'state':'LISTENING'}
+    controller.heartbeat();old_done,old_failed=calls[-1]
+    controller.current={**controller.current,'epoch':5,'revision':3}
+    app.voice.activate_session=lambda:None
+    stopped=[];app.voice.stop=lambda *args,**kwargs:stopped.append(True)
+    old_failed(RuntimeError('stale epoch'))
+    assert controller.current['epoch']==5 and not stopped and not controller.heartbeat_busy
+    old_done({'conversation_id':'same','epoch':4,'revision':2,'state':'LISTENING'})
+    assert controller.current['epoch']==5
+    from jarvis_client.api import ClientError
+    old_failed(ClientError('forbidden','Geen toegang',403))
+    assert controller.current is None and stopped==[True]
+    app.closing=True;app.voice_panel.close_voice();app.tray.hide();app.close()
+
+
+def test_deactivation_keeps_continuation_but_stop_blocks_late_timer(qt):
+    from PySide6.QtCore import QEvent
+    from PySide6.QtWidgets import QWidget
+    parent=QWidget();voice=manager(qt);voice.setParent(parent)
+    voice.configure_natural(options());voice.set_authorized(True);voice.set_consent(True);voice.activate_session()
+    opened=[];voice.start_recording=lambda **kwargs:opened.append(kwargs)
+    qt.sendEvent(parent,QEvent(QEvent.Type.WindowDeactivate))
+    voice._auto_listen()
+    assert opened==[{'automatic':True}] and voice.session_active
+    voice.stop();voice._auto_listen()
+    assert len(opened)==1
+    voice.close();parent.close()

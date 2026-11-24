@@ -18,10 +18,18 @@ class ConversationSession(QObject):
 
     def request(self,path,body,done,*,method="POST"):
         serial=self.serial
+        expected=(self.current['conversation_id'],self.current['epoch']) if self.current else None
+        def valid():
+            actual=(self.current['conversation_id'],self.current['epoch']) if self.current else None
+            return serial==self.serial and actual==expected
+        def stale():
+            if serial==self.serial and isinstance(body,dict) and body.get('event')=='heartbeat':self.heartbeat_busy=False
         def success(value):
-            if serial==self.serial:done(value)
+            if valid():done(value)
+            else:stale()
         def failure(error):
             if serial!=self.serial:return
+            if not valid() and getattr(error,'status',None) not in (401,403):stale();return
             self.clear();self.window.voice.stop()
             self.window.voice.problem.emit("Spraakgesprek niet beschikbaar. Selecteer het gesprek in Gesprekken en kies ‘Gesprek hier overnemen’ als het op een ander apparaat actief is. Er is geen opdracht opnieuw verstuurd.")
         self.window.call(method,BASE+path,body,success,failure)
