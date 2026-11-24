@@ -22,7 +22,7 @@ from server.ai.router import AIRouter
 from server.chat_store import ChatError, ChatStore
 from server.chat_service import ChatService
 from server.api.chat import router as chat_router
-from server.http_security import RequestGuard
+from server.http_security import RequestGuard,SecurityHeaders
 from server.security.service import SecurityService
 from server.security.gate import SecurityGate
 from server.security.api import router as security_router
@@ -111,14 +111,7 @@ def create_app(
     async def invalid_automation(request: Request, error: ValueError):
         return JSONResponse({"error":{"code":"invalid_action","message":"Controleer actie, tijdzone, accountkoppeling en actuele afspraakgegevens."}},status_code=400)
 
-    @app.middleware("http")
-    async def security_headers(request: Request, call_next):
-        response = await call_next(request)
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["Referrer-Policy"] = "no-referrer"
-        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
-        response.headers["Cache-Control"] = "no-store"
-        return response
+    app.add_middleware(SecurityHeaders)
 
     @app.exception_handler(AuthError)
     async def auth_error(request: Request, error: AuthError):

@@ -11,8 +11,12 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
   doorlopende spraakbeurten na bewuste activatie. Microfoon start niet vanzelf.
 - Nederlandse tijdresolver en hervatbare taakreferenties gebruiken de bestaande
   AutomationEngine. Geen herstel van oude goedkeuringsgeheimen of auto-uitvoering.
-- Audiohelper blijft geladen tussen aanvragen; gedeelde procesbewaking,
-  annulering en idle-unload. Android-/barge-in-uitbreiding volgt nog.
+- Audiohelper blijft geladen tussen aanvragen; Windows Natural Conversation
+  Mode en Android delen dezelfde serverinference. Annulering sluit ook een
+  lopende serveraanvraag af; beveiligingsheaders behouden via pure ASGI.
+- Android: doorlopende voorgrondgesprekken met centrale sessie/epoch, timeouts,
+  expliciete overname, audiofocusherstel en beschikbare platform-AEC/ruisfiltering.
+  Tien opeenvolgende synthetische spraakbeurten getest; barge-in volgt nog.
 - Android: centrale instellingen-/geheugeninterface, typed controls en CAS,
   import/export via Android-bestandsdialoog, lokale hardwarekeuze apart gehouden.
   Alleen ondersteunde/geïnstalleerde spraakkeuzes aangeboden. Drie nieuwe echte

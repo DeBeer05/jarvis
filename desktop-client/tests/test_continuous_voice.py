@@ -64,9 +64,11 @@ def test_native_session_uses_epoch_and_rejects_late_callbacks(qt,tmp_path,vault)
     app.send_voice_text=sent.append
     controller=app.voice_session;controller.submit("Synthetisch")
     assert calls[-1][1].endswith("/start") and calls[-1][2]=={"takeover":False}
-    session={"conversation_id":"synthetic-conversation","epoch":7,"revision":1,"state":"ACTIVATING"}
+    session={"conversation_id":"synthetic-conversation","device_id":"synthetic-device","epoch":7,"revision":1,"state":"ACTIVATING"}
     calls[-1][3](session)
     assert calls[-1][2]=={"event":"listening","epoch":7}
+    calls[-1][3]({**session,"state":"LISTENING","revision":2})
+    assert calls[-1][0]=="GET" and calls[-1][1].endswith("/state")
     calls[-1][3]({**session,"state":"LISTENING","revision":2})
     assert calls[-1][2]=={"event":"processing","epoch":7}
     callback=calls[-1][3];controller.clear();callback({**session,"state":"PROCESSING","revision":3})

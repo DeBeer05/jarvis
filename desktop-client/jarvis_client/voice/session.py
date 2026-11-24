@@ -53,6 +53,20 @@ class ConversationSession(QObject):
         self.request("/"+session["conversation_id"]+"/events",{"event":name,"epoch":session["epoch"]},received)
 
     def processing(self,_):
+        if not self.current:return
+        expected=dict(self.current)
+        def checked(state):
+            if state["state"] in ("STANDBY","RECONNECTING","ENDING","ERROR"):
+                self.current=None;self.claim(False,self.processing);return
+            if state["epoch"]!=expected["epoch"] or state["device_id"]!=expected.get("device_id",state["device_id"]):
+                self.clear();self.window.voice.stop();self.window.voice.problem.emit("Dit gesprek is overgenomen. Kies expliciet Gesprek hier overnemen.");return
+            self.current=state
+            if state["state"] in ("PROCESSING","THINKING","ASSISTANT_SPEAKING","EXECUTING_ACTION"):
+                self.send_event("interrupted",self.ready_for_processing)
+            else:self.ready_for_processing(state)
+        self.request("/"+expected["conversation_id"]+"/state",None,checked,method="GET")
+
+    def ready_for_processing(self,_):
         def ready(session):
             text,self.pending=self.pending,None;self.busy=False
             if text:

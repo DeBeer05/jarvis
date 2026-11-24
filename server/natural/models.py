@@ -68,6 +68,7 @@ class Voice(StrictModel):
     whisper_model: Literal["whisper-small","whisper-base","whisper-tiny"] = "whisper-small"
     tts_provider: Literal["piper"] = "piper"
     voice: Literal["ronnie","mls"] = "ronnie"
+    speaker: int = Field(default=0,ge=0,le=51,title="Piper-stemnummer (MLS 0–51)")
     speed: float = Field(default=1, ge=.7, le=1.5, title="Spreeksnelheid")
     volume: float = Field(default=.8, ge=0, le=1, title="Volume")
     buffer_ms: int = Field(default=120, ge=40, le=1000)

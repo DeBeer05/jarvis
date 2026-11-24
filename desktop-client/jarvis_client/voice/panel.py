@@ -211,6 +211,21 @@ class VoicePanel(QWidget):
 
     def set_authorized(self, authorized):
         self.manager.set_authorized(authorized)
+        central=bool(self.manager.options and self.manager.options["conversations"]["enabled"])
+        if central:
+            effective=self.manager.effective_settings()
+            for key,field in self.fields.items():
+                if key not in ("input_gain","followup_seconds"):field.setValue(getattr(effective,key))
+            for key,field in self.choices.items():field.setCurrentIndex(field.findData(getattr(effective,key)))
+            self.cache.setChecked(effective.cache)
+        for key,field in self.fields.items():
+            field.setEnabled(not central or key in ("input_gain","followup_seconds"))
+            if central and key not in ("input_gain","followup_seconds"):field.setToolTip("Beheer deze voorkeur onder Instellingen → Gesprekken en geheugen.")
+        for field in self.choices.values():
+            field.setEnabled(not central)
+            if central:field.setToolTip("De centrale server gebruikt de gedeelde stem- en modelvoorkeuren.")
+        self.paths.setEnabled(not central)
+        self.cache.setEnabled(not central)
         if not authorized:
             self.global_keys.setChecked(False)
             self.shortcuts.unregister()

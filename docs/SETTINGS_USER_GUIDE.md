@@ -32,7 +32,7 @@ Sla er nooit sleutels, wachtwoorden of OAuth-tokens in op.
 
 ## Gesprekken en stem
 
-Op Windows kun je doorlopende gesprekken inschakelen in Gesprekken. Dit is geen
+Op Windows en Android kun je doorlopende gesprekken inschakelen in Gesprekken. Dit is geen
 toestemming om bij opstart te gaan opnemen. Geef lokaal microfoontoestemming en
 activeer met de spreekknop of de bewust ingeschakelde wakefrase. Een actief gesprek
 kan vervolgens meerdere beurten behouden en stopt bij afscheid, Stop alles of timeout.
@@ -46,5 +46,9 @@ apparaatrechten of verplichte goedkeuringen. Offline forceert Ollama voor AI,
 ook bij interne planners/samenvattingen. Zonder beschikbaar lokaal model wordt
 een fout gemeld en geen cloudfallback gestart.
 
-Android-doorloop, echo-/barge-infuncties en resterende instellingen worden nog
-aangesloten. Raadpleeg de actuele voortgang; fase 7.5 is nog niet voltooid.
+Android stopt bij verlaten van de app en hervat de microfoon niet vanzelf. Beide
+clients gebruiken bij Natural Conversation Mode de servermodellen; hardwarekeuze
+en microfoontoestemming blijven lokaal. Android gebruikt beschikbare platform-
+echo-/ruisonderdrukking; de kwaliteit vereist een echte audioproef.
+Barge-in en resterende instellingen worden nog aangesloten. Raadpleeg de actuele
+voortgang; fase 7.5 is nog niet voltooid.

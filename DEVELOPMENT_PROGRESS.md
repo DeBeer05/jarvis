@@ -108,6 +108,31 @@ Resterend: Android-spraaklus/foregroundherstel, barge-in/echo/adaptieve detectie
 uitgebreidere intent-/slotlaag, overige instellingen/retentie/diagnostiek, definitieve
 builds/meting/documentatie/CI en hardwareacceptatie. Geen fase-7.5-voltooiing geclaimd.
 
+Gedeelde audio en Android-doorloop aangesloten. Windows Natural Conversation
+Mode gebruikt nu geauthenticeerde server-STT/TTS met een annuleerbare HTTP-pool,
+zodat beide clients dezelfde geladen modellen hergebruiken. De bestaande lokale
+Windows-adapter blijft behouden. Enginewisseling gebeurt op een veilige beurtgrens.
+Android heeft dezelfde centrale sessie/epoch, heartbeat, timeouts, afscheid,
+expliciete overname en automatische vervolgbeurten na bewuste activatie. Verlaten
+van de app/audiofocusverlies stopt opname; OS-microfoontoestemming blijft vereist.
+Beschikbare platform-AEC en ruisonderdrukking worden gekoppeld, zonder claims
+over echte echo-/microfoonkwaliteit. Een spraakinterruptie verwijdert geen
+duurzaam extern concept of reeds uitgevoerde taak.
+
+Echte TCP-test vond dat BaseHTTPMiddleware disconnect maskeerde. SecurityHeaders
+is naar pure ASGI omgezet met behoud van headers/CSRF/auth. De regressie bewijst
+serverannulering vóór responseheaders en een daarna succesvolle aanvraag.
+Laatste volledige serverregressie: **312 geslaagd**, 114,16 s. Windows: **90
+geslaagd**. Android unit/lint/debug/release plus **11 instrumented tests geslaagd**
+in afzonderlijke headless AVD met hostaudio uit. Eén test doorloopt tien beurten
+via echte Whisper/Piper-serverinference met synthetische WAV-input en testoutput;
+geen menselijke luister-/spreek-/barge-inacceptatie geclaimd. Alleen testfixture
+18765 en tijdelijke databases gebruikt; echte 8765-server nog niet gemigreerd.
+GitHub draft-PR #25 naar develop bestaat. Actions-dispatch retourneert HTTP 422
+“Actions has been disabled for this repository”; geen CI-succes of merge geclaimd.
+Open blijven barge-in, adaptieve beurtanalyse, uitgebreide intent/slots,
+resterende runtime-instellingen/privacy/diagnostiek, documentatie en hardwaretests.
+
 ### Eén gesproken ja voor mail en agenda — 24 november 2026
 
 Nieuwe expliciete opdracht vervangt de eerdere beperking op een korte ja:

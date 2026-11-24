@@ -74,8 +74,28 @@ async def audio_preferences(request):
     document=await asyncio.to_thread(request.app.state.natural.settings.get,request.state.principal)
     voice=document["settings"]["voice"]
     return {"model":voice["whisper_model"],"device":voice["processing"],"provider":voice["tts_provider"],
-            "voice":voice["voice"],"speed":voice["speed"],"unload_after_seconds":voice["unload_after_seconds"],
+            "voice":voice["voice"],"speaker":voice["speaker"],"speed":voice["speed"],"unload_after_seconds":voice["unload_after_seconds"],
             "profile":"light" if document["settings"]["ai"]["performance"]=="saving" else "desktop"}
+
+
+async def inference_call(request,operation,payload):
+    """Disconnect/revocation cancels only the inference owned by this request."""
+    work=asyncio.create_task(request.app.state.speech.request(operation,payload))
+    async def watch():
+        while True:
+            if await request.is_disconnected():return "disconnected"
+            if not await asyncio.to_thread(request.app.state.security.store.live,request.state.principal):return "revoked"
+            await asyncio.sleep(.2)
+    monitor=asyncio.create_task(watch())
+    try:
+        done,_=await asyncio.wait((work,monitor),return_when=asyncio.FIRST_COMPLETED)
+        if work in done:return await work
+        work.cancel();await asyncio.gather(work,return_exceptions=True)
+        raise AuthError("speech_cancelled","Spraakverwerking gestopt; sessie of verbinding is niet meer geldig.",401 if monitor.result()=="revoked" else 499)
+    finally:
+        monitor.cancel()
+        if not work.done():work.cancel()
+        await asyncio.gather(work,monitor,return_exceptions=True)
 
 
 @router.post("/speech/transcribe", dependencies=[Depends(require_permission("chat:write"))])
@@ -93,7 +113,7 @@ async def transcribe(request: Request):
         raise AuthError("invalid_audio", "Gebruik mono PCM16 WAV op 16 kHz, maximaal 60 seconden.", 422) from None
     principal = request.state.principal
     await asyncio.to_thread(request.app.state.security.store.rate, "mobile-stt:" + principal.device_id, 12)
-    result = await request.app.state.speech.request("stt", {**await audio_preferences(request), "audio": base64.b64encode(raw).decode()})
+    result = await inference_call(request,"stt", {**await audio_preferences(request), "audio": base64.b64encode(raw).decode()})
     # Reject results if authorization was revoked during inference.
     await asyncio.to_thread(request.app.state.security.store.own_device, principal)
     return {"text": result["text"], "seconds": result["seconds"]}
@@ -111,7 +131,7 @@ async def synthesize(request: Request, body: Speak):
     await asyncio.to_thread(request.app.state.security.store.rate, "mobile-tts:" + principal.device_id, 60)
     preferences=await audio_preferences(request)
     if body.speed is not None:preferences["speed"]=body.speed
-    result = await request.app.state.speech.request("tts", {**preferences,"text": body.text})
+    result = await inference_call(request,"tts", {**preferences,"text": body.text})
     await asyncio.to_thread(request.app.state.security.store.own_device, principal)
     return Response(base64.b64decode(result["audio"], validate=True), media_type="audio/wav")
 

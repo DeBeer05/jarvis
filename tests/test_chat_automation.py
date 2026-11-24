@@ -205,12 +205,13 @@ def test_draft_is_verified_before_send_proposal_and_hash_is_not_model_generated(
     assert sum(row["tool"]=="EmailSend" for row in e.store.items())==1
 
 
-def test_cancel_during_draft_wait_cancels_unstarted_job(tools_chat):
+@pytest.mark.parametrize("channel,job_status",[("text","cancelled"),("voice","queued")])
+def test_cancel_during_draft_wait_distinguishes_voice_from_task_cancel(tools_chat,channel,job_status):
     app,c,router=tools_chat;e=app.state.automation
     principal=app.state.security.store.authenticate(c.cookies.get("jarvis_access"))
     router.plans=[{"tool":"EmailDraft","input":{"to":"example@example.com","subject":"Test","text":"Hallo"}}]
     async def exercise():
-        run=await app.state.chat.prepare("Schrijf een conceptmail aan example@example.com",principal=principal)
+        run=await app.state.chat.prepare("Schrijf een conceptmail aan example@example.com",principal=principal,channel=channel)
         async def cancel():
             for _ in range(100):
                 if e.store.items():break
@@ -222,7 +223,7 @@ def test_cancel_during_draft_wait_cancels_unstarted_job(tools_chat):
         await cancel_task
         return run.status
     assert c.portal.call(exercise)=="cancelled"
-    assert e.store.items()[0]["status"]=="cancelled"
+    assert e.store.items()[0]["status"]==job_status
 
 
 def test_reference_from_other_conversation_cannot_read_email(tools_chat):

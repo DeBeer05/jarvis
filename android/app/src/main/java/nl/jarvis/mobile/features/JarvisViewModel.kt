@@ -11,6 +11,7 @@ import nl.jarvis.mobile.BuildConfig
 import nl.jarvis.mobile.core.*
 import nl.jarvis.mobile.data.Preferences
 import nl.jarvis.mobile.voice.AudioClient
+import nl.jarvis.mobile.voice.ConversationSession
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
@@ -25,11 +26,11 @@ data class ScreenState(
     val device: String = "Nog niet gekoppeld", val provider: String = "auto", val model: String = "", val notificationStatus: String = "Lokale testmeldingen",
     val automations: String = "", val automationResult: String = "",
     val naturalSettings: String = "", val naturalSchema: String = "", val naturalMemory: String = "",
-    val naturalSummaries: String = "", val naturalStatus: String = ""
+    val naturalSummaries: String = "", val naturalStatus: String = "",val conversationState: String="STANDBY"
 )
-class JarvisViewModel(application: Application): AndroidViewModel(application) {
+class JarvisViewModel(application: Application,val audio: AudioClient): AndroidViewModel(application) {
+    constructor(application: Application):this(application,AudioClient(application))
     private val graph = (application as JarvisApplication).graph
-    val audio = AudioClient(application)
     private val mutable = MutableStateFlow(ScreenState())
     val state = mutable.asStateFlow()
     private var currentApi: nl.jarvis.mobile.data.JarvisApi? = null
@@ -38,7 +39,44 @@ class JarvisViewModel(application: Application): AndroidViewModel(application) {
     private var sendJob: Job? = null; private var audioJob: Job? = null; private var pairJob: Job? = null
     private var requestId: String? = null
     private val connection = ConnectionManager(application, viewModelScope) { currentApi }
+    private var voiceConversationActive=false;private var voiceStarted=0L;private var lastVoice=0L
+    private var followupJob: Job?=null
+    private val conversationSession=ConversationSession(viewModelScope,{currentApi},{foreground},{voiceProblem(it)},{lease -> mutable.update {it.copy(conversationState=lease?.state ?: "STANDBY")}})
+
+    private fun naturalConfig(): JSONObject?=try {JSONObject(mutable.value.naturalSettings).getJSONObject("settings")}catch(_:Exception){null}
+    private fun naturalVoice()=naturalConfig()?.optJSONObject("conversations")
+    private fun naturalEnabled()=naturalVoice()?.optBoolean("enabled")==true
+    private fun continuousVoice()=voiceConversationActive&&naturalVoice()?.optBoolean("continuous")==true
+    private fun voiceSpeed()=(naturalConfig()?.optJSONObject("voice")?.optDouble("speed")?.toFloat() ?: mutable.value.preferences.speed).coerceIn(.7f,1.5f)
+    private fun voiceVolume()=(naturalConfig()?.optJSONObject("voice")?.optDouble("volume")?.toFloat() ?: 1f).coerceIn(0f,1f)
+    private fun activateVoice() {if(!voiceConversationActive) {
+        check(audio.beginConversation()) {"Audio wordt door een ander gesprek gebruikt"}
+        voiceStarted=System.nanoTime();voiceConversationActive=true
+    };lastVoice=System.nanoTime()}
+    private fun isEnding(text: String): Boolean {
+        val phrases=naturalVoice()?.optJSONArray("ending_phrases") ?: return false
+        fun normalized(value:String)=value.lowercase().replace(Regex("[^\\p{L}\\p{N}\\s]"),"").trim()
+        return (0 until phrases.length()).any {normalized(phrases.getString(it))==normalized(text)}
+    }
+    private fun voiceProblem(error: Throwable) {if(error is CancellationException)return;stop();problem(error)}
+    private fun continueVoice(responseFinished: Boolean=false) {
+        if(responseFinished)lastVoice=System.nanoTime()
+        followupJob?.cancel()
+        if(!foreground || !voiceConversationActive)return
+        followupJob=viewModelScope.launch {try {
+            if(naturalEnabled())conversationSession.listening()
+            val config=naturalVoice() ?: return@launch
+            if(!continuousVoice() || !config.optBoolean("auto_listen",true))return@launch
+            val now=System.nanoTime()
+            if((now-voiceStarted)/1_000_000_000>=config.optLong("maximum_seconds",1800) || config.optBoolean("automatic_end",true)&&(now-lastVoice)/1_000_000_000>=config.optLong("inactivity_seconds",90)) {
+                stop();mutable.update {it.copy(voiceStatus="Standby")};return@launch
+            }
+            delay(450)
+            if(foreground&&voiceConversationActive)captureVoice(false)
+        } catch(error:Exception){voiceProblem(error)}}
+    }
     init {
+        audio.focusLost={viewModelScope.launch {stop();message("Audiofocus verloren; de microfoon en spraak zijn gestopt")}}
         viewModelScope.launch { graph.settings.values.collect { preferences ->
             val changed = currentApi?.endpoint?.origin != preferences.origin
             if (changed) {
@@ -97,9 +135,10 @@ class JarvisViewModel(application: Application): AndroidViewModel(application) {
         naturalRequest("/memory/search","POST",body) {data -> mutable.update {it.copy(naturalMemory=data.toString())}}
         naturalRequest("/summaries") {data -> mutable.update {it.copy(naturalSummaries=data.toString())}}
     }
-    fun naturalMemorySave(data: JSONObject,id: String?=null) {naturalRequest(if(id==null)"/memory" else "/memory/$id",if(id==null)"POST" else "PUT",data) {naturalMemory()}}
-    fun naturalMemoryDelete(id: String) {naturalRequest("/memory/$id","DELETE") {naturalMemory()}}
-    fun naturalMemoryClear() {naturalRequest("/memory/clear","POST",JSONObject().put("confirmed",true)) {naturalMemory()}}
+    private fun memoryChanged() {if(mutable.value.busy || mutable.value.voiceStatus=="JARVIS spreekt")stop();naturalMemory()}
+    fun naturalMemorySave(data: JSONObject,id: String?=null) {naturalRequest(if(id==null)"/memory" else "/memory/$id",if(id==null)"POST" else "PUT",data) {memoryChanged()}}
+    fun naturalMemoryDelete(id: String) {naturalRequest("/memory/$id","DELETE") {memoryChanged()}}
+    fun naturalMemoryClear() {naturalRequest("/memory/clear","POST",JSONObject().put("confirmed",true)) {memoryChanged()}}
     fun naturalSummarySave(id: String,text: String,revision: Int) {naturalRequest("/summaries/$id","PUT",JSONObject().put("revision",revision).put("content",text)) {naturalMemory()}}
 
     private var automationJob: Job? = null
@@ -155,7 +194,7 @@ class JarvisViewModel(application: Application): AndroidViewModel(application) {
     fun reconnect() { connection.checkNow() }
     private fun problem(error: Throwable) {
         if (error is CancellationException) return
-        mutable.update { it.copy(error=if (error is MobileError) error.message ?: "Verzoek mislukt" else if (error is IllegalArgumentException) error.message ?: "Ongeldige instelling" else "Verbinding of audio onderbroken. Controleer server en apparaten.", busy=false, recording=false, level=0f, voiceStatus="Spraak gestopt") }
+        mutable.update { it.copy(error=if (error is MobileError) error.message ?: "Verzoek mislukt" else if (error is IllegalArgumentException) error.message ?: "Ongeldige instelling" else "Verbinding of audio onderbroken. Controleer server en apparaten.") }
         if (error is MobileError && error.status == 401) {
             stop(); currentApi?.forget(); currentApi?.let { api -> viewModelScope.launch { graph.cache.clear(api.endpoint.origin) } }
             mutable.update { it.copy(naturalSettings="", naturalSchema="", naturalMemory="", naturalSummaries="", naturalStatus="", automations="", automationResult="", connection=Connection(true,false,"Opnieuw koppelen nodig"), messages=emptyList(), history=emptyList(), conversation=null, screen="Inloggen") }
@@ -212,6 +251,7 @@ class JarvisViewModel(application: Application): AndroidViewModel(application) {
     }
     fun open(id: String) {
         if (mutable.value.busy) return
+        stop()
         val api = currentApi ?: return
         val epoch = generation
         viewModelScope.launch { try {
@@ -227,60 +267,87 @@ class JarvisViewModel(application: Application): AndroidViewModel(application) {
     fun newConversation() { stop(); mutable.update { it.copy(conversation=null, messages=emptyList(), transcript="", screen="Chat") } }
     fun provider(value: String) { mutable.update { it.copy(provider=value) } }
     fun send(text: String, speak: Boolean = false) {
-        if (text.isBlank() || text.length > 8000 || mutable.value.busy || !mutable.value.connection.authenticated || "chat:write" !in mutable.value.connection.permissions) return
-        stop(); val api = currentApi ?: return
-        val epoch=generation; val request=UUID.randomUUID().toString(); requestId=request
-        val conversation=mutable.value.conversation
-        val narrate=speak && mutable.value.preferences.voiceOutput
-        mutable.update { it.copy(busy=true, messages=it.messages + Line("JIJ",text) + Line("JARVIS",""), error="", voiceStatus="JARVIS denkt…") }
-        val queue=Channel<String>(32); val segments=SentenceBuffer()
-        if (narrate) audioJob=viewModelScope.launch {
-            try { for (sentence in queue) {
-                val wav=api.synthesize(sentence, mutable.value.preferences.speed)
-                ensureActive(); if (epoch != generation) return@launch
-                mutable.update { it.copy(voiceStatus="JARVIS spreekt") }
-                audio.play(wav, mutable.value.preferences.outputDevice)
-            }; if (epoch==generation) mutable.update { it.copy(voiceStatus="Klaar om te luisteren") }
-            } catch (error: Exception) { if(epoch==generation) problem(error) }
+        if(text.isBlank() || text.length>8000 || mutable.value.busy || !mutable.value.connection.authenticated || "chat:write" !in mutable.value.connection.permissions)return
+        cancelTurn(false);val api=currentApi ?: return
+        val epoch=generation;val request=UUID.randomUUID().toString();requestId=request
+        val conversation=mutable.value.conversation;val narrate=speak&&mutable.value.preferences.voiceOutput
+        val speed=voiceSpeed();val volume=voiceVolume();val succeeded=java.util.concurrent.atomic.AtomicBoolean(false)
+        mutable.update {it.copy(busy=true,messages=it.messages+Line("JIJ",text)+Line("JARVIS",""),error="",voiceStatus="JARVIS denkt…")}
+        val queue=Channel<String>(32);val segments=SentenceBuffer()
+        if(narrate)audioJob=viewModelScope.launch {
+            try {
+                for(sentence in queue) {
+                    val wav=api.synthesize(sentence,speed);ensureActive();if(epoch!=generation)return@launch
+                    mutable.update {it.copy(voiceStatus="JARVIS spreekt")};audio.play(wav,mutable.value.preferences.outputDevice,volume)
+                }
+                if(epoch==generation) {mutable.update {it.copy(voiceStatus="Klaar om te luisteren")};if(succeeded.get())continueVoice(true)}
+            }catch(error:Exception){if(epoch==generation)voiceProblem(error)}
         }
         sendJob=viewModelScope.launch {
             try {
+                val lease=if(speak&&naturalEnabled())conversationSession.prepare(conversation) else null
+                if(!speak) {voiceConversationActive=false;conversationSession.endBeforeText();audio.endConversation()}
+                ensureActive();if(epoch!=generation)return@launch
+                lease?.let {mutable.update {state->state.copy(conversation=it.conversation)}}
                 val body=JSONObject().put("message",text).put("provider",mutable.value.provider).put("request_id",request)
-                conversation?.let { body.put("conversation_id",it) }
-                api.stream(body) { event -> if (epoch==generation && currentApi===api) when(event.optString("type")) {
-                    "meta" -> mutable.update { it.copy(conversation=event.getString("conversation_id")) }
-                    "provider" -> mutable.update { it.copy(model=event.getString("provider") + " · " + event.getString("model")) }
+                (lease?.conversation ?: conversation)?.let {body.put("conversation_id",it)}
+                if(speak)body.put("channel","voice")
+                lease?.let {body.put("session_epoch",it.epoch)}
+                api.stream(body) {event -> if(epoch==generation&&currentApi===api)when(event.optString("type")) {
+                    "meta" -> mutable.update {it.copy(conversation=event.getString("conversation_id"))}
+                    "provider" -> mutable.update {it.copy(model=event.getString("provider")+" · "+event.getString("model"))}
                     "delta" -> {
                         val delta=event.getString("text")
-                        mutable.update { it.copy(messages=it.messages.dropLast(1) + it.messages.last().copy(text=it.messages.last().text + delta)) }
-                        if (narrate) segments.add(delta).forEach { check(queue.trySend(it).isSuccess) { "Spraakbuffer vol" } }
+                        mutable.update {it.copy(messages=it.messages.dropLast(1)+it.messages.last().copy(text=it.messages.last().text+delta))}
+                        if(narrate)segments.add(delta).forEach {check(queue.trySend(it).isSuccess) {"Spraakbuffer vol"}}
                     }
                     "error" -> message(event.optString("message","Antwoord mislukt"))
                     "done" -> {
-                        if (event.getString("status")=="completed" && narrate) segments.add("",true).forEach { queue.trySend(it) }
-                        else if (event.getString("status")!="completed") { audioJob?.cancel(); audio.stop() }
+                        succeeded.set(event.getString("status")=="completed")
+                        if(succeeded.get()&&narrate)segments.add("",true).forEach {check(queue.trySend(it).isSuccess) {"Spraakbuffer vol"}}
+                        else if(!succeeded.get()) {audioJob?.cancel();audio.stop();voiceConversationActive=false;conversationSession.end()}
                     }
-                } }
-                if (epoch==generation) { requestId=null; mutable.update { it.copy(busy=false) }; history() }
-            } catch (error: Exception) { if (epoch==generation) problem(error) } finally { queue.close() }
+                }}
+                if(epoch==generation) {requestId=null;mutable.update {it.copy(busy=false)};history();if(speak&&!narrate&&succeeded.get())continueVoice(true)}
+            }catch(error:Exception){if(epoch==generation)voiceProblem(error)}finally{queue.close()}
         }
     }
-    fun ptt() {
-        if (mutable.value.recording) return audio.finishRecording()
-        if (!mutable.value.connection.authenticated) return message("Log in en koppel je telefoon voordat je praat")
-        if ("chat:write" !in mutable.value.connection.permissions) return message("Dit apparaat mag geen chat- of spraakopdrachten versturen")
-        stop(); val epoch=generation; val api=currentApi ?: return
-        mutable.update { it.copy(recording=true, voiceStatus="Ik luister…", error="") }
+    fun ptt() {captureVoice(true)}
+    private fun captureVoice(manual: Boolean) {
+        if(!foreground)return
+        if(mutable.value.recording) {if(manual)audio.finishRecording();return}
+        if(!mutable.value.connection.authenticated)return message("Log in en koppel je telefoon voordat je praat")
+        if("chat:write" !in mutable.value.connection.permissions)return message("Dit apparaat mag geen chat- of spraakopdrachten versturen")
+        cancelTurn(false);if(manual&&naturalEnabled())try {activateVoice()}catch(error:Exception){voiceProblem(error);return}
+        val epoch=generation;val api=currentApi ?: return
+        val listening=naturalConfig()?.optJSONObject("listening")
+        mutable.update {it.copy(recording=true,voiceStatus="Ik luister…",error="")}
         audioJob=viewModelScope.launch {
             try {
-                val wav=audio.record(mutable.value.preferences.inputDevice) { level -> if (epoch==generation) mutable.update { it.copy(level=level, voiceStatus=if(level>.12f) "Ik hoor je…" else "Ik luister…") } }
-                if (epoch!=generation) return@launch
-                mutable.update { it.copy(recording=false, voiceStatus="Spraak verwerken…") }
-                if (wav.isEmpty()) { mutable.update { it.copy(voiceStatus="Geen duidelijke spraak gehoord") }; return@launch }
+                val wav=audio.record(mutable.value.preferences.inputDevice,threshold=listening?.optDouble("vad_threshold")?.toFloat() ?: .015f,
+                    silenceMs=if(listening?.optBoolean("adaptive")==true)listening.optInt("thinking_pause_ms",2500) else listening?.optInt("normal_silence_ms",1200) ?: 1200,
+                    maximumSeconds=listening?.optInt("maximum_listen_seconds",60) ?: 60,echo=listening?.optBoolean("echo_suppression")==true,noise=listening?.optBoolean("noise_suppression")==true) {level -> if(epoch==generation)mutable.update {it.copy(level=level,voiceStatus=if(level>.12f)"Ik hoor je…" else "Ik luister…")}}
+                if(epoch!=generation)return@launch
+                mutable.update {it.copy(recording=false,voiceStatus="Spraak verwerken…")}
+                if(wav.isEmpty()) {mutable.update {it.copy(voiceStatus="Geen duidelijke spraak gehoord")};audioJob=null;if(continuousVoice())continueVoice();return@launch}
                 val text=api.transcribe(wav)
-                if (epoch==generation) { mutable.update { it.copy(transcript=text) }; audioJob=null; send(text,true) }
-            } catch (error: Exception) { if (epoch==generation) problem(error) }
+                if(epoch==generation) {
+                    mutable.update {it.copy(transcript=text)};audioJob=null
+                    if(voiceConversationActive&&isEnding(text)) {stop();mutable.update {it.copy(voiceStatus="Standby")};return@launch}
+                    if(text.isBlank()) {if(continuousVoice())continueVoice();return@launch}
+                    lastVoice=System.nanoTime();send(text,true)
+                }
+            }catch(error:Exception){if(epoch==generation)voiceProblem(error)}
         }
+    }
+    fun takeOverConversation() {
+        if(!foreground||!mutable.value.connection.authenticated)return message("Open de app en log in voordat je een gesprek overneemt")
+        if(mutable.value.busy)return
+        cancelTurn(false);val epoch=generation
+        audioJob=viewModelScope.launch {try {
+            val lease=conversationSession.prepare(mutable.value.conversation,true);conversationSession.listening()
+            if(epoch==generation) {mutable.update {it.copy(conversation=lease.conversation)};activateVoice();audioJob=null;captureVoice(false)}
+        }catch(error:Exception){voiceProblem(error)}}
     }
     fun sample() {
         if (!mutable.value.connection.authenticated) return message("Log eerst in")
@@ -289,9 +356,12 @@ class JarvisViewModel(application: Application): AndroidViewModel(application) {
             mutable.update { it.copy(voiceStatus="Stem voorbereiden…") }
             val wav=api.synthesize("Hallo, ik ben Jarvis. Dit is mijn Nederlandse stem.", mutable.value.preferences.speed)
             if (epoch==generation) { mutable.update { it.copy(voiceStatus="JARVIS spreekt") }; audio.play(wav,mutable.value.preferences.outputDevice); mutable.update { it.copy(voiceStatus="Klaar om te luisteren") } }
-        } catch (error: Exception) { if(epoch==generation) problem(error) } }
+        } catch (error: Exception) { if(epoch==generation) voiceProblem(error) } }
     }
-    fun stop() {
+    fun stop() {cancelTurn(true)}
+    private fun cancelTurn(endConversation: Boolean) {
+        followupJob?.cancel();followupJob=null
+        if(endConversation) {voiceConversationActive=false;conversationSession.end();audio.endConversation()}
         generation++; audio.stop(); currentApi?.stop(); sendJob?.cancel(); audioJob?.cancel()
         val request=requestId; requestId=null
         val api=currentApi

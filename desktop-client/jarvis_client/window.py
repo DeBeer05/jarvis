@@ -19,6 +19,8 @@ from jarvis_client.theme import icon, stylesheet
 from jarvis_client.automations import AutomationPanel
 from jarvis_client.natural_settings import NaturalSettingsPanel
 from jarvis_client.voice.session import ConversationSession
+from jarvis_client.voice.server_worker import ServerInferenceWorker
+from jarvis_client.voice.worker import InferenceWorker
 
 
 def label(text, name=None):
@@ -376,6 +378,13 @@ class MainWindow(QMainWindow):
 
     def apply_natural_settings(self,document):
         self.voice.configure_natural(document["settings"])
+        enabled=document["settings"]["conversations"]["enabled"]
+        worker=self.voice.next_worker or self.voice.worker
+        if enabled and self.manager.api and (not isinstance(worker,ServerInferenceWorker) or worker.api is not self.manager.api):
+            self.voice.select_worker(ServerInferenceWorker(self.manager.api))
+        elif not enabled and isinstance(worker,ServerInferenceWorker):
+            self.voice.select_worker(InferenceWorker())
+        self.voice_panel.set_authorized(bool(self.principal and "chat:write" in self.principal["permissions"] and self.manager.state=="online"))
 
     def update_controls(self):
         permissions = set(self.principal["permissions"]) if self.principal else set()
@@ -494,6 +503,8 @@ class MainWindow(QMainWindow):
             return
         identifier = row.data(Qt.ItemDataRole.UserRole)
         def loaded(result):
+            self.voice.stop()
+            self.voice_session.end()
             self.conversation = identifier
             self.rows = []
             for turn in result["turns"]:

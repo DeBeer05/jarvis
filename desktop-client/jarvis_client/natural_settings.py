@@ -246,17 +246,23 @@ class NaturalSettingsPanel(QWidget):
         payload={"content":content.toPlainText(),"category":category.currentText(),"consent_sensitive":consent.isChecked()}
         if item:payload.update(revision=item["revision"],key=item["memory_key"],kind=item["kind"],confidence=item["confidence"],sensitivity=item["sensitivity"],expires_at=item["expires"],status=item["status"])
         if consent.isChecked():payload["sensitivity"]="sensitive"
-        self.call("PUT" if item else "POST","/memory/"+item["id"] if item else "/memory",payload,lambda _:self.load_memory())
+        self.call("PUT" if item else "POST","/memory/"+item["id"] if item else "/memory",payload,self.memory_changed)
 
     def delete_memory(self):
         index=self.memory_list.currentRow()
         if index<0:return
         if QMessageBox.question(self,"Herinnering verwijderen","De geselecteerde herinnering verwijderen? Oorspronkelijke gesprekken blijven bewaard.",QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.No,QMessageBox.StandardButton.No)==QMessageBox.StandardButton.Yes:
-            self.call("DELETE","/memory/"+self.memory_items[index]["id"],None,lambda _:self.load_memory())
+            self.call("DELETE","/memory/"+self.memory_items[index]["id"],None,self.memory_changed)
 
     def clear_memory(self):
         if QMessageBox.question(self,"Alle herinneringen wissen","Alle persoonlijke herinneringen en samenvattingen wissen? Gesprekken blijven afzonderlijk bestaan.",QMessageBox.StandardButton.Yes|QMessageBox.StandardButton.No,QMessageBox.StandardButton.No)==QMessageBox.StandardButton.Yes:
-            self.call("POST","/memory/clear",{"confirmed":True},lambda _:self.load_memory())
+            self.call("POST","/memory/clear",{"confirmed":True},self.memory_changed)
+
+    def memory_changed(self,_):
+        if hasattr(self.window,"voice"):
+            if self.window.voice.responding:self.window.voice_stop()
+            with self.window.voice.cache_lock:self.window.voice.cache.clear()
+        self.load_memory()
 
     def summaries_loaded(self,data):
         self.summary_items=data["items"];self.summary_list.clear();self.summary_list.addItems(["Gesprek "+item["conversation_id"][:8] for item in self.summary_items]);self.select_summary(self.summary_list.currentIndex())

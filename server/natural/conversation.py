@@ -36,7 +36,7 @@ TRANSITIONS={
     State.INTERRUPTED:{State.USER_SPEAKING,State.PROCESSING,State.LISTENING,State.ENDING,State.RECONNECTING},
     State.WAITING_FOR_INFORMATION:{State.USER_SPEAKING,State.PROCESSING,State.LISTENING,State.ENDING},
     State.WAITING_FOR_APPROVAL:{State.USER_SPEAKING,State.PROCESSING,State.EXECUTING_ACTION,State.LISTENING,State.ENDING},
-    State.EXECUTING_ACTION:{State.THINKING,State.ASSISTANT_SPEAKING,State.LISTENING,State.ENDING},
+    State.EXECUTING_ACTION:{State.THINKING,State.ASSISTANT_SPEAKING,State.LISTENING,State.INTERRUPTED,State.ENDING},
     State.RECONNECTING:{State.ACTIVATING,State.LISTENING,State.ENDING},
     State.ENDING:{State.STANDBY},
     State.ERROR:{State.ACTIVATING,State.LISTENING,State.RECONNECTING,State.ENDING},
@@ -88,10 +88,10 @@ class NaturalConversationManager:
     async def claim(self,principal,conversation=None,*,takeover=False,revision=None):
         async with self.mutation:
             snapshot=await asyncio.to_thread(self._claim,principal,conversation,takeover=takeover,revision=revision)
-            if takeover:
-                # Only generation/audio are interrupted. Durable tasks are not cancelled.
-                for run in list(self.chat.active.values()):
-                    if run.conversation_id==snapshot["conversation_id"]:run.cancel.set()
+            # Superseded voice generations cannot survive a new lease. Durable
+            # tasks are independent; a text generation only stops on explicit takeover.
+            for run in list(self.chat.active.values()):
+                if run.conversation_id==snapshot["conversation_id"] and (takeover or run.session_epoch is not None):run.cancel.set()
             return snapshot
 
     def _get(self,principal,conversation):

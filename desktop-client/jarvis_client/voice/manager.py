@@ -28,6 +28,7 @@ class VoiceConversationManager(QObject):
         super().__init__(parent)
         self.settings = settings
         self.worker = worker or InferenceWorker()
+        self.next_worker=None
         self.input_factory = (lambda: audio_input) if audio_input is not None else AudioInputManager
         self.input = self.input_factory()
         self.output = audio_output or AudioOutputManager()
@@ -59,12 +60,22 @@ class VoiceConversationManager(QObject):
         if self.session_active and not settings["conversations"]["enabled"]:
             self.end_session("uitgeschakeld")
 
+    def select_worker(self,worker):
+        if self.next_worker:getattr(self.next_worker,"close",self.next_worker.cancel)()
+        self.next_worker=worker
+        if not (self.recording or self.responding or self.busy):self.switch_worker()
+
+    def switch_worker(self):
+        if self.next_worker:
+            getattr(self.worker,"close",self.worker.cancel)()
+            self.worker,self.next_worker=self.next_worker,None
+
     def effective_settings(self):
         settings=replace(self.settings)
         if not self.options or not self.options["conversations"]["enabled"]:return settings
         voice=self.options["voice"];listening=self.options["listening"]
         return replace(settings,model=voice["whisper_model"],device=voice["processing"],provider=voice["tts_provider"],
-                       voice=voice["voice"],speed=voice["speed"],output_gain=voice["volume"],cache=voice["cache"],
+                       voice=voice["voice"],speaker=voice.get("speaker",0),speed=voice["speed"],output_gain=voice["volume"],cache=voice["cache"],
                        max_seconds=listening["maximum_listen_seconds"],silence_seconds=(listening["thinking_pause_ms"] if listening["adaptive"] else listening["normal_silence_ms"])/1000,
                        sensitivity=max(0,min(1,(.028-listening["vad_threshold"])/.023)))
 
@@ -151,6 +162,7 @@ class VoiceConversationManager(QObject):
         if self.recording:
             return
         self.stop(keep_wake=True)
+        self.switch_worker()
         generation = self.interruptions.generation
         settings = self.effective_settings()
         if not automatic:self.activate_session()
@@ -232,6 +244,7 @@ class VoiceConversationManager(QObject):
             self.set_state("JARVIS spreekt")
         elif kind == "drained":
             self.responding = False
+            self.last_activity=time.monotonic()
             self.measurements["total_seconds"] = round(time.perf_counter() - self.response_started, 3)
             self.metrics.emit(dict(self.measurements))
             self.set_state("Klaar om te luisteren")
@@ -258,6 +271,7 @@ class VoiceConversationManager(QObject):
     def begin_response(self):
         speak = self.voice_next
         self.stop(keep_wake=True)
+        self.switch_worker()
         self.voice_next = False
         if not speak:
             return
@@ -350,4 +364,5 @@ class VoiceConversationManager(QObject):
     def close(self):
         self.closed = True
         self.set_authorized(False)
-        self.worker.cancel()
+        getattr(self.worker,"close",self.worker.cancel)()
+        if self.next_worker:getattr(self.next_worker,"close",self.next_worker.cancel)()

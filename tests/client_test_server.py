@@ -1,5 +1,9 @@
 """Synthetic TCP fixture, never the user's personal database or provider keys."""
 import sys
+import asyncio
+import base64
+import io
+import wave
 from pathlib import Path
 
 import uvicorn
@@ -21,6 +25,23 @@ if __name__ == "__main__":
     store = SecurityStore(database, settings)
     store.create_owner("owner", owner_hash())
     app = create_app(settings, ai_router=AIRouter(settings, {name: FakeProvider() for name in ("gemini", "groq", "ollama")}))
+    audio_buffer=io.BytesIO()
+    with wave.open(audio_buffer,"wb") as wav:
+        wav.setnchannels(1);wav.setsampwidth(2);wav.setframerate(16000);wav.writeframes(b"\0\0"*1600)
+    class SyntheticSpeech:
+        active=False
+        cancelled=0
+        async def request(self,operation,payload):
+            if operation=="stt":return {"text":"Synthetic native transcription","seconds":.01}
+            if payload.get("text")=="Synthetic slow synthesis":
+                self.active=True
+                try:await asyncio.sleep(60)
+                except asyncio.CancelledError:self.cancelled+=1;raise
+                finally:self.active=False
+            return {"audio":base64.b64encode(audio_buffer.getvalue()).decode()}
+    app.state.speech=SyntheticSpeech()
+    @app.get("/api/v1/test/speech-status")
+    async def speech_status():return {"active":app.state.speech.active,"cancelled":app.state.speech.cancelled}
     async def calendars():return {"items":[{"id":"primary","summary":"Synthetic calendar"}]}
     async def events(payload):return {"items":[{"id":"synthetic-event","etag":"v1","summary":"Synthetic native appointment","start":{"dateTime":"2030-01-01T10:00:00+01:00"},"end":{"dateTime":"2030-01-01T11:00:00+01:00"}}]}
     async def search(query):return {"messages":[{"id":"synthetic-mail"}]}

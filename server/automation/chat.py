@@ -471,7 +471,7 @@ class AutomationChat:
                         return "Het aanmaken van het concept is niet bevestigd. Controleer de taak bij Automatiseringen en Gmail voordat je het opnieuw probeert."
                     await asyncio.sleep(.5)
             except asyncio.CancelledError:
-                if self.engine.store.get(row["id"])["status"] in ("queued","paused"):
+                if run.channel!="voice" and self.engine.store.get(row["id"])["status"] in ("queued","paused"):
                     try:self.engine.control(row["id"],"cancelled",run.principal.device_id)
                     except (AuthError,ValueError):pass
                 raise
