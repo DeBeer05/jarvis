@@ -22,9 +22,10 @@ samenvattingscall en geen hardcoded antwoord op een van de testgesprekken.
 
 ## Technische controles
 
-- Volledige serverreeks: 542 geslaagd in 365,00 s op de voorlaatste versie,
-  inclusief de 10 al aanwezige eigenaarmailtests. Laatste volledige ronde wordt
-  hieronder apart vastgelegd. Gerichte nieuwe suite: 33 geslaagd in 66,26 s,
+- Volledige serverreeks: 544 geslaagd in 256,14 s, inclusief de 10 al aanwezige
+  eigenaarmailtests. Na de laatste kleine spraakweergavewijziging zijn de 88
+  relevante regressies nogmaals geslaagd; remote CI controleert de commit apart.
+  Gerichte nieuwe suite daarvoor: 33 geslaagd in 66,26 s,
   inclusief tien volledige gesprekken, gecombineerde activiteiten, contacten,
   geen dubbele berichten, instellingen, bronvergeten en retentie.
 - Eerdere gerichte regressieronde: 80 geslaagd voor planning, bestaande

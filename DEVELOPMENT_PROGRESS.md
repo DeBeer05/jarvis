@@ -21,10 +21,10 @@ gesimuleerd. Openstaande gegevens en menselijke acceptatie staan in
 `docs/PLANNING_TEST_REPORT.md`; architectuur en instellingen in de drie andere
 nieuwe planningsdocumenten. Mastervisie en changelog bijgewerkt.
 
-Eerste volledige technische ronde na herstel: 542 servertests geslaagd,
+Volledige technische ronde na herstel: 544 servertests geslaagd in 256,14 s,
 126 clienttests, native Windows-build/rooktest en Android-tests/lint/builds.
-De nieuwste volledige serverronde en echte CPU-meetreeks lopen nog en worden
-hieronder met remote CI vastgelegd. Qwen2.5:3B heeft tien echte synthetische
+Na de laatste kleine spraakweergavewijziging 88 gerichte regressies geslaagd.
+Qwen2.5:3B heeft tien echte synthetische
 gesprekken van drie beurten uitgevoerd; JSON-validiteit is geen luisteracceptatie.
 De oorspronkelijke snelle meting had geen werkende CPU-begrenzing. De aparte
 vier-thread CPU-reeks leverde 12 geldige beurten (mediaan 24,942 s); latere
@@ -33,6 +33,15 @@ via de bestaande refreshroute. Gemini weigert met HTTP 402/RESOURCE_EXHAUSTED.
 Geen betaalde activatie, modelwisseling, echte accounttest of externe wijziging.
 Eigenaardiffs blijven 695234ae1147/1f3b5515efc9. Fase 7.5 / desktop-development;
 geen fase 8, permanente dienst, productie of mini-pc-deployment.
+
+De herstelde kostenvervolgroute is met drie echte CPU-beurten herhaald en de
+uiteindelijke beknopte weergave nogmaals met drie echte modelbeurten gecontroleerd.
+Windows-build staat in `.local/client-build-activity-planning`; Android-APK in
+`.local/android-build`. De telefoon is bij oplevercontrole niet via adb verbonden;
+een nieuwe telefooninstallatie en luisteracceptatie zijn dus niet geclaimd.
+Push naar de eigen fork is geverifieerd; PR/remote CI worden bij oplevering
+apart vermeld. Niet naar develop/main gemerged zolang de gestapelde basis-PR's
+open zijn en de volledige ervaringsacceptatie nog ontbreekt.
 
 ### Aanvullende schermafbeeldingen: activiteitenvraag en standaardagenda
 
