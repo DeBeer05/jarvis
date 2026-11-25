@@ -24,6 +24,18 @@ object Proof {
 class MobileError(val code: String, val status: Int = 0, message: String): Exception(message)
 
 class SentenceBuffer {
+    companion object {
+        fun ready(text: String): List<String> {
+            check(text.length<=36000) {"Spraakbuffer vol"}
+            val result=mutableListOf<String>();var remaining=text.trim()
+            while(remaining.isNotEmpty()) {
+                var end=remaining.offsetByCodePoints(0,minOf(600,remaining.codePointCount(0,remaining.length)))
+                if(end<remaining.length) {val space=remaining.lastIndexOf(' ',end-1);if(space>0)end=space}
+                result.add(remaining.substring(0,end).trim());remaining=remaining.substring(end).trimStart()
+            }
+            return result
+        }
+    }
     private var text = ""
     fun add(delta: String, final: Boolean = false): List<String> {
         text += delta

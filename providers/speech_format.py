@@ -9,6 +9,17 @@ TENS={20:'twintig',30:'dertig',40:'veertig',50:'vijftig',60:'zestig',70:'zeventi
 MONTHS=['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december']
 
 
+def speech_chunks(text):
+    """Ready protocol text, including older large events, bounded for local TTS."""
+    if len(text)>18000:raise ValueError('Spraakbuffer vol')
+    text=text.strip()
+    while text:
+        end=len(text)
+        if end>600:end=text.rfind(' ',0,600) or 600
+        yield text[:end].strip()
+        text=text[end:].lstrip()
+
+
 def number(n):
     if n<0:return 'min '+number(-n)
     if n<20:return ONES[n]

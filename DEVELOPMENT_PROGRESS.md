@@ -2,6 +2,52 @@
 
 ## Huidige opdracht
 
+Telefoonupdate op expliciet verzoek uitgevoerd: bestaande Android-app via
+`adb install -r` bijgewerkt met de geteste latency-APK 0.7.5/708. Installatie
+Success, geïnstalleerde base.apk SHA-256 exact gelijk aan het lokale artifact
+(984DDB3E2072…), oorspronkelijke installatiedatum behouden, MainActivity-start
+Status=ok en app als hervat bevestigd. Geen clear/uninstall, reset of grants.
+USB reverse 8765→8765 ingesteld; backend lokaal health/ready=200. Tijdens de
+laatste verbindingscontrole verdween het USB-apparaat; geauthenticeerde
+appverbinding en fysieke audioacceptatie zijn daarom niet als geslaagd geteld.
+Voor deze lokale ontwikkelverbinding USB aangesloten houden. Geen fase 8,
+netwerkpublicatie of mini-pc-migratie. Bestaande gebruikersmailwijzigingen intact.
+
+Reactiesnelheid verbeteren met toekomstige **8 GB RAM als randvoorwaarde**, op
+`fix/voice-latency-8gb`, afhankelijk van de bestaande PR27-code (5b015b5).
+Origin/develop opnieuw opgehaald en actueel. Twee bestaande mailwijzigingen
+inhoudelijk gecontroleerd en intact gelaten; geen stash/reset/tweede projectroot.
+Scope blijft fase 7.5 / desktop-development; geen mini-pc-deployment.
+
+Verbeterd: eerste lange spreekclausule eerder beschikbaar; beide clients
+herbufferen gereed servermateriaal niet tot een hele zin. Maximaal één WAV
+voorbereiden naast playback, uit bij barge-in; Stop wist oude generatie/audio.
+CUDA-negatieve probe/inferencefallback wordt per helper onthouden; oude
+STT-gewichten vrij vóór nieuwe allocatie. Licht profiel behoudt devicecache.
+Geen nieuw model, grotere cache, GPU-installatie of automatische stemwisseling.
+CPU-fallback komt hier door ontbrekende cuBLAS; GPU is geen toekomstige vereiste.
+Greedy-decodering en timestampwijziging leverden maar tientallen ms op; greedy
+herkende een annuleringszin slechter. Beide productie-defaults zijn behouden.
+
+Bewijs: server **469 geslaagd** (200,40 s; inclusief tien ongestagede
+gebruikersmailtests), Windows **123 geslaagd**, Android unit/lint/debug/release
+geslaagd, portable smoke acht pagina's zonder mic/netwerk/helper, verpakte
+voice-helper-smoke geslaagd. Ruff/mypy, drie pip checks, contract/repo/diffchecks
+geslaagd. CPU-only Ollama bevestigd met 8192 contexttokens en nul VRAM; actieve
+getelde set Ollama/helper/testbackend circa **3,30 GiB**, exclusief Windows/client.
+Dit is geen opgelegde 8-GB-limiet en geen bewijs van mini-pc-snelheid. Warme live-
+PCM-reacties nieuwe route 5,46/6,05 s; baseline 7,00/9,18 s maar verschillende
+antwoordteksten, dus geen gecontroleerd winstpercentage. Koude opwarmbeurt 20,46 s.
+Zie `docs/VOICE_LATENCY_8GB.md` voor bronnen, meetgrenzen en resterende acceptatie.
+
+Geen Android-device aangesloten; APK wel gebouwd, geen telefooninstallatie of
+fysieke microfoon-/luisteracceptatie geclaimd. Windows-focusprobleem blijft open.
+Lokale uitrol, push/PR en echte CI worden afzonderlijk bevestigd. Geen merge van
+open afhankelijkheden, geen fase 8 of migratie.
+Aanvullende racecontrole: barge-in tijdens een prefetchbeurt inschakelen opent
+geen concurrerende STT; de keuze geldt vanaf de volgende beurt. Beide clients
+gebruiken daarvoor dezelfde beurtgebonden keuze; extra Windows-regressie slaagt.
+
 Master Vision / Experience Overhaul op `feature/jarvis-experience-overhaul`.
 Volledige visie (32 hoofdstukken), architectuurreview/gap analysis, UX-eisen,
 scenario's A–H en geprioriteerd plan vastgelegd; AGENTS verwijst er blijvend naar.

@@ -31,6 +31,16 @@ class ProtocolTest {
         assertEquals(16000,rate); assertArrayEquals(pcm,result)
         assertThrows(IllegalArgumentException::class.java){Wav.decode(byteArrayOf())}
     }
+    @Test fun readySpeechStartsWithoutSentenceRebufferingAndKeepsLegacyEvents() {
+        val clause="Na een lange werkdag helpt een rustige wandeling om wat afstand te nemen, "
+        assertEquals(listOf(clause.trim()),SentenceBuffer.ready(clause))
+        val old="Noodzakelijke voorstelinhoud. ".repeat(50)+"Deadline vrijdag."
+        val parts=SentenceBuffer.ready(old)
+        assertTrue(parts.all {it.codePointCount(0,it.length)<=600})
+        assertEquals(old.trim(),parts.joinToString(" "))
+        val unicode="😀".repeat(700)
+        assertEquals(unicode,SentenceBuffer.ready(unicode).joinToString(""))
+    }
     @Test fun backoffAndFutureCallsDoNotCreateHiddenActions() {
         assertTrue(ConnectionManager.backoff(100) in 60000..60400)
         assertFalse(FutureCall("example",NotificationCategory.news,CallState.unavailable).canRingAutomatically())

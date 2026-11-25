@@ -368,14 +368,27 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
         val deferredSpeech=StringBuilder();var serverSpeech=false
         if(narrate)audioJob=viewModelScope.launch {
             try {
-                for(sentence in queue) {
-                    val wav=api.synthesize(sentence,speed,request,mutable.value.conversation);ensureActive();if(epoch!=generation)return@launch
+                val bargeForTurn=naturalConfig()?.optJSONObject("listening")?.optBoolean("barge_in")==true
+                suspend fun playSentence(sentence:String,wav:ByteArray) {
+                    ensureActive();if(epoch!=generation)return
                     mutable.update {it.copy(voiceStatus="JARVIS spreekt")}
                     val startedAt=responseClock
                     audio.playbackStarted={viewModelScope.launch {if(epoch==generation&&responseClock==startedAt&&!firstAudioReported) {firstAudioReported=true;metric("native_first_audio_ms",(System.nanoTime()-startedAt)/1_000_000.0)}}}
-                    val monitor=startInterruptionMonitor(epoch,(mutable.value.messages.lastOrNull()?.text.orEmpty()+" "+sentence).takeLast(6000))
+                    val monitor=if(bargeForTurn)startInterruptionMonitor(epoch,(mutable.value.messages.lastOrNull()?.text.orEmpty()+" "+sentence).takeLast(6000)) else null
                     try {audio.play(wav,mutable.value.preferences.outputDevice,volume)}
                     finally {finishInterruptionMonitor(api,monitor)}
+                }
+                if(bargeForTurn) {
+                    for(sentence in queue)playSentence(sentence,api.synthesize(sentence,speed,request,mutable.value.conversation))
+                } else coroutineScope {
+                    // Rendezvous keeps exactly one prepared WAV ahead of playback.
+                    val ready=Channel<Pair<String,ByteArray>>(0)
+                    val producer=launch {
+                        try {for(sentence in queue)ready.send(sentence to api.synthesize(sentence,speed,request,mutable.value.conversation))}
+                        finally {ready.close()}
+                    }
+                    try {for((sentence,wav) in ready)playSentence(sentence,wav)}
+                    finally {producer.cancel();ready.cancel()}
                 }
                 if(epoch==generation) {mutable.update {it.copy(voiceStatus="Klaar om te luisteren")};if(succeeded.get())continueVoice(true)}
             }catch(error:Exception){if(epoch==generation)voiceProblem(error)}
@@ -403,7 +416,9 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
                     }
                     "speech" -> if(narrate && serverSpeech) {
                         val delta=event.getString("text")
-                        if(streamAudio)segments.add(delta).forEach {check(queue.trySend(it).isSuccess) {"Spraakbuffer vol"}}
+                        if(streamAudio) {
+                            SentenceBuffer.ready(delta).forEach {check(queue.trySend(it).isSuccess) {"Spraakbuffer vol"}}
+                        }
                         else {check(deferredSpeech.length+delta.length<=18000);deferredSpeech.append(delta)}
                     }
                     "error" -> message(event.optString("message","Antwoord mislukt"))

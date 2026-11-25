@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 import base64
 import ctypes
+import gc
 import io
 import os
 import sys
@@ -16,6 +17,34 @@ class SpeechToTextProvider:
     def __init__(self):
         self.model = None
         self.key = None
+        self.cuda_device = None
+        self.fallback_reason = None
+
+    def unload(self):
+        if self.model is not None:
+            self.model,self.key=None,None
+            gc.collect()
+
+    def select_device(self,requested):
+        if requested=='cpu':return 'cpu',False,None
+        if self.cuda_device is None:
+            try:
+                import ctranslate2
+                if not ctranslate2.get_cuda_device_count():
+                    self.cuda_device='cpu'
+                else:
+                    # Probe once per helper lifetime; missing native libraries
+                    # can abort rather than raise inside CTranslate2 inference.
+                    loader=ctypes.WinDLL if sys.platform=='win32' else ctypes.CDLL
+                    loader('cublas64_12.dll' if sys.platform=='win32' else 'libcublas.so.12')
+                    loader('cudnn64_9.dll' if sys.platform=='win32' else 'libcudnn.so.9')
+                    self.cuda_device='cuda'
+            except OSError:
+                self.cuda_device='cpu';self.fallback_reason='cuda_libraries_missing'
+            except RuntimeError:
+                self.cuda_device='cpu';self.fallback_reason='cuda_probe_failed'
+        reason=self.fallback_reason or ('cuda_device_missing' if requested=='cuda' and self.cuda_device=='cpu' else None)
+        return self.cuda_device,bool(reason),reason
 
     def transcribe(self, request):
         from faster_whisper import WhisperModel
@@ -26,6 +55,10 @@ class SpeechToTextProvider:
         device = request.get("device", "auto")
         if device not in ("auto", "cpu", "cuda"):
             raise ValueError("invalid_settings")
+        beam=request.get('beam_size',3)
+        if type(beam) is not int or not 1<=beam<=5:raise ValueError('invalid_settings')
+        text_only=request.get('without_timestamps',False)
+        if type(text_only) is not bool:raise ValueError('invalid_settings')
         # Our private protocol is PCM WAV only. Decode without FFmpeg/PyAV API
         # version coupling, then resample Piper's 22.05 kHz test input as needed.
         with wave.open(io.BytesIO(base64.b64decode(request["audio"], validate=True)), "rb") as source:
@@ -39,35 +72,29 @@ class SpeechToTextProvider:
         # first phoneme at Whisper's window boundary. No prompt or canned answer.
         audio = np.concatenate((np.zeros(8000, dtype=np.float32), audio, np.zeros(8000, dtype=np.float32)))
         started = time.perf_counter()
-        fallback = False
+        device,fallback,reason=self.select_device(device)
         try:
-            if device == "auto":
-                import ctranslate2
-                device = "cuda" if ctranslate2.get_cuda_device_count() else "cpu"
-            if device == "cuda":
-                try:
-                    # Missing CUDA DLLs can abort a native process instead of raising.
-                    loader = ctypes.WinDLL if sys.platform == "win32" else ctypes.CDLL
-                    loader("cublas64_12.dll" if sys.platform == "win32" else "libcublas.so.12")
-                    loader("cudnn64_9.dll" if sys.platform == "win32" else "libcudnn.so.9")
-                except OSError:
-                    device, fallback = "cpu", True
-            text = self._run(WhisperModel, directory, device, audio)
+            text = self._run(WhisperModel, directory, device, audio,beam,text_only)
         except (RuntimeError, OSError):
             if device != "cuda":
                 raise
-            self.model, self.key = None, None
+            self.unload()
+            self.cuda_device='cpu';self.fallback_reason=reason='cuda_runtime_error'
             device, fallback = "cpu", True
-            text = self._run(WhisperModel, directory, device, audio)
-        return {"text": text, "device": device, "cpu_fallback": fallback, "seconds": time.perf_counter() - started}
+            text = self._run(WhisperModel, directory, device, audio,beam,text_only)
+        return {"text": text, "device": device, "cpu_fallback": fallback,"fallback_reason":reason, "seconds": time.perf_counter() - started}
 
-    def _run(self, factory, directory, device, audio):
+    def _run(self, factory, directory, device, audio,beam=3,text_only=False):
         key = str(directory), device
         if self.key != key:
+            # Release old weights before allocating another model. Python's
+            # assignment would otherwise keep both alive while factory runs.
+            self.unload()
             self.model = factory(str(directory), device=device, compute_type="int8" if device == "cpu" else "float16",
                                  cpu_threads=4, num_workers=1, local_files_only=True)
             self.key = key
-        segments, _ = self.model.transcribe(audio, language="nl", beam_size=3, vad_filter=True,
+        segments, _ = self.model.transcribe(audio, language="nl", beam_size=beam, vad_filter=True,
+                                            without_timestamps=text_only,
                                             condition_on_previous_text=False,
                                             vad_parameters={"min_silence_duration_ms": 500})
         return " ".join(segment.text.strip() for segment in segments if segment.no_speech_prob < 0.75).strip()[:8000]
@@ -156,12 +183,15 @@ class Runtime:
         self.stt, self.tts = SpeechToTextProvider(), TextToSpeechProvider()
 
     def dispatch(self, request):
+        if request.get('operation') not in ('stt','tts'):raise ValueError('invalid_operation')
         if request.get("profile") == "light":
             # One large inference engine at a time on a future constrained host.
             if request["operation"] == "stt":
-                self.tts = TextToSpeechProvider()
+                if self.tts.engine is not None:
+                    self.tts = TextToSpeechProvider()
+                    gc.collect()
             else:
-                self.stt = SpeechToTextProvider()
+                self.stt.unload()
         if request["operation"] == "stt":
             return self.stt.transcribe(request)
         if request["operation"] == "tts":

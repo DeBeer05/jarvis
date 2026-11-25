@@ -250,6 +250,50 @@ def test_cancel_discards_late_tts_and_shutdown_stops_capture(qt):
     assert voice.closed and not voice.consent
 
 
+def test_ready_server_clause_does_not_wait_for_another_sentence(qt):
+    voice=manager(qt);voice.voice_next=True;voice.begin_response()
+    clause='Na een lange werkdag helpt een rustige wandeling om wat afstand te nemen, '
+    voice.delta(clause,ready=True)
+    until(qt,lambda:bool(voice.output.played))
+    assert voice.output.played==[clause.strip().encode()]
+    voice.finish_response();until(qt,lambda:not voice.responding);voice.close()
+
+
+@pytest.mark.parametrize('barge',[False,True])
+def test_speech_prefetch_is_one_block_ahead_and_stop_discards_it(qt,barge):
+    voice=manager(qt)
+    voice.options={'conversations':{'enabled':False},'listening':{'barge_in':barge}}
+    started,release=threading.Event(),threading.Event()
+    class Output(FakeOutput):
+        def play(self,data,settings,valid,on_started):
+            if valid():
+                self.played.append(data);on_started()
+                if len(self.played)==1:started.set();release.wait(3)
+    voice.output=Output();voice.voice_next=True;voice.begin_response()
+    try:
+        for text in ('Eerste zin.','Tweede zin.','Derde zin.'):voice.delta(text,ready=True)
+        voice.finish_response();until(qt,started.is_set)
+        if barge:
+            time.sleep(.05);assert len(voice.worker.calls)==1
+        else:
+            until(qt,lambda:len(voice.worker.calls)==2)
+            time.sleep(.05);assert len(voice.worker.calls)==2
+        voice.stop();release.set();until(qt,lambda:not voice.busy)
+        assert voice.output.played==[b'Eerste zin.']
+    finally:release.set();voice.close()
+
+
+def test_enabling_barge_mid_prefetch_waits_for_next_turn(qt):
+    voice=manager(qt)
+    voice.responding=voice.session_active=voice.consent=voice.authorized=voice.prefetch_active=True
+    voice.options={'listening':{'barge_in':True}}
+    voice.output.pause=lambda:None;voice.output.resume=lambda:None
+    voice.input_factory=lambda:pytest.fail('Microphone capture during prefetch')
+    voice.start_barge_capture(voice.interruptions.generation)
+    assert not voice.recording and not voice.barge_active
+    voice.close()
+
+
 def test_missing_models_and_offline_error_never_leaks_raw_error(qt):
     voice = manager(qt)
     errors = []

@@ -4,6 +4,16 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Spraakstart kan bij een voldoende lange eerste clausule eerder beginnen;
+  Windows/Android gebruiken gereed speech-materiaal zonder tweede zinsbuffer.
+  Lange/oudere speech-events blijven begrensd en volledig beschikbaar.
+- Maximaal één audioblok vooruit voorbereiden naast playback; uit bij barge-in
+  voor STT-prioriteit. Stop/epochwissel laat oude voorbereide audio vervallen.
+- Gecachte CUDA-fallback en STT-gewichten vrijgeven vóór modelwissel, met behoud
+  van int8/één helper en de lichte geheugenmodus. Geen GPU- of modelinstallatie.
+- CPU-only/decoderbenchmarks en ontwerpbudget voor een toekomstige 8-GB-host;
+  geen mini-pc-migratie of claim van fysieke audioacceptatie.
+
 - Centrale JARVIS-mastervisie met architectuur-/gapanalyse, ervaringscriteria,
   gespreksscenario's A–H en verbeterplan; blijvende verwijzingen vanuit AGENTS.
 - Gesprek als standaard bij verhalen met domeinwoorden; oude leesvragen binden
