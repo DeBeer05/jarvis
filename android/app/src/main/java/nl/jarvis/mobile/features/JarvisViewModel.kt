@@ -368,16 +368,17 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
         val deferredSpeech=StringBuilder();var serverSpeech=false
         if(narrate)audioJob=viewModelScope.launch {
             try {
+                val bargeForTurn=naturalConfig()?.optJSONObject("listening")?.optBoolean("barge_in")==true
                 suspend fun playSentence(sentence:String,wav:ByteArray) {
                     ensureActive();if(epoch!=generation)return
                     mutable.update {it.copy(voiceStatus="JARVIS spreekt")}
                     val startedAt=responseClock
                     audio.playbackStarted={viewModelScope.launch {if(epoch==generation&&responseClock==startedAt&&!firstAudioReported) {firstAudioReported=true;metric("native_first_audio_ms",(System.nanoTime()-startedAt)/1_000_000.0)}}}
-                    val monitor=startInterruptionMonitor(epoch,(mutable.value.messages.lastOrNull()?.text.orEmpty()+" "+sentence).takeLast(6000))
+                    val monitor=if(bargeForTurn)startInterruptionMonitor(epoch,(mutable.value.messages.lastOrNull()?.text.orEmpty()+" "+sentence).takeLast(6000)) else null
                     try {audio.play(wav,mutable.value.preferences.outputDevice,volume)}
                     finally {finishInterruptionMonitor(api,monitor)}
                 }
-                if(naturalConfig()?.optJSONObject("listening")?.optBoolean("barge_in")==true) {
+                if(bargeForTurn) {
                     for(sentence in queue)playSentence(sentence,api.synthesize(sentence,speed,request,mutable.value.conversation))
                 } else coroutineScope {
                     // Rendezvous keeps exactly one prepared WAV ahead of playback.

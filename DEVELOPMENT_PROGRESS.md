@@ -19,7 +19,7 @@ Greedy-decodering en timestampwijziging leverden maar tientallen ms op; greedy
 herkende een annuleringszin slechter. Beide productie-defaults zijn behouden.
 
 Bewijs: server **469 geslaagd** (200,40 s; inclusief tien ongestagede
-gebruikersmailtests), Windows **122 geslaagd**, Android unit/lint/debug/release
+gebruikersmailtests), Windows **123 geslaagd**, Android unit/lint/debug/release
 geslaagd, portable smoke acht pagina's zonder mic/netwerk/helper, verpakte
 voice-helper-smoke geslaagd. Ruff/mypy, drie pip checks, contract/repo/diffchecks
 geslaagd. CPU-only Ollama bevestigd met 8192 contexttokens en nul VRAM; actieve
@@ -33,6 +33,9 @@ Geen Android-device aangesloten; APK wel gebouwd, geen telefooninstallatie of
 fysieke microfoon-/luisteracceptatie geclaimd. Windows-focusprobleem blijft open.
 Lokale uitrol, push/PR en echte CI worden afzonderlijk bevestigd. Geen merge van
 open afhankelijkheden, geen fase 8 of migratie.
+Aanvullende racecontrole: barge-in tijdens een prefetchbeurt inschakelen opent
+geen concurrerende STT; de keuze geldt vanaf de volgende beurt. Beide clients
+gebruiken daarvoor dezelfde beurtgebonden keuze; extra Windows-regressie slaagt.
 
 Master Vision / Experience Overhaul op `feature/jarvis-experience-overhaul`.
 Volledige visie (32 hoofdstukken), architectuurreview/gap analysis, UX-eisen,

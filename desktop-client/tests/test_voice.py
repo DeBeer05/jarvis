@@ -283,6 +283,17 @@ def test_speech_prefetch_is_one_block_ahead_and_stop_discards_it(qt,barge):
     finally:release.set();voice.close()
 
 
+def test_enabling_barge_mid_prefetch_waits_for_next_turn(qt):
+    voice=manager(qt)
+    voice.responding=voice.session_active=voice.consent=voice.authorized=voice.prefetch_active=True
+    voice.options={'listening':{'barge_in':True}}
+    voice.output.pause=lambda:None;voice.output.resume=lambda:None
+    voice.input_factory=lambda:pytest.fail('Microphone capture during prefetch')
+    voice.start_barge_capture(voice.interruptions.generation)
+    assert not voice.recording and not voice.barge_active
+    voice.close()
+
+
 def test_missing_models_and_offline_error_never_leaks_raw_error(qt):
     voice = manager(qt)
     errors = []

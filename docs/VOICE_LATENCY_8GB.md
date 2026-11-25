@@ -21,6 +21,8 @@ Geen mini-pc ingericht, geen model/download/dependency toegevoegd, geen cloudtes
   Android een rendezvous-channel. Bij barge-in blijft de bestaande seriële
   route gelden om geen extra concurrentie met STT te veroorzaken. Stop/epoch-
   wissel annuleert de producer en voorkomt afspelen van oude audio.
+  Barge-in tijdens het spreken inschakelen geldt vanaf de volgende beurt;
+  dezelfde beurt schakelt niet ongemerkt van prefetch naar gelijktijdige STT.
 - CUDA-capaciteit en ontbrekende libraries worden per helperlifetime eenmaal
   onderzocht. Een mislukte CUDA-inference wordt niet bij iedere uitspraak
   opnieuw geprobeerd. Alleen veilige redencodes komen terug; geen native paden.
@@ -121,7 +123,7 @@ niet uitgevoerd.
 
 - Server: **469 geslaagd**, 200,40 s, inclusief tien bestaande ongestagede
   gebruikersmailtests die buiten deze wijziging blijven.
-- Windows: **122 geslaagd**, 5,42 s. Nieuwe fallback-/modellevensduurtests faalden
+- Windows: **123 geslaagd**, 5,31 s. Nieuwe fallback-/modellevensduurtests faalden
   vooraf op vier van vijf controles; de prefetchtest bewees vooraf dat geen
   volgend blok tijdens afspelen werd voorbereid.
 - Android unit/lint/debug/release-build geslaagd, inclusief ready-chunk,

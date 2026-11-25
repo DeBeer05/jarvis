@@ -58,6 +58,7 @@ class VoiceConversationManager(QObject):
         self.sentence = SentenceBuffer()
         self.answer_text = ""
         self.stream_audio=True
+        self.prefetch_active=False
         self.response_started = self.first_token = self.first_audio = 0.
         self.measurements = {}
         self.scheduled = QTimer(self)
@@ -212,6 +213,7 @@ class VoiceConversationManager(QObject):
         self._thread(capture)
 
     def start_barge_capture(self,generation):
+        if self.prefetch_active:return
         if self.closed or not self.interruptions.valid(generation) or not self.responding or self.recording:return
         if self.barge_failed_generation==generation:return
         if not (self.session_active and self.consent and self.authorized and self.options and self.options["listening"].get("barge_in")):return
@@ -379,6 +381,7 @@ class VoiceConversationManager(QObject):
         # One prepared WAV alongside the one playing; never an unbounded audio
         # queue or another inference engine. Keep STT priority when barge-in is on.
         prefetch=not (self.options and self.options.get('listening',{}).get('barge_in',False))
+        self.prefetch_active=prefetch
         prepared:queue.Queue[tuple[str,bytes|str|None]]=queue.Queue(maxsize=1)
         capacity=threading.Semaphore(1)
 
@@ -467,6 +470,7 @@ class VoiceConversationManager(QObject):
         self.finish_response()
 
     def stop(self, keep_wake=False):
+        self.prefetch_active=False
         self.scheduled.stop()
         self.interruptions.cancel()
         self.input.stop(discard=True)
