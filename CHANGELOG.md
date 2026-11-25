@@ -4,6 +4,13 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Agenda herkent samengevoegde gesproken dagdelen en verwerkt een gebonden
+  dagdeelaanvulling vóór herinterpretatie; begin en einde houden hun eigen dagdeel.
+- Eenvoudige persoonlijke uitjes plannen zonder extra modelplanner, met de
+  bestaande volledige preview en verplichte exacte eenmalige goedkeuring.
+- Uitjesideeën kort gesproken aankondigen en als volledige lijst in de app
+  laten verschijnen, via dezelfde generatie en bestaande Windows-/Android-clients.
+
 - Spraakstart kan bij een voldoende lange eerste clausule eerder beginnen;
   Windows/Android gebruiken gereed speech-materiaal zonder tweede zinsbuffer.
   Lange/oudere speech-events blijven begrensd en volledig beschikbaar.

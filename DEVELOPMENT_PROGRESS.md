@@ -2,6 +2,40 @@
 
 ## Huidige opdracht
 
+### Agenda blijft doorvragen
+
+Opdracht 25 november: herhaling van dagdeelvragen en onnodige plannerwachttijd
+herstellen. Op `fix/calendar-and-outing-experience`, gestapeld op de nog open
+latencybranch omdat develop deze fase-7.5-basis nog niet bevat. Origin opgehaald;
+de branchhelper vereist een schone werkmap. De twee bestaande mailwijzigingen
+zijn onderzocht en intact gehouden, zonder stash/reset of tweede projectroot.
+Bekende STT-dagdelen en gebonden vervolgaanvullingen worden nu vóór de tijdcontrole
+verwerkt. Eenvoudige uitjes gaan direct naar gevalideerde CalendarCreate-preview;
+de bestaande rechten en exacte eenmalige eigenaarapproval blijven vereist.
+
+### Uitjes kort zeggen, overzicht tonen
+
+Uitjesvragen gebruiken één bestaande generatie: vroege gesproken aankondiging,
+volledige genummerde lijst in de app/geschiedenis. Geen hele lijst automatisch
+voorlezen, geen Word-/Kladblokproces, extra modelcall, modeldownload of extra
+clientruntime. Windows en Android hergebruiken hun bestaande speechprotocol.
+Zie `docs/CALENDAR_OUTING_EXPERIENCE.md`. Volledige lokale serverreeks vóór laatste
+hardening: 493 geslaagd; daarna 50 gerichte ervarings-/taaktests en 34 definitieve
+nieuwe regressies geslaagd. Ruff/mypy, pip check, repository-/diffcheck en Android-
+settingscontract geslaagd. Definitieve collectie: 503 inclusief tien bestaande
+eigenaarmailtests, die buiten de eigen commit blijven. CI/publicatie apart.
+Echte luister-/gespreksacceptatie staat nog open. Eén Qwen-proef had een timeout;
+CPU-only gaf eerste tekst na 13,64 s en totaal 30,10 s voor begrensde 240 tokens,
+met taal-/prijsfouten. Prompt aangescherpt; geen kwaliteits- of hoorbare
+latencyacceptatie geclaimd. Geen echte accounttest of externe
+mutatie. Scope blijft fase 7.5 / desktop-development, geen fase 8 of migratie.
+
+### Windows-audio
+
+Eigenaar bevestigde hoorbare JARVIS-spraak via de HyperX nadat Windows die headset
+als standaarduitgang kreeg en de Windows-client die standaard na herstart volgt.
+Alleen lokale audio-instellingen gewijzigd; diagnose blijft in genegeerde .local.
+
 Telefoonupdate op expliciet verzoek uitgevoerd: bestaande Android-app via
 `adb install -r` bijgewerkt met de geteste latency-APK 0.7.5/708. Installatie
 Success, geïnstalleerde base.apk SHA-256 exact gelijk aan het lokale artifact
