@@ -43,6 +43,15 @@ Push naar de eigen fork is geverifieerd; PR/remote CI worden bij oplevering
 apart vermeld. Niet naar develop/main gemerged zolang de gestapelde basis-PR's
 open zijn en de volledige ervaringsacceptatie nog ontbreekt.
 
+Concept-PR: https://github.com/DeBeer05/jarvis/pull/30. Laatste aanvullingen
+herkennen een afgewezen restaurant en korte annulering; modelvoorstellen mogen
+een uitgesloten restaurant niet terugplaatsen. Gerichte tegenproef en Ruff/mypy
+geslaagd. De ontwikkelbackend is gecontroleerd herstart (health/ready 200,
+persoonlijke planning zonder login 401). De snelkoppeling verwijst naar de nieuwe
+geteste build; de bestaande actieve client is niet geforceerd afgesloten.
+Voor de nieuwe overzichtsknop moet de eigenaar JARVIS via het systeemvak afsluiten
+en opnieuw openen. Remote resultaten worden op de actuele PR-commit gecontroleerd.
+
 ### Aanvullende schermafbeeldingen: activiteitenvraag en standaardagenda
 
 De twee nieuwe screenshots maakten nog twee te smalle herkenningsregels zichtbaar.

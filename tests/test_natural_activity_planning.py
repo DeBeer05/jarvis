@@ -307,3 +307,16 @@ def test_settings_control_selection_environment_and_disabled_route(planner):
     assert c.patch('/api/v1/natural/settings/planning',json={'revision':changed['revision'],'changes':{'enabled':False}}).status_code==200
     second=call(c,'Bedenk iets leuks voor zondag.').json()
     assert document(c,second['conversation_id']) is None
+
+
+def test_disliking_restaurant_and_short_cancel_keep_intent_local(planner):
+    app,c,router=planner
+    for provider in router.providers.values():
+        reply=json.loads(provider.chunks[0]);reply['proposals']={'meal':'restaurant'};provider.chunks=(json.dumps(reply),)
+    first=call(c,'Ik wil zondag naar een museum en daarna ergens eten.').json()
+    call(c,'Dat restaurant lijkt me niks.',first['conversation_id'])
+    state=document(c,first['conversation_id'])['state']
+    assert 'restaurant' in state['excluded'] and 'meal' not in state['facts']
+    stopped=call(c,'Laat maar.',first['conversation_id']).json()
+    assert document(c,stopped['conversation_id'])['state']['status']=='cancelled'
+    assert not app.state.automation.store.items()

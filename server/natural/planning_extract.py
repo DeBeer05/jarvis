@@ -8,7 +8,7 @@ from server.natural.planning_models import Fact,Cost
 ACTIVITIES={'dierentuin':'dierentuin','pretpark':'pretpark','museum':'museum','bioscoop':'bioscoop','restaurant':'restaurant','diner':'restaurant','wandeling':'wandeling','wandelen':'wandeling','natuur':'wandeling','escape room':'escape room','bowlen':'bowlen','stad':'stedentrip','stedentrip':'stedentrip','date':'date','sport':'sport'}
 TOPIC=re.compile(r'\b(?:uitjes?|activiteit\w*|dagtrip\w*|dagtocht\w*|uitstap\w*|date|dierentuin\w*|pretpark\w*|museum|bioscoop|wandeling|restaurant|bowlen|sport|weekend|iets (?:leuks|romantisch)|vriend verrassen)\b',re.I)
 FOLLOW=re.compile(r"\s*(?:maak het|het regent|er komt regen|dat klinkt|die (?:lijkt|klinkt)|een .+ klinkt|doe toch|liever|niet te|het moet|maakt (?:me|mij)|verras|bedenk jij|een uur|een uurtje|iets later|haal|verwijder|voeg|zonder|tickets?|entree|parkeren|brandstof|vervoer|eten|drinken|kunnen we|laten we|ik wil eerst|we gaan|toch met|maximaal|budget|met |zaterdag|zondag|morgen|terug naar|ga terug|hoe staat|werk .+ uit)",re.I)
-CANCEL=re.compile(r'\b(?:vergeet|annuleer|stop|laat)\b.*\b(?:uitje|planning|dagtrip|hele plan)\b',re.I)
+CANCEL=re.compile(r'\b(?:vergeet|annuleer|stop|laat)\b.*\b(?:uitje|planning|dagtrip|hele plan)\b|^\s*(?:laat maar|stop maar|annuleer maar|vergeet het maar)[.!\s]*$',re.I)
 COMMIT=re.compile(r'\b(?:zet|zetten|plaats|voeg|inplannen)\b.*\b(?:agenda|kalender)\b|\b(?:agenda|kalender)\b.*\b(?:zet|zetten|toevoegen)\b',re.I)
 
 

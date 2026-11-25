@@ -34,6 +34,9 @@ samenvattingscall en geen hardcoded antwoord op een van de testgesprekken.
   teruggezet.
 - Na de laatste brainstormweergave: alle 88 gerichte planning-, agenda- en
   providerregressies geslaagd (45,76 s).
+- Aanvullend zijn korte annulering (‘laat maar’) en een afgewezen restaurant
+  getest. Een model mag het afgewezen eten niet opnieuw toevoegen. De gerichte
+  tegenproef met een opdringerig modelvoorstel slaagt.
 - Windows: 126 tests geslaagd; portable build geslaagd. Rooktest: acht pagina's,
   echt Qt-venster, geen netwerkstart, microfoon of spraakhelper.
 - Android: unit tests, lint, debug- en releasebuild ook na de leesbare

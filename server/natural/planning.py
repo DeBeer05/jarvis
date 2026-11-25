@@ -118,6 +118,7 @@ class ActivityPlanningManager:
         question=bool(re.match(r'\s*(?:ik (?:wil|zou)|wij willen|we willen|wat|welke|kun|kan|bedenk|verzin|zoek|laten we|ik verveel)',text,re.I))
         brainstorm=bool(re.search(r'\b(?:iets leuks|iets romantisch|iets (?:binnen|buiten) doen|vriend verrassen|wat kunnen we .{0,25}doen|ik verveel me|ergens naartoe rijden|leuke? .{0,30}(?:te )?doen)\b',text,re.I))
         if question and (TOPIC.search(text) or brainstorm):return True
+        if previous and TOPIC.search(text) and re.match(r'\s*(?:dat|die|geen|zonder)\b',text,re.I):return True
         return bool(previous and previous['state']['status']!='cancelled' and FOLLOW.match(text))
 
     def prepare(self,run,prepared):
@@ -306,7 +307,7 @@ class ActivityPlanningManager:
                 rebuild(state,config)
                 for key,value in reply.proposals.model_dump(exclude_none=True).items():
                     allowed=key!='activity' or any(option.title==value for option in state.alternatives)
-                    if allowed and key in ('activity','meal') and key not in state.facts and len(value)<=120 and (key!='meal' or config['suggest_restaurants']):
+                    if allowed and key in ('activity','meal') and key not in state.facts and len(value)<=120 and (key!='meal' or config['suggest_restaurants'] and 'restaurant' not in state.excluded):
                         state.facts[key]=Fact(value=value,origin='proposal',evidence='modelvoorstel; niet geverifieerd')
                 if (state.mode in ('surprise','automatic') or config['initiative']=='choose') and 'activity' not in state.facts and state.alternatives:
                     state.facts['activity']=Fact(value=state.alternatives[0].title,origin='proposal',evidence='voorstel uit gegenereerde alternatieven')
