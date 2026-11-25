@@ -2,6 +2,17 @@
 
 ## Huidige opdracht
 
+Telefoonupdate op expliciet verzoek uitgevoerd: bestaande Android-app via
+`adb install -r` bijgewerkt met de geteste latency-APK 0.7.5/708. Installatie
+Success, geïnstalleerde base.apk SHA-256 exact gelijk aan het lokale artifact
+(984DDB3E2072…), oorspronkelijke installatiedatum behouden, MainActivity-start
+Status=ok en app als hervat bevestigd. Geen clear/uninstall, reset of grants.
+USB reverse 8765→8765 ingesteld; backend lokaal health/ready=200. Tijdens de
+laatste verbindingscontrole verdween het USB-apparaat; geauthenticeerde
+appverbinding en fysieke audioacceptatie zijn daarom niet als geslaagd geteld.
+Voor deze lokale ontwikkelverbinding USB aangesloten houden. Geen fase 8,
+netwerkpublicatie of mini-pc-migratie. Bestaande gebruikersmailwijzigingen intact.
+
 Reactiesnelheid verbeteren met toekomstige **8 GB RAM als randvoorwaarde**, op
 `fix/voice-latency-8gb`, afhankelijk van de bestaande PR27-code (5b015b5).
 Origin/develop opnieuw opgehaald en actueel. Twee bestaande mailwijzigingen
