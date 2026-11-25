@@ -398,7 +398,9 @@ def test_short_day_followup_keeps_selected_calendar_even_after_empty_result(tool
 def test_personal_tool_question_does_not_return_false_model_access_claim(tools_chat):
     app,c,router=tools_chat;router.plans=[{"chat":True}]
     answer=call(c,"Hoe ziet mijn agenda er deze week uit?").json()
-    assert "Ik kan je agenda" in answer["message"] and len(router.planning_calls)==1
+    assert answer["message"]=="Gewone chat." and len(router.planning_calls)==1
+    assert "geen nieuwe persoonlijke gegevens opgehaald" in router.providers['ollama'].calls[-1][0]['content']
+    assert not app.state.automation.store.items()
 
 
 def create_proposal(tools_chat):

@@ -33,7 +33,7 @@ import json
 import time
 import contextlib
 from importlib.util import find_spec
-from typing import Any, AsyncIterator, Optional
+from typing import Any, AsyncIterator
 
 from .base import DEFAULT_CAPS, Field, FunctionCall
 
@@ -360,7 +360,7 @@ class TextStreamError(RuntimeError):
 
 
 class OpenAICompatLLM:
-    """Speaks to anything that serves /v1/chat/completions."""
+    """OpenAI-compatible chat, with an explicit headless native Ollama option."""
 
     def __init__(self, cfg: dict):
         import httpx  # inside the factory path — never at module scope
@@ -386,6 +386,10 @@ class OpenAICompatLLM:
         self._think = cfg.get("think")
         self._use_completion_tokens = bool(cfg.get("use_completion_tokens", False))
         self._include_reasoning = cfg.get("include_reasoning")
+        # Headless-only opt-in: native Ollama chat can set the actual context
+        # allocation. Existing desktop/OpenAI-compatible callers stay unchanged.
+        self._ollama_chat = self._strict_text and bool(cfg.get("ollama_chat", False))
+        self._context_tokens = cfg.get("context_tokens", 8192)
 
         # A budget on a model running on your own hardware, unless the user
         # chose one themselves.
@@ -441,6 +445,12 @@ class OpenAICompatLLM:
               stream: bool, temperature: float | None) -> dict:
         body: dict[str, Any] = {"model": self.model, "messages": messages,
                                 "stream": stream}
+        if self._ollama_chat:
+            if tools:raise ValueError("Native Ollama text transport does not execute tools")
+            body["options"]={"num_ctx":self._context_tokens,"num_predict":self._max_output_tokens}
+            if temperature is not None:body["options"]["temperature"]=temperature
+            if self._think is not None:body["think"]=self._think
+            return body
         if tools and self.caps["tools"]:
             body["tools"] = tools
             body["tool_choice"] = "auto"
@@ -508,6 +518,30 @@ class OpenAICompatLLM:
         # its caller is core/gemini.py's ladder, which has no such context.
         async with self._async_client(timeout=self.timeout,
                                            trust_env=self._trust_env) as cl:
+            if self._ollama_chat:
+                if not stream:raise ValueError("Native Ollama text requires streaming")
+                terminated=False
+                async with self._open_stream(cl,body) as r:
+                    async for line in r.aiter_lines():
+                        if not line:continue
+                        try:
+                            frame=json.loads(line)
+                            if not isinstance(frame,dict):raise ValueError
+                            if frame.get("error"):raise TextStreamError("provider_error")
+                            if "done" in frame and type(frame["done"]) is not bool:raise ValueError
+                            message=frame.get("message",{})
+                            content=message.get("content","")
+                            if not isinstance(content,str) or message.get("tool_calls"):raise ValueError
+                            if not frame.get("done") and "content" not in message:raise ValueError
+                        except TextStreamError:raise
+                        except (ValueError,TypeError,AttributeError):
+                            raise TextStreamError("invalid_stream") from None
+                        if content:yield {"text":content}
+                        if frame.get("done"):
+                            terminated=True
+                            break
+                if not terminated:raise TextStreamError("incomplete_stream")
+                return
             if not stream:
                 r = await cl.post(f"{self.base}/chat/completions",
                                   headers=self._headers(), json=body)
@@ -589,7 +623,8 @@ class OpenAICompatLLM:
             req = dict(body, model=model)
             if gemini and "flash" in model:
                 req["reasoning_effort"] = "none" if "lite" in model else "low"
-            async with cl.stream("POST", f"{self.base}/chat/completions",
+            endpoint=self.base.removesuffix('/v1')+'/api/chat' if self._ollama_chat else f"{self.base}/chat/completions"
+            async with cl.stream("POST", endpoint,
                                  headers=self._headers(), json=req) as r:
                 if r.status_code < 400:
                     yield r

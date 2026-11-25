@@ -23,7 +23,8 @@ def mode_for(config,message,voice):
 
 def response_prompt(config,message,voice):
     mode=mode_for(config,message,voice);personality=config['personality'];options=config['responses']
-    text=' Geef eerst het directe antwoord. '+MODES[mode]
+    text=' Reageer passend op het gesprek; geef bij een vraag eerst het antwoord. '+MODES[mode]
+    text+=' Een verhaal, grap of gedachte vraagt een inhoudelijke reactie, geen automatische samenvatting, taak of vervolgvraag. '
     text+=' Behoud deadlines, waarschuwingen, onzekerheid, conflicten, financiële gevolgen en noodzakelijke acties. Een korte stijl mag die nooit verbergen. Bevestig alleen door de backend bewezen acties. '
     if options['summaries']:text+='Verwerk informatie tot een relevant antwoord; lees niet standaard ruwe toolgegevens, e-mails of documenten voor. '
     if options['progressive'] and mode not in ('full','extended'):text+='Begin met de kern; bewaar verwijzingen voor betrouwbare vervolgvragen. '
@@ -156,13 +157,13 @@ class IntelligentResponseManager:
                 yield event
                 if event['type']!='delta':continue
                 original+=event['text']
-                if tool:continue
+                if tool and not run.conversational_reply:continue
                 pending+=event['text']
                 while (match:=re.search(r'[.!?](?:\s+|$)',pending)) and match.end()<len(pending):
                     if pending.lstrip().startswith(('{','[','<')) or pending[:match.end()].count('```')%2:break
                     part,pending=pending[:match.end()],pending[match.end():]
                     spoken=format_speech(part,run.natural_context["settings"]["general"]["timezone"])
                     if spoken:run.speech_message+=spoken+' ';yield {'type':'speech','text':spoken+' '}
-        if tool:pending=self.summarize(run,original)
+        if tool and not run.conversational_reply:pending=self.summarize(run,original)
         spoken=format_speech(pending,run.natural_context["settings"]["general"]["timezone"])
         if spoken:run.speech_message+=spoken;yield {'type':'speech','text':spoken}
