@@ -104,3 +104,20 @@ def test_real_voice_sse_keeps_overview_text_and_only_announces_it(tools_chat):
     assert 'Gewone chat.' not in speech
     assert ''.join(e['text'] for e in events if e['type']=='delta')=='Gewone chat.'
     assert not router.planning_calls and not app.state.automation.store.items()
+
+
+def test_spoken_put_outing_in_my_calendar_uses_default_without_planner(tools_chat):
+    app,c,router=tools_chat
+    result=call(c,'Ik wil dat je voor 26 november om twee uur smiddag een uitje met Sam in mijn agenda zet.').json()
+    assert 'Voorstel-ID' in result['message'],result
+    rows=app.state.automation.store.items()
+    assert len(rows)==1 and rows[0]['status']=='approval'
+    payload=json.loads(rows[0]['payload'])
+    assert payload['summary']=='Uitje met Sam'
+    assert datetime.fromisoformat(payload['start']).hour==14
+    assert payload['calendar_id']=='primary'
+    assert not router.planning_calls
+
+
+def test_named_calendar_suffix_is_not_dropped():
+    assert outing_title('Plan een uitje met Sam morgen om 14:00 in mijn agenda Werk') is None

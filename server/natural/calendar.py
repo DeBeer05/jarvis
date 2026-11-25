@@ -9,6 +9,9 @@ from server.natural.temporal import resolve,local_time,AmbiguousTime,NUMBER,numb
 def outing_title(instruction):
     """Literal title for simple personal outings; invitation/complex flows keep the planner."""
     text=instruction.split("\nAanvullende gegevens van dezelfde gebruiker: ")[0]
+    # Only an unqualified own/default-calendar suffix can use this path.
+    # A named calendar remains a planner lookup, never silently primary.
+    text=re.sub(r"\s+(?:in|op)\s+(?:mijn|de)\s+(?:hoofd)?agenda(?:\s+(?:zet|zetten|toevoegen|toe))?[.!?\s]*$","",text,flags=re.I)
     if re.search(r"uitnodig|\bnodig\b|\b(?:agenda|kalender|calendar|locatie|adres|beschrijving|titel|genaamd|herhaal|wekelijks|dagelijks)\b|\b(?:en|of)\s+(?:maak|plan|stuur|verzet)\b",text,re.I):return None
     match=re.search(r"\buitje\b(.*?)(?=\s+(?:toevoegen|inplannen|plannen|toe|voor|op|morgen|overmorgen|vandaag|om|van|tussen)\b|[.!?]|$)",text,re.I)
     if not match:return None

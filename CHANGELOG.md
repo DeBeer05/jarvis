@@ -4,6 +4,11 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Uitjespresentatie herkent ook activiteitvragen wanneer STT het woord uitjes
+  verkeerd transcribeert; volledige gebruikerstekst blijft behouden.
+- Uitjesopdracht ‘in mijn agenda zet’ gaat naar de ingestelde standaardagenda
+  met volledige preview; genoemde agenda's blijven een expliciete lookup.
+
 - Agenda herkent samengevoegde gesproken dagdelen en verwerkt een gebonden
   dagdeelaanvulling vóór herinterpretatie; begin en einde houden hun eigen dagdeel.
 - Eenvoudige persoonlijke uitjes plannen zonder extra modelplanner, met de

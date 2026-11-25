@@ -2,6 +2,24 @@
 
 ## Huidige opdracht
 
+### Aanvullende schermafbeeldingen: activiteitenvraag en standaardagenda
+
+De twee nieuwe screenshots maakten nog twee te smalle herkenningsregels zichtbaar.
+De activiteitvraag wordt nu ook herkend aan ‘leuk ... (te) doen’ als STT het woord
+uitjes verkeerd transcribeert. Dit verandert alleen de scherm-/spraakpresentatie;
+de oorspronkelijke tekst blijft intact en er worden geen actierechten verleend.
+Een eenvoudige uitjesopdracht met de afsluiting ‘in mijn agenda zet’ mag de
+ingestelde standaardagenda gebruiken. Genoemde agenda's blijven uitgesloten van
+de snelle route en worden niet stilzwijgend vervangen door primary.
+
+79 gerichte regressies voor agenda, dagdelen en presentatie geslaagd; Ruff/mypy,
+pip-, repository- en diffchecks geslaagd. Volledige serverreeks/remote CI volgen
+afzonderlijk. Bestaande eigenaarmaildiffs onveranderd (695234ae1147/1f3b5515efc9).
+De actieve Windows-app is inmiddels de geteste outings-overview-build; geen
+nieuwe clientwijziging of computerbediening nodig. Geen echte agenda-accounttest,
+geen externe mutatie; alleen een gecontroleerd voorstel na de gebruikersopdracht.
+Fase 7.5 / desktop-development blijft de grens; geen migratie of modelwisseling.
+
 ### Agenda blijft doorvragen
 
 Opdracht 25 november: herhaling van dagdeelvragen en onnodige plannerwachttijd

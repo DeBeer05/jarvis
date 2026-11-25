@@ -12,6 +12,15 @@ from server.natural.responses import IntelligentResponseManager,response_prompt
 def test_outing_ideas_request_a_screen_overview(text):assert outing_overview(text)
 
 
+@pytest.mark.parametrize('text',[
+    'Wat zijn leuke uiten soms te doen in Duitsland met een budget van 50 euro?',
+    'Wat kunnen we voor leuks doen met een klein budget?',
+    'Welke activiteiten raad je aan voor morgen?',
+])
+def test_activity_question_does_not_depend_on_perfect_outing_transcription(text):
+    assert outing_overview(text)
+
+
 @pytest.mark.parametrize('text',['Ik vond die uitjes leuk.','Plan een uitje voor morgen.','Voeg een uitje toe aan mijn agenda.','Wat is een uitje?','Schrijf een Python-functie.'])
 def test_other_requests_keep_their_normal_presentation(text):
     assert not outing_overview(text)
