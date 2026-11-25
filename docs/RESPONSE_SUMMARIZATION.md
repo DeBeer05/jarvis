@@ -14,6 +14,8 @@ aantallen per afzender én doel, bijvoorbeeld twee betaalbewijzen van dezelfde
 afzender samen. Een onbekend doel wordt niet ingevuld. Geen inleiding of opsomming;
 alleen noodzakelijke deadlines/waarschuwingen krijgen zo nodig een extra korte zin.
 De gebruiker vroeg hiervoor de aanspreekvorm ‘u’ en afsluiting ‘meneer’.
+De afzender staat vooraan, in gespreksvorm: ‘Van PayPal heeft u twee mails met
+betaalbewijzen en van Google Cloud een mail over gewijzigde voorwaarden, meneer.’
 De AI geeft brongebonden groepen en korte doelen terug; de backend maakt de zin
 zelf. Elke bronindex moet precies eenmaal voorkomen, verschillende afzenders
 kunnen niet in één groep en aantallen komen uit de groepsgrootte. Extra modelvelden

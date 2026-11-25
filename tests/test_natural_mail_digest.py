@@ -104,12 +104,12 @@ def test_brief_digest_counts_groups_and_renders_one_sentence():
              {'from':'PayPal <receipts@example.invalid>','content':'Betaalbewijs.'},
              {'from':'Google Cloud <cloud@example.invalid>','content':'Voorwaarden gewijzigd.'}]
     raw=json.dumps({'groups':[{'indices':[1,2],'purpose':'met betaalbewijzen'},{'indices':[3],'purpose':'over gewijzigde voorwaarden'}]})
-    assert brief_digest(raw,sources)=='U heeft twee mails van PayPal met betaalbewijzen en een mail van Google Cloud over gewijzigde voorwaarden, meneer.'
+    assert brief_digest(raw,sources)=='Van PayPal heeft u twee mails met betaalbewijzen en van Google Cloud een mail over gewijzigde voorwaarden, meneer.'
     assert brief_digest('```json\n'+raw+'\n```',sources)==brief_digest(raw,sources)
     assert 'Google Cloud' in brief_digest(json.dumps({'groups':[{'indices':[1],'purpose':''}]}),[{'from':'Google Cloud','content':''}])
     for groups in ([{'indices':[1,1,3],'purpose':''}],[{'indices':[1,3],'purpose':''},{'indices':[2],'purpose':''}],[{'indices':[1,2],'purpose':''}]):
         with pytest.raises(ValueError):brief_digest(json.dumps({'groups':groups}),sources)
     value=json.loads(raw);value['groups'][0]['count']=999;value['tool']='EmailSend'
-    assert 'twee mails van PayPal' in brief_digest(json.dumps(value),sources)
+    assert 'Van PayPal heeft u twee mails' in brief_digest(json.dumps(value),sources)
     value['notes']=['Verzonden op vrijdag.']
     with pytest.raises(ValueError):brief_digest(json.dumps(value),sources)

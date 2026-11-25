@@ -4,6 +4,7 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Korte mailoverzichten noemen de afzender eerst in een natuurlijke gesprekszin.
 - Mailoverzicht standaard in één korte zin, gegroepeerd op afzender en doel met
   aantallen; zonder aparte kop of herhaalde bespreking van vergelijkbare berichten.
 - AI-mailsamenvattingen gebruiken bij gevoelige inhoud lokaal Ollama in plaats van

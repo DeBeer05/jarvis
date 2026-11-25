@@ -42,20 +42,21 @@ def brief_digest(raw,sources):
     value=BriefDigest.model_validate(json.loads(raw))
     indices=[i for group in value.groups for i in group.indices]
     if sorted(indices)!=list(range(1,len(sources)+1)):raise ValueError('Incomplete or duplicate digest')
-    parts=[]
+    parts:list[str]=[]
     for group in value.groups:
         items=[sources[i-1] for i in group.indices]
         if len({sender(item['from'])[1] for item in items})!=1:raise ValueError('Different senders')
         name,_=sender(items[0]['from'])
         count=len(items);number=next((word for word,n in COUNTS.items() if n==count),str(count))
         purpose=' '.join(group.purpose.split()).strip(' .')
-        parts.append(f"{number} {'mail' if count==1 else 'mails'} van {name}"+(' '+purpose if purpose else ''))
+        lead=f'Van {name} heeft u' if not parts else f'van {name}'
+        parts.append(f"{lead} {number} {'mail' if count==1 else 'mails'}"+(' '+purpose if purpose else ''))
     body=', '.join(parts[:-1])+' en '+parts[-1] if len(parts)>1 else parts[0]
     notes=[]
     for note in value.notes:
         if not 1<=len(note)<=500 or not any(note.casefold() in item['content'].casefold() for item in sources):raise ValueError('Unverified note')
         if note not in notes:notes.append(note)
-    return 'U heeft '+body+', meneer.'+(' '+' '.join(notes) if notes else '')
+    return body+', meneer.'+(' '+' '.join(notes) if notes else '')
 
 
 def latest_count(message):

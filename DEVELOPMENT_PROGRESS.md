@@ -2,6 +2,14 @@
 
 ## Huidige opdracht
 
+Aanvullende stijlvoorkeur: afzender meteen noemen, in gespreksvorm. De bestaande
+gevalideerde mailgroepen worden nu geformuleerd als ‘Van [afzender] heeft u ...
+en van [afzender] ... , meneer.’ Geen nieuwe AI-aanroep, rechten of clientbuild.
+Scope blijft fase 7.5; het afzonderlijke Windows-focusprobleem blijft open.
+Validatie: **430 servertests geslaagd** (163,14 s), daarnaast alle 13 mailtests,
+Ruff/mypy, repository-/diffcheck en server-pip-check geslaagd. Backend herstart;
+geen echte mailbox gelezen, geen clientupdate nodig.
+
 Gebruiker vraagt zeer korte mailoverzichten zoals twee PayPal-betaalbewijzen samen
 en één Google Cloud-voorwaardenwijziging. Samenvattingsinstructie aangepast naar één
 zin met aantallen per afzender én doel, zonder kop/opsomming; u/meneer volgens verzoek.
