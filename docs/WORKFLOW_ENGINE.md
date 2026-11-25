@@ -3,6 +3,13 @@
 Deze functies zijn ook bereikbaar via de normale AI-chat en spraak.
 Zie [voorbeelden, rechten en goedkeuring](AI_CHAT_AUTOMATIONS.md).
 
+Op gebruikersverzoek kun je agenda- en mailvoorstellen ook direct in de chat
+goedkeuren. Controleer/beluister de volledige preview en zeg één keer **Ja** of **Nee**.
+**Goedkeuren** en **Weigeren** typen mag ook. Het apparaat moet expliciet het recht
+Goedkeuren hebben. Een ja zonder voorafgaand voorstel voert niets uit;
+een gewijzigd of verlopen voorstel wordt eerst opnieuw getoond. Openstaande
+voorstellen terugvinden kan met **Toon mijn voorstellen**.
+
 Open de bestaande Windows- of Android-app → Automatiseringen. De webbediening
 staat op http://127.0.0.1:8765/automations. Log daar als eigenaar in. Geef onder
 Apparaatrechten de UUID van je bestaande Windows-/Android-apparaat op. Kies

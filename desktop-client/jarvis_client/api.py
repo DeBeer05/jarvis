@@ -179,9 +179,11 @@ class ApiClient:
         finally:
             self.forget()
 
-    def stream(self, message, conversation, provider, emit, request_id=None):
+    def stream(self, message, conversation, provider, emit, request_id=None, *,channel="text",session_epoch=None):
         self.cancelled.clear()
         body = {"message": message, "provider": provider, "request_id": request_id or str(uuid4())}
+        if channel!="text":body["channel"]=channel
+        if session_epoch is not None:body["session_epoch"]=session_epoch
         if conversation:
             body["conversation_id"] = conversation
         headers = self.headers()

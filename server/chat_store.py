@@ -28,7 +28,7 @@ class ChatStore:
             text = redact(text, secret)
         return text
 
-    def start(self, request_id: str, conversation_id: str | None, message: str) -> tuple[str, list[dict]]:
+    def start(self, request_id: str, conversation_id: str | None, message: str, *,persist=True) -> tuple[str, list[dict]]:
         message = self.clean(message)
         with self.database.connection() as db:
             db.row_factory = sqlite3.Row
@@ -43,20 +43,20 @@ class ChatStore:
                 if count >= self.max_conversations:
                     raise ChatError("history_full", "De gesprekslimiet is bereikt. Verwijder eerst een oud gesprek.", 409)
                 conversation_id = str(uuid.uuid4())
-                db.execute("INSERT INTO chat_conversations VALUES (?,?,?,?)", (conversation_id, message[:72], now(), now()))
+                db.execute("INSERT INTO chat_conversations VALUES (?,?,?,?)", (conversation_id, message[:72] if persist else "Privégesprek (geschiedenis uit)", now(), now()))
             count = db.execute("SELECT count(*) FROM chat_turns WHERE conversation_id=?", (conversation_id,)).fetchone()[0]
             if count >= self.max_turns:
                 raise ChatError("conversation_full", "Dit gesprek is vol. Begin een nieuw gesprek.", 409)
             rows = db.execute(
                 "SELECT user_text,assistant_text FROM chat_turns WHERE conversation_id=? "
-                "AND status='completed' ORDER BY sequence DESC LIMIT 20", (conversation_id,),
+                "AND status='completed' AND user_text!='' ORDER BY sequence DESC LIMIT 20", (conversation_id,),
             ).fetchall()
             history = []
             for row in reversed(rows):
                 history.extend([{"role": "user", "content": row["user_text"]}, {"role": "assistant", "content": row["assistant_text"]}])
             db.execute(
                 "INSERT INTO chat_turns(id,conversation_id,created_at,user_text,status,sequence) VALUES (?,?,?,?,?,?)",
-                (request_id, conversation_id, now(), message, "running", count + 1),
+                (request_id, conversation_id, now(), message if persist else "", "running", count + 1),
             )
             db.execute("UPDATE chat_conversations SET updated_at=? WHERE id=?", (now(), conversation_id))
         return conversation_id, history
@@ -83,7 +83,7 @@ class ChatStore:
             turns = db.execute(
                 "SELECT * FROM chat_turns WHERE conversation_id=? ORDER BY sequence", (conversation_id,),
             ).fetchall()
-        return {**dict(row), "turns": [dict(turn) for turn in turns]}
+        return {**dict(row), "turns": [dict(turn) for turn in turns if turn["user_text"]]}
 
     def delete(self, conversation_id: str) -> None:
         with self.database.connection() as db:

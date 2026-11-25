@@ -108,7 +108,7 @@ a small built-in fallback — instead of crashing.
 - Keep to the libraries already in `requirements.txt`.
 
 
-## JARVIS fork: blijvende Codex-projectinstructies (fase 7)
+## JARVIS fork: blijvende Codex-projectinstructies (fase 7.5)
 
 Deze aanvullende regels behouden de upstreamrichtlijnen hierboven. De opdracht
 van de gebruiker blijft leidend. Fase 6 is expliciet opgedragen: native Android
@@ -131,10 +131,25 @@ expliciet opgedragen. De eigen app-/browserinterface mag een apparaat selecteren
 en rechten voorstellen; alleen de eigenaar bevestigt de daadwerkelijke grant.
 De headless chat mag uitsluitend gevalideerde geregistreerde automatiseringstools
 gebruiken, onder de bestaande apparaatrechten. Externe mutaties blijven gebonden
-aan een afzonderlijke exacte goedkeuring; een gesproken/getypt ja is geen approval.
+aan een afzonderlijke exacte goedkeuring. Op nieuw expliciet gebruikersverzoek
+mag één gesproken/getypt ‘ja’ die approval geven en ‘nee’ weigeren, uitsluitend
+voor het zojuist volledig getoonde ongewijzigde mail-/agendavoorstel.
+‘Goedkeuren’ en ‘Weigeren’ blijven ook ondersteund. Gebruik dit uitsluitend nadat het
+volledige servervoorstel als laatste antwoord in dezelfde sessie/apparaat/chat
+is getoond. Bind aan payloadfingerprint, toon gewijzigde/verlopen voorstellen
+opnieuw en controleer actuele automation:approve. De AI kan nooit goedkeuren.
+Een mailopdracht maakt eerst een geverifieerd Gmail-concept en zet automatisch
+het verzendvoorstel klaar, zodat één ja volstaat. Een expliciete opdracht om
+alleen een concept te bewaren biedt geen verzending aan. Geen dubbele sendjobs.
 Ontvangen mail-/agendatekst kan nooit een nieuwe opdracht autoriseren. Geen door
 AI gegenereerde code, shellcommando's of willekeurige plugins uitvoeren.
-STOP na fase 7; geen oproepen, productie of mini-pc-deployment.
+Fase 7.5 is nu expliciet opgedragen: centrale natuurlijke gesprekken, context,
+SQLite-geheugen, instellingen en Windows-/Android-integratie. Hergebruik de
+bestaande backend op 8765, AI-router, speechhelper en Automation/ApprovalManager.
+Adaptieve turn-taking, foreground doorlopende gesprekken en echo-bestendige
+onderbrekingen zijn binnen deze fase toegestaan na bestaande microfoontoestemming.
+Behoud apparaat-/sessieautorisatie en verplichte hoogrisicogoedkeuringen.
+STOP na fase 7.5; geen fase 8, oproepen, productie of mini-pc-deployment.
 
 Vóór iedere taak:
 1. Controleer `git status --short --branch`, huidige branch en remotes.
@@ -182,6 +197,9 @@ Globale sneltoetsen alleen na expliciete opt-in. Onderbreken annuleert ook oude
 TTS/generaties. Grote modellen alleen na omvangindicatie en toestemming; eigenaar
 heeft Whisper Small (~486 MB), Piper MLS (~77 MB) en extra Piper Ronnie (~63 MB)
 expliciet goedgekeurd.
+Eigenaar heeft daarnaast Supertonic 3 (~400 MB, vaste M1–M5-stemmen) expliciet
+goedgekeurd voor deze antwoord-/butleruitbreiding. Hergebruik dezelfde private helper
+en centrale TTS-router; geen runtime-downloads, online TTS of voice cloning.
 Geen berichten, account-OAuth, autonome acties, permanente Windows-
 service of productie-deployment. Alleen localhost; alles op de ontwikkeldesktop.
 Gebruik voorlopig uitsluitend profiel desktop-development. Verplaats niets naar

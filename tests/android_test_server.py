@@ -26,6 +26,15 @@ def fixture(root, port):
     app=create_app(settings,ai_router=AIRouter(settings,{name:FakeProvider() for name in ("gemini","groq","ollama")}))
     PUBLIC["/api/test/approve"]={"POST"}  # this isolated test process only
     PUBLIC["/api/test/grant"]={"POST"}
+    PUBLIC["/api/test/reset-rates"]={"POST"}
+    @app.post("/api/test/reset-rates")
+    async def reset_rates():
+        # Test-case isolation in this explicitly synthetic process only. Real
+        # authentication/rate-limit tests use the unchanged production app.
+        with app.state.automation.store.db(True) as db:
+            db.execute("DELETE FROM auth_rates")
+            db.execute("DELETE FROM natural_settings")
+        return {"reset":True}
     owner_device=[None]
     @app.post("/api/test/approve")
     async def approve(request: Request):

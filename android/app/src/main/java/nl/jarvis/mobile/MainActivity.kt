@@ -32,14 +32,19 @@ import nl.jarvis.mobile.data.Preferences
 
 class MainActivity: ComponentActivity() {
     private val model: JarvisViewModel by viewModels()
-    private val microphone = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> if(granted) model.ptt() else model.message("Microfoontoestemming geweigerd; je kunt blijven typen") }
+    private var pendingTakeover=false
+    private val microphone = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        val takeover=pendingTakeover;pendingTakeover=false
+        if(granted) {if(takeover)model.takeOverConversation() else model.ptt()} else model.message("Microfoontoestemming geweigerd; je kunt blijven typen")
+    }
     private val notifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> if(!granted) model.message("Meldingen staan uit in Android") }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             val state by model.state.collectAsStateWithLifecycle()
             JarvisTheme(state.preferences.theme) { JarvisApp(state, model,
-                mic={ microphone.launch(Manifest.permission.RECORD_AUDIO) },
+                mic={ pendingTakeover=false;microphone.launch(Manifest.permission.RECORD_AUDIO) },
+                takeover={pendingTakeover=true;microphone.launch(Manifest.permission.RECORD_AUDIO)},
                 notificationPermission={ if(Build.VERSION.SDK_INT>=33) notifications.launch(Manifest.permission.POST_NOTIFICATIONS) }) }
         }
         intent?.getStringExtra("screen")?.let(model::navigate)
@@ -62,7 +67,7 @@ private fun navigationTitle(screen: String, language: String): String = if(langu
 )[screen] ?: screen
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Composable fun JarvisApp(state: ScreenState, model: JarvisViewModel, mic: () -> Unit, notificationPermission: () -> Unit) {
+@Composable fun JarvisApp(state: ScreenState, model: JarvisViewModel, mic: () -> Unit, notificationPermission: () -> Unit,takeover:()->Unit={model.takeOverConversation()}) {
     val drawer=rememberDrawerState(DrawerValue.Closed); val scope=rememberCoroutineScope()
     ModalNavigationDrawer(drawerState=drawer, drawerContent={ ModalDrawerSheet {
         Text("J A R V I S", Modifier.padding(24.dp), style=MaterialTheme.typography.headlineMedium, color=MaterialTheme.colorScheme.primary)
@@ -78,7 +83,7 @@ private fun navigationTitle(screen: String, language: String): String = if(langu
                 }
                 when(state.screen) {
                     "Chat" -> Chat(state,model)
-                    "Spraak" -> Voice(state,model,mic)
+                    "Spraak" -> Voice(state,model,mic,takeover)
                     else -> Column(Modifier.verticalScroll(rememberScrollState()).fillMaxWidth(), verticalArrangement=Arrangement.spacedBy(16.dp)) {
                         when(state.screen) {
                             "Welkom" -> Welcome(state,model)
@@ -148,18 +153,19 @@ private fun navigationTitle(screen: String, language: String): String = if(langu
         else Button(onClick={val value=text;text="";model.send(value)},enabled=state.connection.authenticated && "chat:write" in state.connection.permissions && text.isNotBlank(),modifier=Modifier.weight(1f).testTag("send")){Text("Versturen →")}
     }
 }
-@Composable private fun ColumnScope.Voice(state: ScreenState, model: JarvisViewModel, mic: () -> Unit) {
+@Composable private fun ColumnScope.Voice(state: ScreenState, model: JarvisViewModel, mic: () -> Unit,takeover:()->Unit) {
     val color by animateColorAsState(if(state.recording) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
     Text(state.voiceStatus,style=MaterialTheme.typography.headlineMedium,color=color)
     Text(if(state.recording) "Microfoon actief" else "Microfoon uit",style=MaterialTheme.typography.labelLarge)
     LinearProgressIndicator(progress={state.level},modifier=Modifier.fillMaxWidth().padding(vertical=16.dp))
     Button(onClick={if(state.recording)model.ptt()else mic()},enabled=state.connection.authenticated && "chat:write" in state.connection.permissions,modifier=Modifier.fillMaxWidth().heightIn(min=64.dp)) {Text(if(state.recording)"Opname afronden" else "Start luisteren")}
     Row(horizontalArrangement=Arrangement.spacedBy(10.dp)) { OutlinedButton(onClick=model::stop) {Text("Stop alles")}; TextButton(onClick=model::sample,enabled=state.connection.authenticated && "chat:read" in state.connection.permissions){Text("Stemvoorbeeld")} }
+    TextButton(onClick=takeover,enabled=state.connection.authenticated&&!state.busy&&!state.recording){Text("Gesprek hier overnemen")}
     Text("JIJ",color=MaterialTheme.colorScheme.primary,style=MaterialTheme.typography.labelSmall)
     SelectionContainer {Text(state.transcript.ifBlank{"Wat ik heb verstaan…"},Modifier.padding(vertical=12.dp))}
     HorizontalDivider()
     LazyColumn(Modifier.weight(1f).fillMaxWidth()) {item {SelectionContainer {Text(state.messages.lastOrNull{it.role=="JARVIS"}?.text ?: "Mijn antwoord…",Modifier.padding(vertical=16.dp))}}}
-    Text("Push-to-talk werkt op de voorgrond. Achtergrond-wakeword en internetoproepen zijn nog niet beschikbaar.",style=MaterialTheme.typography.bodySmall)
+    Text("Doorlopende gesprekken werken na bewuste activatie zolang deze app vooraan staat en de vervolgmodus is ingeschakeld. Stop alles beëindigt het gesprek. Geen achtergrondopnames.",style=MaterialTheme.typography.bodySmall)
 }
 @Composable private fun History(state: ScreenState,model: JarvisViewModel) {
     var deleting by remember {mutableStateOf<String?>(null)}
@@ -212,4 +218,6 @@ private fun navigationTitle(screen: String, language: String): String = if(langu
     model.audio.devices(false).forEach {(id,title)->FilterChip(selected=pref.outputDevice==id,onClick={model.save(pref.copy(outputDevice=id))},label={Text(title)})}
     Text("Formulieren en spraak: Nederlands. Wakeword op de achtergrond is nog niet beschikbaar. Er wordt geen ruwe audio opgeslagen. Alleen je transcript en chatcontext gaan naar de gekozen AI-provider; spraakherkenning en Piper draaien op jouw server.",style=MaterialTheme.typography.bodySmall)
     Text("Diagnostiek: ${state.connection.title}\nVersie ${BuildConfig.VERSION_NAME}",style=MaterialTheme.typography.bodySmall)
+    HorizontalDivider(Modifier.padding(vertical=16.dp))
+    NaturalSettingsScreen(state,model)
 }

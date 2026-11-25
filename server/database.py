@@ -5,7 +5,7 @@ import uuid
 from contextlib import contextmanager
 from pathlib import Path
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 7
 
 
 class Database:
@@ -31,7 +31,7 @@ class Database:
             if version > SCHEMA_VERSION:
                 raise sqlite3.DatabaseError("Database schema is newer than this server")
             if 0 < version < SCHEMA_VERSION:
-                backup_path = self.path.with_name(self.path.name + ".pre-v4-" + uuid.uuid4().hex[:10] + ".bak")
+                backup_path = self.path.with_name(self.path.name + f".pre-v{SCHEMA_VERSION}-" + uuid.uuid4().hex[:10] + ".bak")
                 backup = sqlite3.connect(backup_path)
                 try:
                     connection.backup(backup)
@@ -71,6 +71,22 @@ class Database:
                 migrate(connection)
                 connection.execute("INSERT INTO schema_migrations(version) VALUES (4)")
                 connection.execute("PRAGMA user_version=4")
+            if version < 5:
+                from server.natural.schema import migrate
+                migrate(connection)
+                connection.execute("INSERT INTO schema_migrations(version) VALUES (5)")
+                connection.execute("PRAGMA user_version=5")
+            if version < 6:
+                connection.execute("CREATE TABLE natural_memory_origins(memory_id TEXT PRIMARY KEY REFERENCES natural_memories(id) ON DELETE CASCADE,device_id TEXT NOT NULL)")
+                connection.execute("CREATE INDEX natural_memory_key ON natural_memories(user_id,memory_key,status,updated)")
+                connection.execute("INSERT INTO natural_memory_origins SELECT m.id,a.device_id FROM natural_memories m JOIN natural_audit a ON a.id=(SELECT min(id) FROM natural_audit WHERE target=m.id AND user_id=m.user_id AND event='memory_created')")
+                connection.execute("INSERT INTO schema_migrations(version) VALUES (6)")
+                connection.execute("PRAGMA user_version=6")
+            if version < 7:
+                connection.execute("CREATE TABLE natural_contacts(id TEXT PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES auth_users(id) ON DELETE CASCADE,name TEXT NOT NULL,email TEXT NOT NULL,aliases TEXT NOT NULL,revision INTEGER NOT NULL,created REAL NOT NULL,updated REAL NOT NULL)")
+                connection.execute("CREATE INDEX natural_contacts_user ON natural_contacts(user_id)")
+                connection.execute("INSERT INTO schema_migrations(version) VALUES (7)")
+                connection.execute("PRAGMA user_version=7")
             # A process restart must never present an unfinished answer as complete.
             connection.execute("UPDATE chat_turns SET status='interrupted', error_code='server_restarted' WHERE status='running'")
         self.initialized = True

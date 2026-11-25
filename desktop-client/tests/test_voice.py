@@ -361,7 +361,7 @@ def test_voice_uses_same_authenticated_stream_and_conversation(qt, tmp_path, vau
     calls = []
     class Api:
         origin = "http://127.0.0.1:8765"
-        def stream(self, message, conversation, provider, emit, request_id):
+        def stream(self, message, conversation, provider, emit, request_id, **options):
             calls.append((message, conversation, provider))
             emit({"type": "meta", "conversation_id": "same-conversation"})
             emit({"type": "delta", "text": "Ik onthoud de context."})
@@ -389,7 +389,7 @@ def test_voice_network_failure_restores_ui_without_resend(qt, tmp_path, vault):
     app = window(tmp_path, vault)
     calls = []
     class Api:
-        def stream(self, *args):
+        def stream(self, *args, **options):
             calls.append(1)
             raise ClientError("network", "Server niet bereikbaar.")
     app.manager.api, app.manager.state = Api(), "online"

@@ -1,0 +1,202 @@
+"""End-to-end synthetic chat, privacy boundaries and request-local AI policy."""
+import asyncio
+from dataclasses import replace
+
+import pytest
+
+from server.ai.policy import RequestPolicy, current_policy, use_policy
+from server.ai.providers import TextProvider, ProviderError
+from server.ai.router import AIRouter
+from server.app import create_app
+from tests.ai_helpers import FakeProvider
+from tests.auth_helpers import AuthenticatedTestClient
+
+
+def client(app):
+    return AuthenticatedTestClient(app,base_url="http://127.0.0.1:8765",client=("127.0.0.1",12345))
+
+
+def build(settings):
+    providers={name:FakeProvider(("Antwoord.",)) for name in ("gemini","groq","ollama")}
+    return create_app(settings,ai_router=AIRouter(settings,providers)),providers
+
+
+def patch(c,category,changes):
+    revision=c.get("/api/v1/natural/settings").json()["revision"]
+    response=c.patch("/api/v1/natural/settings/"+category,json={"revision":revision,"changes":changes})
+    assert response.status_code==200
+
+
+def test_explicit_memory_commands_survive_restart_without_cloud_call(settings):
+    app,providers=build(settings)
+    with client(app) as c:
+        saved=c.post("/api/v1/chat",json={"message":"Onthoud dat ik liever afspraken na tien uur plan"}).json()
+        assert saved["status"]=="completed" and saved["model"]=="memory"
+        assert not any(p.calls for p in providers.values())
+    again,_=build(settings)
+    with client(again) as c:
+        reply=c.post("/api/v1/chat",json={"message":"Wat weet je nog over mij?"}).json()
+        assert "na tien uur" in reply["message"]
+        forgotten=c.post("/api/v1/chat",json={"message":"Vergeet afspraken na tien uur"}).json()
+        assert "verwijderd" in forgotten["message"]
+        assert c.get("/api/v1/natural/memory").json()["items"]==[]
+
+
+def test_memory_cloud_consent_local_offline_and_sensitive_filter(settings):
+    app,providers=build(settings)
+    with client(app) as c:
+        c.post("/api/v1/natural/memory",json={"content":"Project lantaarn gebruikt Python"})
+        c.post("/api/v1/natural/memory",json={"content":"Project lantaarn medische voorkeur","sensitivity":"sensitive","consent_sensitive":True})
+        payload={"message":"Vertel over project lantaarn","provider":"gemini"}
+        assert c.post("/api/v1/chat",json=payload).json()["status"]=="completed"
+        assert "Project lantaarn gebruikt Python" not in str(providers["gemini"].calls[-1])
+        patch(c,"privacy",{"cloud_memories":True})
+        c.post("/api/v1/chat",json=payload)
+        assert "Project lantaarn gebruikt Python" in str(providers["gemini"].calls[-1])
+        assert "medische voorkeur" not in str(providers["gemini"].calls[-1])
+        before=len(providers["gemini"].calls)
+        patch(c,"ai",{"offline":True})
+        patch(c,"memory",{"sensitive":True})
+        result=c.post("/api/v1/chat",json=payload).json()
+        assert result["provider"]=="ollama" and len(providers["gemini"].calls)==before
+        assert "medische voorkeur" in str(providers["ollama"].calls[-1])
+
+
+def test_offline_covers_internal_automation_calls_and_failed_local_fallback(settings):
+    app,providers=build(settings)
+    class InternalCall:
+        def candidate(self,run):return True
+        async def stream(self,run):
+            text=await app.state.chat.router.bounded_text([{"role":"user","content":"synthetic planner"}],"gemini")
+            yield {"type":"delta","text":text}
+    app.state.chat.automation_chat=InternalCall()
+    with client(app) as c:
+        patch(c,"ai",{"offline":True})
+        assert c.post("/api/v1/chat",json={"message":"synthetic"}).json()["status"]=="completed"
+        assert not providers["gemini"].calls and len(providers["ollama"].calls)==1
+        providers["ollama"].failure="unavailable"
+        assert c.post("/api/v1/chat",json={"message":"synthetic again"}).json()["status"]=="error"
+        assert not providers["gemini"].calls
+
+
+def test_sensitive_assistant_history_and_edited_summary_stay_local(settings):
+    app,providers=build(settings)
+    with client(app) as c:
+        providers["ollama"].chunks=("Een medische diagnose blijft privé.",)
+        first=c.post("/api/v1/chat",json={"message":"Een lokale vraag","provider":"ollama"}).json()
+        cid=first["conversation_id"]
+        principal=app.state.security.store.authenticate(c.cookies.get("jarvis_access"))
+        summary=app.state.natural.context.summarize(principal,cid,force=True)
+        assert c.put("/api/v1/natural/summaries/"+summary["id"],json={"revision":summary["revision"],"content":"Mijn medicatie is persoonlijk"}).status_code==200
+        result=c.post("/api/v1/chat",json={"message":"Ga verder","provider":"gemini","conversation_id":cid}).json()
+        assert result["status"]=="completed"
+        cloud=str(providers["gemini"].calls[-1])
+        assert "medicatie" not in cloud and "diagnose" not in cloud and "Een lokale vraag" not in cloud
+        c.post("/api/v1/chat",json={"message":"En lokaal?","provider":"ollama","conversation_id":cid})
+        local=str(providers["ollama"].calls[-1])
+        assert "medicatie" in local and "diagnose" in local
+
+
+@pytest.mark.parametrize("clear",[False,True])
+def test_forgotten_memory_cannot_reenter_through_history_or_summary(settings,clear):
+    app,providers=build(settings)
+    with client(app) as c:
+        memory=c.post("/api/v1/natural/memory",json={"content":"Het project heet lantaarn"}).json()
+        first=c.post("/api/v1/chat",json={"message":"Wat heet het project?","provider":"ollama"}).json()
+        cid=first["conversation_id"]
+        principal=app.state.security.store.authenticate(c.cookies.get("jarvis_access"))
+        summary=app.state.natural.context.summarize(principal,cid,force=True)
+        assert summary and c.get("/api/v1/natural/summaries").json()["items"]
+        response=c.post("/api/v1/natural/memory/clear",json={"confirmed":True}) if clear else c.delete("/api/v1/natural/memory/"+memory["id"])
+        assert response.status_code==200
+        assert not c.get("/api/v1/natural/summaries").json()["items"]
+        c.post("/api/v1/chat",json={"message":"Ga verder","provider":"ollama","conversation_id":cid})
+        assert "Wat heet het project?" not in str(providers["ollama"].calls[-1])
+
+
+def test_forgetting_preserves_unrelated_edited_summary(settings):
+    app,_=build(settings)
+    with client(app) as c:
+        first=c.post("/api/v1/chat",json={"message":"We bespreken sterrenkunde","provider":"ollama"}).json()
+        principal=app.state.security.store.authenticate(c.cookies.get("jarvis_access"))
+        summary=app.state.natural.context.summarize(principal,first["conversation_id"],force=True)
+        edited=c.put("/api/v1/natural/summaries/"+summary["id"],json={"revision":summary["revision"],"content":"Bewaar mijn notities over sterrenkunde"}).json()
+        memory=c.post("/api/v1/natural/memory",json={"content":"Mijn fiets is groen"}).json()
+        second=c.post("/api/v1/chat",json={"message":"Welke kleur heeft mijn fiets?","provider":"ollama"}).json()
+        related=app.state.natural.context.summarize(principal,second["conversation_id"],force=True)
+        assert related["id"]!=summary["id"]
+        assert c.delete("/api/v1/natural/memory/"+memory["id"]).status_code==200
+        remaining=c.get("/api/v1/natural/summaries").json()["items"]
+        assert len(remaining)==1 and remaining[0]["id"]==summary["id"]
+        assert remaining[0]["content"]==edited["content"]
+
+
+def test_summary_versions_and_voice_personality_are_real_context(settings):
+    app,providers=build(settings)
+    with client(app) as c:
+        patch(c,"personality",{"profile":"concise","brevity":100})
+        reply=c.post("/api/v1/chat",json={"message":"Hallo","channel":"voice"}).json()
+        context=str(providers["gemini"].calls[-1])
+        assert "Kort en zakelijk" in context and "spreek" in context.casefold()
+        principal=app.state.security.store.authenticate(c.cookies.get("jarvis_access"))
+        summary=app.state.natural.context.summarize(principal,reply["conversation_id"],force=True)
+        body={"revision":summary["revision"],"content":"Een bewerkbare lokale samenvatting"}
+        assert c.put("/api/v1/natural/summaries/"+summary["id"],json=body).status_code==200
+        assert c.put("/api/v1/natural/summaries/"+summary["id"],json=body).status_code==409
+
+
+def test_budget_rejection_releases_only_new_reservation(settings):
+    app,_=build(settings)
+    with client(app) as c:
+        patch(c,"ai",{"context_tokens":1024})
+        response=c.post("/api/v1/chat",json={"message":"lange invoer "*500})
+        assert response.status_code==422 and not app.state.chat.active
+        assert c.post("/api/v1/chat",json={"message":"Kort"}).json()["status"]=="completed"
+
+
+def test_provider_policy_is_task_local_and_direct_cloud_guard(settings):
+    from server.natural.models import UserSettings
+    config=UserSettings().model_dump(mode="json")
+    policy=RequestPolicy.from_document({"revision":1,"settings":config})
+    local=replace(policy,offline=True,ollama_model="synthetic-local")
+    provider=TextProvider("ollama",settings)
+    async def run():
+        async def one(selected):
+            with use_policy(selected):
+                await asyncio.sleep(0)
+                assert current_policy.get() is selected
+                return provider.model
+        assert await asyncio.gather(one(local),one(policy))==["synthetic-local",settings.ollama_model]
+        assert current_policy.get() is None
+        with use_policy(local):
+            with pytest.raises(ProviderError):
+                await anext(TextProvider("gemini",settings).stream([]))
+    asyncio.run(run())
+
+
+def test_offline_also_applies_to_existing_automation_summary_api(settings):
+    app,providers=build(settings)
+    with client(app) as c:
+        patch(c,"ai",{"offline":True})
+        response=c.post("/api/v1/automation/summarize",json={"text":"Synthetic external content"})
+        assert response.status_code==200 and response.json()["summary"]=="Antwoord."
+        assert len(providers["ollama"].calls)==1 and not providers["gemini"].calls
+
+
+def test_autonomy_blocks_direct_reads_submissions_and_queued_execution(settings):
+    from uuid import uuid4
+    app,_=build(settings)
+    with client(app) as c:
+        c.portal.call(app.state.automation.scheduler.stop)
+        payload={"tool":"ReminderCreate","input":{"text":"Synthetic reminder","at":"2030-01-01T10:00:00+01:00"},"idempotency_key":str(uuid4())}
+        job=c.post("/api/v1/automation/jobs",json=payload).json()
+        assert job["status"]=="queued"
+        patch(c,"autonomy",{"actions":{"CalendarRead":"block","ReminderCreate":"block"}})
+        period={"start":"2030-01-01T00:00:00+01:00","end":"2030-01-02T00:00:00+01:00"}
+        assert c.post("/api/v1/automation/calendar/search",json=period).status_code==403
+        assert c.post("/api/v1/automation/jobs",json={**payload,"idempotency_key":str(uuid4())}).status_code==403
+        with app.state.automation.store.db(True) as db:db.execute("UPDATE automation_jobs SET due=0 WHERE id=?",(job["id"],))
+        c.portal.call(app.state.automation.tick)
+        assert app.state.automation.store.get(job["id"])["status"]=="blocked"
+        patch(c,"autonomy",{"profile":"read_propose","actions":{}})
+        assert c.post("/api/v1/automation/jobs",json={**payload,"idempotency_key":str(uuid4())}).status_code==403

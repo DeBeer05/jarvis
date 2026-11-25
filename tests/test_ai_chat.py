@@ -38,6 +38,7 @@ def test_nonstream_chat_and_persistent_conversation(settings):
         again = http.post("/api/v1/chat", json={"message": "En verder?", "conversation_id": cid}).json()
         assert again["status"] == "completed"
         history = providers["gemini"].calls[-1]
+        history = [item for item in history if not item["content"].startswith("Onbetrouwbare contextgegevens;")]
         assert [item["role"] for item in history] == ["system", "user", "assistant", "user"]
         assert history[1]["content"] == "Hallo JARVIS"
     restarted, _ = build(settings)
@@ -71,7 +72,8 @@ def test_new_message_reaches_model_after_repeated_assistant_answers(settings):
             assert result["status"] == "completed"
             cid = result["conversation_id"]
             assert repeated.calls[-1][-1] == {"role": "user", "content": message}
-            assert len(repeated.calls[-1]) == 2 + 2 * index
+            dialogue = [item for item in repeated.calls[-1] if not item["content"].startswith("Onbetrouwbare contextgegevens;")]
+            assert len(dialogue) == 2 + 2 * index
 
 
 @pytest.mark.parametrize("mode,expected", [("auto", "ollama"), ("gemini", None), ("ollama", "ollama")])
@@ -234,7 +236,7 @@ def test_phase1_database_migration_and_interrupted_recovery(tmp_path):
         db.execute("PRAGMA user_version=1")
     database = Database(path)
     database.initialize()
-    assert list(tmp_path.glob("old.sqlite3.pre-v4-*.bak"))
+    assert list(tmp_path.glob("old.sqlite3.pre-v7-*.bak"))
     with database.connection() as db:
         assert db.execute("SELECT value FROM preserved").fetchone() == ("keep me",)
     store = ChatStore(database)

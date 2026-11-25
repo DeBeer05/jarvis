@@ -1,5 +1,10 @@
 # JARVIS — Windows-client en beveiligde AI-webchat
 
+**Nieuwe uitbreiding in uitvoering:** [Antwoordgedrag](docs/INTELLIGENT_RESPONSE_ENGINE.md),
+[Classic Butler](docs/BUTLER_PERSONALITY.md) en [Voice Studio](docs/VOICE_STUDIO.md).
+Lokale Supertonic 3-mannenstemmen naast Piper, met [gemeten prestaties](docs/TTS_BENCHMARKS.md).
+Geen betaalde spraakdienst of servermigratie. [Teststatus](docs/RESPONSE_AND_VOICE_TEST_REPORT.md).
+
 **Fase 7:** centrale automatiseringen, herinneringen, workflows en gecontroleerde
 Google Calendar/Gmail-adapters. Bedien via **Automatiseringen** in Windows/Android
 of op http://127.0.0.1:8765/automations. Bestaande native apparaten krijgen nieuwe
@@ -11,7 +16,14 @@ automatische accounttests gebruiken synthetische data.
 [Starten en koppelen](docs/CALENDAR_INTEGRATION.md) ·
 [Taken en goedkeuringen](docs/WORKFLOW_ENGINE.md) ·
 [E-mail](docs/GMAIL_INTEGRATION.md) · [Teststatus](docs/PHASE_7_TEST_REPORT.md).
-Stop na fase 7; geen oproepen, publieke toegang of mini-pc-deployment.
+Fase 7.5 is in uitvoering: natuurlijke gesprekken, centrale instellingen,
+SQLite-geheugen en gedeelde Windows-/Android-context. Er is nog geen definitieve
+fase-7.5-vrijgave of hardwareacceptatie. Zie
+[architectuur](docs/NATURAL_CONVERSATION_ARCHITECTURE.md),
+[instellingenhandleiding](docs/SETTINGS_USER_GUIDE.md),
+[testrapport](docs/PHASE_7_5_TEST_REPORT.md) en
+[handmatige proeven](docs/PHASE_7_5_MANUAL_TESTS.md).
+Stop na fase 7.5; geen oproepen, publieke toegang of mini-pc-deployment.
 
 **Android (fase 6):** native Kotlin/Compose-app in `android/`, met dezelfde
 beveiligde chat, eigenaarpairing en servergestuurde Nederlandse spraak.
@@ -904,6 +916,19 @@ It is held in memory only, deliberately: writing it to disk would make a fresh l
 
 
 ---
+
+## Roadmap van deze JARVIS-fork
+
+Aan fase 7.5 toegevoegd: korte gesproken antwoorden naast geschreven broninformatie,
+gedeelde lokale TTS-router en native Voice Studio. Hardware-/luisteracceptatie blijft
+vereist; de actuele status staat in DEVELOPMENT_PROGRESS.md. Fase 8 blijft buiten scope.
+
+Fases 1–7 vormen de bestaande lokale server, veilige native clients, spraak en
+automatiseringen. Fase 7.5 breidt die componenten uit met doorlopende gesprekken,
+context/geheugen, instellingen en diagnostiek. De implementatie wordt per onderdeel
+getest; de actuele resterende stappen staan in DEVELOPMENT_PROGRESS.md. Fase 8,
+publieke productie en mini-pc-migratie worden in deze opdracht niet gestart.
+De onderstaande Mark-roadmap blijft de oorspronkelijke upstream-roadmap.
 
 ## 🗺️ Mark Roadmap
 

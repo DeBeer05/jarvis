@@ -2,6 +2,501 @@
 
 ## Huidige opdracht
 
+Aanvullende stijlvoorkeur: afzender meteen noemen, in gespreksvorm. De bestaande
+gevalideerde mailgroepen worden nu geformuleerd als ‘Van [afzender] heeft u ...
+en van [afzender] ... , meneer.’ Geen nieuwe AI-aanroep, rechten of clientbuild.
+Scope blijft fase 7.5; het afzonderlijke Windows-focusprobleem blijft open.
+Validatie: **430 servertests geslaagd** (163,14 s), daarnaast alle 13 mailtests,
+Ruff/mypy, repository-/diffcheck en server-pip-check geslaagd. Backend herstart;
+geen echte mailbox gelezen, geen clientupdate nodig.
+
+Gebruiker vraagt zeer korte mailoverzichten zoals twee PayPal-betaalbewijzen samen
+en één Google Cloud-voorwaardenwijziging. Samenvattingsinstructie aangepast naar één
+zin met aantallen per afzender én doel, zonder kop/opsomming; u/meneer volgens verzoek.
+Geen verzonnen doel bij ontbrekende informatie. Kritieke deadlines blijven behouden.
+Hergebruikt dezelfde backend-/AI-route; geen clientbuild, migratie of fase 8.
+Een prompt alleen bleek bij het lokale model onvoldoende: de synthetische proef
+gaf soms een verkeerde telling. Het model levert nu alleen gevalideerde groepen
+met bronindices en korte doelzinnen. De backend controleert volledige dekking,
+geen duplicaten en gelijke afzenders per groep en maakt zelf de zin/aantallen.
+Letterlijke bronnotities behouden noodzakelijke deadlines; extra modelmetadata
+wordt niet gebruikt als opdracht of telling. Echte lokale synthetische proef gaf
+in 1,44 s correct twee PayPal-betaalbewijzen en één Google Cloud-voorwaardenmail.
+Geen echte mailbox gelezen. Windows-focusprobleem blijft afzonderlijk open.
+Volledige serverregressie: **430 geslaagd**, 188,36 s; laatste kleine formatter-
+correcties daarnaast met alle **13 mailtests geslaagd** gecontroleerd. Ruff/mypy,
+repository-/diffcheck en server-pip-check geslaagd. Alleen backendherstart nodig.
+
+Vervolgmelding: AI-mailsamenvatting valt terug. Twee codepaden hersteld: gevoelige
+inhoud sloeg de AI over, en ASCII-escaping kon het bronpakket onnodig vergroten.
+Nu uitsluitend lokale Ollama voor gevoelige inhoud, geen cloudretry, compacte
+Unicode en een concrete terugvalreden. Werkelijke aanleiding van de specifieke
+gebruikersmail is niet vastgesteld door diens privéberichten te lezen.
+Synthetische proef op het echte lokale Ollama-model: eerste koude aanvraag liep
+tegen de bestaande providerdeadline; warme herhaling leverde binnen 3,49 s een
+samenvatting met behoud van de deadline. Geen privémail of cloudaanroep gebruikt.
+Koude-startlatency blijft dus een beperking; de terugvalmelding noemt de reden.
+Volledige serverregressie op deze wijziging: **429 geslaagd**, 180,77 s.
+Ruff/mypy, repository-/diffcheck en server-pip-check geslaagd. Geen clientwijziging
+of nieuwe APK nodig voor deze backendcorrectie; Windows-focusonderzoek blijft open.
+Gebruiker meldt dat Windows na vensterwissel nog blijft luisteren zonder reactie;
+eerdere heartbeatfix loste dit niet volledig op. Microfoon-/focusacceptatie blijft open.
+
+Aanvullende herstelopdracht: gebruiker bedoelt met wegklikken een ander venster/
+programma openen. Geen focusgebonden stop gevonden; wel een reproduceerbare race
+waarbij een oude heartbeatfout na een epochwissel de nieuwe spraakbeurt stopte.
+Callbacks zijn nu aan hun sessie/epoch gebonden; 401/403 blijven stoppen. Een late
+vervolgtimer mag na Stop geen microfoon openen. Synthetische deactivatieproef en
+raceproef toegevoegd; echte achtergrondmicrofoonproef blijft nodig.
+Recente mailvragen lezen nu zelf maximaal twintig geverifieerde berichtinhouden en
+vragen één gezamenlijke samenvatting via de bestaande AI-router. Geen ID-vraag,
+extra goedkeuring, nieuwe rechten of echte accounttest. Zoekfilters blijven behouden.
+Geen SQL-migratie, fase 8, productie of mini-pc-migratie.
+Herstelvalidatie: volledige serverregressie 426 geslaagd (178,13 s), daarna alle
+tien mailgerichte tests inclusief extra privacyproef geslaagd; Windows 114 geslaagd.
+Ruff/mypy, repositorycheck, diffcheck en server-/client-pip-check geslaagd.
+Windows-build mail-resume zichtbaar geopend en verbonden, snelkoppeling bijgewerkt;
+portable smoke-test opent acht pagina's zonder netwerk/microfoon/helper. Tweede
+echte start eindigt met code 0 en behoudt hetzelfde proces. Schema 7/quick_check ok,
+acht herinneringen behouden; favoriete stem M3 bevestigd vóór de appwissel.
+Werkelijke focus-/microfoonproef blijft nodig; geen echte mails namens gebruiker gelezen.
+
+Intelligent Response Engine & Dutch Butler Voice geïmplementeerd op
+feature/intelligent-response-butler-voice, voortbouwend op b2948b1/PR25 omdat develop
+fase 7.5 nog niet bevat. Nieuwe antwoordmodi/profielen, apart speech-SSE-protocol,
+conservatieve brongebonden samenvattingen, contextgebonden mailvervolgvragen,
+Classic Butler en gesloten tijdelijke/permanente gesproken instellingen.
+Centrale lokale Supertonic/Piper-router, vaste provider per antwoord, begrensde
+sessie-/geheugenversiegebonden audiocache, native Voice Studio op beide clients.
+Geen SQL-migratie (schema 7), tweede backend, nieuwe rechten, online TTS of cloning.
+Eigenaar gaf toestemming voor circa 400 MB Supertonic 3 M1–M5. ONNX-checksums
+geverifieerd; modelbestanden blijven buiten Git. Licenties en primaire bronnen in
+TTS_PROVIDERS.md; vendored helper met MIT-copyright en licentie.
+
+Definitieve serverregressie **417 geslaagd**, 221,34 s; Windows **112 geslaagd**,
+7,03 s; Android unit/lint/debug/release en **18 instrumentatietests geslaagd**
+(ook herhaling met nieuw contract). Ruff/mypy en drie pip checks geslaagd.
+Echte 42-zinsbenchmark: mediaan warm Supertonic 1,467 s / Piper 0,213 s;
+Supertonic-helperpiek 518,6 MiB. Echte generatieannulering circa 0,051 s en
+verse inference daarna geslaagd. Verpakte Supertonic produceert geldig WAV.
+Geen fysieke microfoon-/luisterkwaliteit, mini-pc of GPU-TTS als geslaagd geclaimd.
+Rapport: docs/RESPONSE_AND_VOICE_TEST_REPORT.md. Subjectieve luisteracceptatie vereist.
+
+Windows-opstartmelding onderzocht: eigen verborgen gestart proces draaide zonder
+zichtbaar venster. Zichtbaar herstart en venster daadwerkelijk teruggevonden.
+Nieuwe build bevat same-user/profile IPC-activatie voor dubbelstart, getest met
+apart proces. Windows 0.7.5 uit .local/client-build-butler zichtbaar gestart;
+bestaande snelkoppeling bijgewerkt, aangemeld/verbonden en Voice Studio-catalogus
+daadwerkelijk opgehaald. Tweede echte start activeert hetzelfde proces en eindigt
+met code 0. Echte telefoon 0.7.5/708, install -r en USB reverse 8765→8765 bevestigd,
+geen datareset/grants. Draft PR26 naar develop, afhankelijk van PR25; actuele CI
+via PR, geen merge. Menselijke luisterproef gevraagd; nog geen geslaagd resultaat.
+Backend blijft localhost 8765, desktop-development. Geen fase 8, migratie of productie.
+
+
+Adresboekuitbreiding lokaal uitgerold op bestaande server/Windows en Android
+0.7.5/707: persoonlijke contactnamen en aliassen, exact e-mailadres, revisiecontrole,
+geen adreswijziging van bestaande voorstellen, lokale verduidelijking bij dubbelzinnigheid.
+Serverregressie **403 geslaagd**, 181,35 s; Windows **108 geslaagd**; Android
+**17 instrumentatietests geslaagd**, unit/lint/debug/release-build geslaagd.
+Schema 6→7 met pre-v7-back-up, quick_check=ok, eigenaarrecord en herinneringen
+behouden. Acht expliciet gevraagde herinneringen lokaal opgeslagen; geen inhoud
+of persoonsgegevens in Git. Laatste twee ook na herstart aanwezig. Computerbediening
+werd bij eindcontrole door Escape gestopt; geen volledige echte luisterproef geclaimd.
+
+Nieuwe gebruikersopdracht: Intelligent Response Engine en Nederlandse butlerstem.
+Inspectie/onderzoek gestart; hergebruik bestaande Context/Settings/AI/SpeechBridge.
+Geen telefonie, migratie of publieke deployment. Fase 7.5-acceptatie blijft open.
+
+
+Acceptatieblokkers gemeld door eigenaar hersteld en lokaal uitgerold (Android
+**0.7.5/706**): natuurlijke aanmaakvormen ‘een afspraak maken’ en vrije titel-/
+persoonsantwoorden blijven aan de bestaande taak gekoppeld. Oude verkeerd als
+leesvraag opgeslagen opdrachten worden herkend. ‘Wat kan je allemaal doen?’
+gebruikt serverfuncties/rechten en geen generieke modelontkenning.
+Een dubbele disconnect kon finalisatie onderbreken en de actieve chat permanent
+bezet houden. Dat is met een falende vooraf-/geslaagde achteraftest gereproduceerd;
+volledige opruiming loopt nu in een afgeschermde, getrackte taak. Overname wacht
+begrensd op de vorige generatie, buiten het statemachineslot. Android negeert
+verouderde foutcallbacks en kan een reeds afgesloten spraaksessie veilig loslaten.
+Volledige regressie **381 geslaagd**, 172,76 s; Android **16 instrumentatietests
+geslaagd** op dezelfde herstelde backend, plus unit/lint/debug/release-build.
+Eigenaar meldde algemene gesprekken als goed, maar agenda en Android-herstel
+als onvoldoende vóór reparatie. Nieuwe echte acceptatie is aangevraagd, nog
+niet als geslaagd geteld. Fase 7.5 blijft open; geen fase-8-vrijgave.
+
+Lokale gebruikersserver gecontroleerd herstart op **0.7.5/8765**. Schema **5→6**
+met automatische pre-v6-back-up; eigenaarrecord exact behouden, herinneringenaantal
+behouden, quick_check=ok. Health/ready=200 en persoonlijke instellingen zonder
+login=401. Windows portable gestart; snelkoppeling ‘JARVIS 0.7.5’ op bureaublad.
+Echte telefoon: 0.7.5/705 via install -r geïnstalleerd en geopend; alleen USB
+reverse 8765→8765, geen rechten toegekend of gegevensreset. De gebruiker heeft
+aangegeven de Windows-proef te gaan doen; dat is nog geen geslaagd resultaat.
+Hardwareacceptatie en resterende functionele punten blijven expliciet open.
+
+Afrondingsbuild **0.7.5** gemaakt voor server, Windows en Android (versionCode705).
+Toegevoegd: blijvende opt-in mailopvolging, brongebonden antwoordstatus in chat,
+openstaande-takenopdracht, persoonlijkheidsvoorbeeld zonder opslag/toolrechten,
+apparaatgebonden geheugen bij synchronisatie uit, schema-6-migratie met back-up,
+en geen resourceprobes bij diagnostiek uit. Externe schrijfacties behouden hun
+exacte goedkeuring; opvolging kan alleen lezen en controleert actuele rechten.
+Laatste volledige serverregressie **373 geslaagd**, 144,88 s; Windows **107
+geslaagd**, 4,90 s; Android **14 instrumentatietests geslaagd**, unit/lint/debug/
+release-build geslaagd (154 s). Windows portable- en speechhelper-smoke geslaagd:
+geen netwerk/model/microfoon bij start; geen downloads. APK-handtekening komt
+overeen met de bestaande lokale 0.7.0-debug-APK. Beide artifacts staan in .local.
+Fase 7.5 is nog geen volledige acceptatie van alle 50 specificatieonderdelen:
+overige runtime-instellingen, automatisch vervolgen van afhankelijke intenties,
+uitgebreide mailconceptcorrecties en echte hardwareacceptatie blijven open.
+Geen fase 8, publieke toegang, echte accountmutaties of mini-pc-migratie.
+
+Handmatige spraakactivatie reserveert op Windows en Android de centrale
+gesprekslease vóór microfoonopname. Bij conflict wordt geen opname gestart;
+annuleren negeert late activatiecallbacks. Dezelfde conversation_id blijft
+behouden voor de daaropvolgende transcriptbeurt. Windows **106 geslaagd**, 4,69 s;
+Android **14 instrumentatietests geslaagd**, unit/lint/debug-build geslaagd
+(99 s), uitsluitend emulator-5556. Python-lint/typechecks geslaagd.
+De laatste backendregressie blijft 365 geslaagd; deze stap wijzigt alleen clients.
+Fase 7.5 blijft open voor overige instellingen, vervolgtaaklogica, definitieve
+builds/installatie en menselijke spraak-/echoproeven. Geen fase 8 gestart.
+
+Brongebonden samenvattinginvalidatie hersteld: vergeten/corrigeren behoudt
+onverwante notities en volgt bronbeurten en werkelijk gebruikt geheugen.
+Agenda-alternatieven en hun buffertijd blijven binnen het opgehaalde bereik.
+Android-instellingencontract bijgewerkt, generator en CI-driftcontrole toegevoegd.
+Volledige serverregressie **365 geslaagd**, 157,06 s; Windows **105 geslaagd**,
+4,41 s; Android **14 instrumentatietests geslaagd**, unit/lint/debug-build geslaagd
+(84 s), uitsluitend emulator-5556. Lint/typechecks, pip/repository/diffcontrole
+geslaagd. Geen gebruikersservermigratie, echte accounttest of telefooninstallatie.
+Fase 7.5 blijft in uitvoering; overige instellingen, vervolgtaaklogica,
+definitieve builds/installatie en echte audioacceptatie blijven open.
+
+Optionele lichte trefwoordverwantschap aangesloten op geheugenretrieval. Kleine
+Nederlandse woordenlijst, maximaal 24 zoektermen; geen embeddings/modeldownloads
+of algemene semantische claims. Menu hernoemd naar ‘Verwante trefwoorden (licht)’.
+Gebruikers-, status-, verval- en gevoeligheidsfilters blijven ongewijzigd.
+Volledige serverregressie **363 geslaagd**, 174,39 s; Windows **105 geslaagd**,
+6,38 s. Lint/typechecks, pip/repositorycontrole geslaagd. Algemene semantische
+retrieval en overige resterende fase-7.5-onderdelen blijven expliciet open.
+
+Streaminginstellingen aangesloten: AI-streaming uit buffert begrensd tot een
+succesvolle generatie; mislukte deeltekst wordt niet zichtbaar en fallback blijft
+vóór zichtbare tekst. Interne providerstream blijft annuleerbaar. Spraakstreaming
+is apart op Windows/Android instelbaar: uit wacht op succesvolle voltooiing en
+spreekt geen geannuleerd/mislukt deelantwoord. Keuze is per beurt vastgezet.
+Volledige serverregressie **361 geslaagd**, 206,12 s; Windows **105 geslaagd**;
+Android unit/lint/debug-build geslaagd. Lint/typechecks, pip/repositorycontrole
+geslaagd. Geen echte telefooninstallatie/accounttest. Fase 7.5 blijft open voor
+overige instellingen, definitieve builds/installatie en hardwareacceptatie.
+
+Meldingsvoorkeuren aangesloten op nieuwe automatiseringsmeldingen: aan/uit,
+rustige uren/tijdzone en uitschakelen/begrenzen van proactieve suggesties.
+Expliciete herinneringen blijven apart van proactiviteit; bestaande inboxberichten
+worden niet verwijderd. Jobgebonden meldingen vinden voorkeuren via het bestaande
+apparaat/gebruikersverband. Geen nieuwe pushdienst, accounttest of oproep.
+Volledige regressie **359 geslaagd**, 172,98 s; gerichte meldings-/automationtests
+25 geslaagd. Lint/typechecks, pip check en repositorycontrole geslaagd.
+Fase 7.5 blijft in uitvoering; overige instellingen, definitieve builds/installatie
+en echte microfoon-/echoacceptatie blijven open.
+
+Agenda-instellingen aangesloten op bestaande reschedule-analyse: gebruikersgebonden
+buffertijd, werkdagen/werktijden, alternatieven en naburige afspraken. De uitvoerder
+leest dezelfde voorkeuren; echte overlapcontrole en exacte approvals blijven intact.
+UTC-rekentijd voorkomt verkeerde duur/gapberekening bij zomer-/wintertijd.
+Gerichte API-regressie plus volledige serverregressie: **357 geslaagd**, 170,08 s.
+Lint/typechecks, dependency- en repositorycontrole geslaagd. README/forkroadmap
+verwijzen nu naar fase 7.5 en houden deze expliciet in uitvoering. Definitieve
+builds/installatie, overige instellingen en menselijke audioacceptatie blijven open.
+
+AI-prestatieprofielen daadwerkelijk aangesloten op contextbudget, antwoordlimiet
+en request-time-out. Eigen tegelijk gewijzigde waarden blijven behouden; geen
+modeldownloads/-vervanging of beveiligingswijziging. Gerichte policytest plus
+volledige serverregressie: **356 geslaagd**, 189,65 s. Lint/typechecks en pip check
+geslaagd. Instellingenhandleiding bevat nu de exacte presets. Overige instellingen,
+definitieve builds/installatie en hardwareacceptatie blijven open voor fase 7.5.
+
+Android adaptieve opname aangesloten op speculatieve STT: normale stilte start
+herkenning terwijl opname doorgaat; nieuwe spraak maakt het fragment ongeldig.
+Een geldige transcriptie wordt hergebruikt; voorlopige tekst voert niets uit.
+Pure Kotlin-beurttest toegevoegd. Unit/lint/debug-build geslaagd. Emulatorregressie
+geslaagd: 14 instrumented tests zonder fouten. Dit test de bestaande gespreksflow,
+niet menselijke pauzes of akoestiek. Eerste apparaatrun stopgezet omdat een inmiddels aangesloten echte
+telefoon ook werd geselecteerd; herhaling expliciet met ANDROID_SERIAL=emulator-5556.
+Geen geslaagde hardwareacceptatie geclaimd. Fase 7.5 blijft in uitvoering.
+
+Windows adaptieve beurtanalyse uitgebreid: tijdens de normale stilte begint
+speculatieve STT terwijl de microfoon blijft opnemen. Een complete uitspraak
+kan eerder afronden; onafgemaakte tekst wacht tot de maximale denkpauze. Nieuwe
+spraak maakt de oude transcriptiesnapshot ongeldig. Voorlopige tekst verschijnt
+alleen als transcript, niet als opdracht. Geldige herkenning wordt hergebruikt
+zonder een tweede modelkopie. Vier deterministische tests toegevoegd; Windows
+**103 tests geslaagd**, 5,37 s. Lint/typechecks schoon. Android-adaptatie en echte
+spraak-/pauzeacceptatie blijven open; fase 7.5 nog niet voltooid.
+
+### Fase 7.5 — inspectie en implementatie gestart — 24 november 2026
+
+Volledige specificatie (50 onderdelen) ontvangen. Structuur, architectuur,
+server/chat/router, SQLite, upstream JSON-geheugen/taken, automatiseringen,
+goedkeuringen, native clients en bestaande voicepipeline onderzocht.
+Technisch plan: docs/NATURAL_CONVERSATION_IMPLEMENTATION_PLAN.md.
+Featurebranch natural-conversation-engine vanaf actuele develop 436bb2b;
+werkende PR-24-afhankelijkheid fast-forward meegenomen, zonder develop/main-
+merge of protection-bypass. Bestaande werkboom was schoon. GitHub Actions-
+blokkade blijft bij afronding te controleren. Port 8765, bestaande gegevens,
+credentials en componenten behouden. Fase is nog niet voltooid.
+
+Eerste fundament: schema-5-migratie met backup, centrale strikt gevalideerde
+instellingen in 13 categorieën, revision/CAS/import/export/reset en gescheiden
+apparaatinstellingen; settings/memory-API achter bestaande chatrechten, zonder
+credential-/authinstellingen of uitschakelbare hoogrisicogoedkeuringen.
+SQLite/FTS5 MemoryManager met bronmetadata, correcties, expiry, gevoelige expliciete
+toestemming en bron-/samenvattinginvalidatie bij vergeten. NaturalConversationManager
+met alle 14 staten, leases, epochbeveiliging, expliciete overdracht en timeouts.
+Nieuwe API's en tien tests: volledige regressiesuite 265 geslaagd. Alleen tijdelijke
+testdatabases gemigreerd; de echte server/database is nog niet omgezet naar fase 7.5.
+Contextintegratie: bestaande ChatService/AIRouter gebruikt begrensde bronbewuste
+ContextManager, aparte Nederlandse voiceprompt/persoonlijkheid, lokale extractieve
+samenvattingen met wijzigbare versies en expliciete onthoud-/vergeetopdrachten.
+Offline en provider/modelvoorkeuren zijn request-local, ook voor interne
+toolplanner-/samenvattingsaanroepen; geen gedeelde providermutaties. Geheugen
+gaat alleen met opt-in naar cloud; gevoelig geheugen uitsluitend naar een
+lokale-only route. Vergeten invalideert samenvattingen en bron-/afgeleide beurten;
+lopende gewone generaties stoppen bij een geheugenwijziging. Regels toegepast
+op de bestaande chatroute, geen tweede router/database/pipeline.
+Volledige regressiesuite na contextintegratie: **272 geslaagd**, 105,04 s.
+Aanvullende tests: echte geauthenticeerde API met synthetische providers,
+herstartpersistentie, cloud/offline, afgeleid vergeten, samenvattings-CAS,
+budgetfouten en gelijktijdige request-local providerconfiguratie.
+Nog te doen: uitgebreidere intent-/taakcontext, audio/streaming, beide client-GUI's,
+overige geheugen-/samenvattingsflow, metingen, builds en acceptatietests.
+
+Nederlandse TemporalResolver toegevoegd: relatieve dagen/weken, weekdagen,
+half-/kwarttijden, relatieve minuten/uren, duur en tijdcorrecties op een bekende
+anchor. Ambigue dagdelen en werk-eindtijden vragen verduidelijking. Zomer- en
+wintertijdgaten/dubbele tijden worden afgewezen; relatieve duur rekent in UTC.
+CalendarRead/ReminderCreate hergebruiken deze resolver; uitgebreide afspraak-
+slotextractie volgt nog. TaskMemory bewaart begrensde gevalideerde referenties,
+onafgeronde vragen en job-ID's in bestaande SQLite-tabellen. AutomationEngine
+blijft de enige uitvoerder. Goedkeuringsnonces/previewtijd/decision-authority
+worden nooit hersteld. Geen externe accountmutaties uitgevoerd.
+Volledige regressiesuite na tijd-/taakcontext: **301 geslaagd**, 110,93 s.
+Windows-instellingenmenu toegevoegd aan Instellingen → Gesprekken en geheugen:
+13 categorieën uit de serverschema's, typed invoer, zoeken, opslaan/annuleren,
+CAS-conflicten, reset/import/export, geheugen-CRUD/export/wissen en wijzigbare
+samenvattingen. Privégegevens verdwijnen bij uitloggen. Volledige schemaweergave
+visueel gecontroleerd met synthetische gegevens; 83 Windows-clienttests geslaagd.
+Instellingen die de nieuwe voice-/intentlagen nodig hebben worden in de volgende
+implementatiestappen aangesloten; het menu alleen bewijst die werking niet.
+Blokkeerregels/read-propose worden nu gecontroleerd bij lezen, indienen en vóór
+uitvoering; instellingen verlenen geen apparaatrechten of approval-bypass.
+Offline geldt ook voor de bestaande losse automation-summary/planner-API.
+Volledige serverregressiesuite: **303 geslaagd**, 108,32 s.
+Nog geen nieuwe clientbuild/installatie; fase 7.5 blijft in uitvoering.
+
+Audioproceshergebruik: gedeelde stdlib OwnedVoicePipe voor bestaande Windows-
+en serverhelpers. Server start niet meer per aanvraag een nieuw inferenceproces;
+geladen modellen blijven begrensd beschikbaar en worden na inactiviteit vrijgegeven.
+Annulering, protocolfouten, overlapweigering en frisse verwerking na stoppen zijn
+met een echt synthetisch pipe-subprocess getest. Windows idle/outputstop behoudt
+warme modellen; volledig afsluiten ruimt het eigen proces op.
+Serverregressie **307 geslaagd**, 108,63 s; Windows **83 geslaagd**, 4,17 s.
+Echte lokale synthetische audio op bestaande modellen: Piper koud/warm 1,004/0,098 s,
+Whisper Small CPU 3,321/1,975 s; piek helper-RAM 877,6 MiB. Geen echte microfoon,
+accountmutaties of downloads. Dit is nog geen totale gesprekslatency.
+Zie docs/CONVERSATION_PERFORMANCE.md. Doorlopende modus/AEC/barge-in en Android
+worden hierna aangesloten; geen fase-8- of mini-pc-werk gestart.
+
+Windows-doorloop aangesloten op de centrale audiosessie: één conversation_id,
+epoch op voice-chat, automatische backend-thinking/antwoord-/wachtstatus,
+heartbeat zonder activiteit te vervalsen en expliciete overnameknop. Oude audio
+van een ander apparaat wordt vóór het aanmaken van een nieuwe beurt afgewezen.
+Doorloop vereist bewuste lokale PTT-/wakeactivatie plus de ingestelde vervolgmodus;
+microfoon blijft bij opstart uit. Afsluitzinnen en inactiviteit stoppen de sessie.
+Globale instellingen worden na authenticatie opgehaald en wijzigen geen lokale
+toestemming/apparaatkeuze. Wakefrase kan worden aangepast (transcriptiegate).
+Server **310 tests geslaagd**, 114,34 s; Windows **87 tests geslaagd**, 4,15 s.
+Inclusief tien synthetische doorlopende beurten, daadwerkelijke serverlevenscyclus,
+idle-heartbeat, oude overgenomen invoer en late native callbacks. Geen echte
+microfoonacceptatie geclaimd. Native Android-koppeling is de volgende stap;
+barge-in/DSP, uitgebreidere intentlaag, overige GUI/diagnostiek en documentatie
+blijven open. Zie docs/CONVERSATION_STATE_MACHINE.md.
+
+Android-instellingencentrum aangesloten: dezelfde servercategorieën/labels,
+typed invoer/sliders, zoeken, dirty-state/CAS, annuleren/reset/import/export en
+geheugen-CRUD/filter/gevoelige toestemming/verouderd/wissen/samenvattingen.
+Privégegevens verdwijnen bij originwissel/uitloggen; echte audioapparaten blijven
+in lokale DataStore. Niet-ondersteunde TTS-providers zijn niet beschikbaar;
+ontbrekende Whisper-/Piperkeuzes zijn uitgegrijsd en server-side geweigerd.
+Android unit/lint/debug/release-build geslaagd; uitsluitend afzonderlijke
+nieuwe headless AVD met hostaudio uit gebruikt. Drie instrumented tests werkelijk
+geslaagd (JUnit XML: 3, fouten 0): volledig instellingencontract/typen, echte Compose-
+invoer/annuleren, en echte TCP met synthetische auth voor globale voorkeuren,
+apparaatisolatie, geheugen wissen en expliciete sessieoverdracht/stale-audioafwijzing.
+Tijdelijke fixture op 127.0.0.1:18765 via adb reverse in alleen deze test-AVD;
+de echte server:8765, telefoon, accounts en gesprekken zijn niet vervangen.
+Volledige serverregressie **311 geslaagd**, 135,16 s. Windows-regressie 87 geslaagd.
+Resterend: Android-spraaklus/foregroundherstel, barge-in/echo/adaptieve detectie,
+uitgebreidere intent-/slotlaag, overige instellingen/retentie/diagnostiek, definitieve
+builds/meting/documentatie/CI en hardwareacceptatie. Geen fase-7.5-voltooiing geclaimd.
+
+Gedeelde audio en Android-doorloop aangesloten. Windows Natural Conversation
+Mode gebruikt nu geauthenticeerde server-STT/TTS met een annuleerbare HTTP-pool,
+zodat beide clients dezelfde geladen modellen hergebruiken. De bestaande lokale
+Windows-adapter blijft behouden. Enginewisseling gebeurt op een veilige beurtgrens.
+Android heeft dezelfde centrale sessie/epoch, heartbeat, timeouts, afscheid,
+expliciete overname en automatische vervolgbeurten na bewuste activatie. Verlaten
+van de app/audiofocusverlies stopt opname; OS-microfoontoestemming blijft vereist.
+Beschikbare platform-AEC en ruisonderdrukking worden gekoppeld, zonder claims
+over echte echo-/microfoonkwaliteit. Een spraakinterruptie verwijdert geen
+duurzaam extern concept of reeds uitgevoerde taak.
+
+Echte TCP-test vond dat BaseHTTPMiddleware disconnect maskeerde. SecurityHeaders
+is naar pure ASGI omgezet met behoud van headers/CSRF/auth. De regressie bewijst
+serverannulering vóór responseheaders en een daarna succesvolle aanvraag.
+Laatste volledige serverregressie: **312 geslaagd**, 114,16 s. Windows: **90
+geslaagd**. Android unit/lint/debug/release plus **11 instrumented tests geslaagd**
+in afzonderlijke headless AVD met hostaudio uit. Eén test doorloopt tien beurten
+via echte Whisper/Piper-serverinference met synthetische WAV-input en testoutput;
+geen menselijke luister-/spreek-/barge-inacceptatie geclaimd. Alleen testfixture
+18765 en tijdelijke databases gebruikt; echte 8765-server nog niet gemigreerd.
+GitHub draft-PR #25 naar develop bestaat. Actions-dispatch retourneert HTTP 422
+“Actions has been disabled for this repository”; geen CI-succes of merge geclaimd.
+Open blijven barge-in, adaptieve beurtanalyse, uitgebreide intent/slots,
+resterende runtime-instellingen/privacy/diagnostiek, documentatie en hardwaretests.
+
+Optionele spraakgestuurde onderbreking aangesloten in beide native clients:
+VAD pauzeert uitvoer, STT bevestigt een nieuwe uitspraak, oude audio/generatie/
+wachtrij worden gestopt en hetzelfde gesprek blijft behouden. Echo/lege tekst
+hervat de uitvoer. Windows gebruikt een begrensde PCM-referentiefilter; Android
+vereist beschikbare en geactiveerde platform-AEC. Tekstguards voorkomen gebruik
+van herkenbare eigen output/approvalwoorden. Geen sprekeridentificatie of garantie
+tegen akoestische echo geclaimd; standaard uit en hardwareacceptatie vereist.
+Geserialiseerde audiostreams en gescheiden STT/TTS-annulering bewaken late callbacks.
+Windows **97 tests geslaagd**; Android unit/lint/build en **12 instrumented tests,
+0 fouten**, inclusief echte STT/TTS met gesimuleerde onderbrekingsaudio/AEC. Geen
+gebruikersmicrofoon geopend. Zie docs/VOICE_STREAMING.md. Uitgebreidere Nederlandse
+afspraakvalidatie en runtime-instellingen worden hierna verder aangesloten.
+
+Afspraakvalidatie en samengestelde opdrachten uitgebreid: Nederlandse absolute/
+relatieve datum, half-/kwarttijd, duur, herinnering vooraf en correcties worden
+tegen eigen gebruikerswoorden gecontroleerd. Onbekende uitnodigingsadressen worden
+niet verzonnen. Een correctie vervangt alleen een nog niet goedgekeurd voorstel;
+eenmalige payload-/preview-/sessiebinding blijft intact, ook voor natuurlijke
+bevestigingen. Nieuwe reminder_minutes gaat als gecontroleerde Google popup mee.
+Geverifieerde afspraakgegevens ankeren verplaatsingen; duur/genodigden blijven behouden.
+Gesloten intentplannen gebruiken letterlijke gebruikersdelen, eerdere afhankelijkheden
+en een afzonderlijke idempotency-key per stap. Deelproblemen blokkeren onafhankelijke
+stappen niet; algemeen ja kan niet meerdere voorstellen goedkeuren.
+
+Diagnostiek in Windows/Android toegevoegd: geauthenticeerde numerieke telemetry,
+AI-/STT-/TTS-/audio-latency, geschatte context, sessie-/geheugen-/integratiestatus,
+proces-RAM/CPU en optionele begrensde NVIDIA-probe. Geen conversatie-inhoud/geheimen
+in export. Instellingen-RPC gebruikt een onveranderlijke snapshot en bewaart invoer
+bij fouten. Nieuwe Ruff/mypy-devtools met pins en reproduceerbare kwaliteitscheck;
+CI voert serverlint/typechecks uit, zonder desktopstack of modellen te importeren.
+Volledige serverregressie **346 geslaagd**, 194,89 s; Windows **99 geslaagd**;
+Android unit/lint/debug/release en **13 instrumented tests, 0 fouten**. Alle tests
+gebruiken synthetische accounts/gegevens; echte 8765-server nog niet gemigreerd.
+GitHub Actions is inmiddels weer actief: server Windows/Linux, Windows-build,
+Android-build en structuurchecks voor commit 242ffa4 geslaagd. Oudere melding
+over Actionsblokkade is daarmee achterhaald; nieuwe commits krijgen nieuwe checks.
+Nog in uitvoering: overige runtime-instellingen/bewaarbeleid, rijkere geheugen-
+en taakflows, adaptieve beurtanalyse, definitieve builds/documentatie/hardwareacceptatie.
+
+CI voor 3e8f0dc: Windows-server, Windows-build, Android en structuurchecks geslaagd.
+Linux stopte bij mypy: ctypes.WinDLL bestaat niet in Linux-typestubs, hoewel de
+uitvoering al door os.name wordt afgeschermd. Windows-only loader wordt nu pas
+binnen die platformtak opgezocht. Zowel Linux- als Windows-typeprofiel lokaal
+gecontroleerd; nieuwe remote run volgt. Geen applicatie- of beveiligingscheck omzeild.
+
+Bewaarbeleid aangesloten: nieuwe beurten bij geschiedenis uit bevatten geen
+gewone tekst in SQLite; actieve context blijft begrensd in RAM met eigen TTL en
+verdwijnt bij herstart. Exacte approval en request-idempotentie blijven werken;
+open taakparameters zijn afzonderlijk. Android wist de offline Room-cache en
+cachet privébeurten niet opnieuw. Eén lichte onderhoudstaak ruimt begrensd oude
+inhoud/verlopen herinneringen op; actieve gesprekken en open taakgegevens blijven
+behouden. Automatisch onthouden is opt-in en gebruikt alleen een positieve
+grammatica voor gewone plannings-/programmeertaalvoorkeuren; bij altijd-vragen
+ontstaan niet opgehaalde voorstellen. Profielkeuze past echte presetwaarden toe.
+
+FTS-kandidaten worden vóór de limiet op relevantie gerangschikt. ‘Onthou dit’ en
+‘vergeet dat’ binden één duidelijke eigen uitspraak/geheugenversie. Ook expliciete
+geheugenlijst-antwoorden worden als afgeleide bron gevolgd, zodat vergeten feiten
+niet via een oud lijstantwoord terugkomen. Algemene ambiguïteit vraagt een keuze.
+Negen nieuwe privacy-/referentietests; laatste volledige serverregressie **355
+geslaagd**, 141,84 s. Windows **99 geslaagd**, Android **14 instrumented tests,
+0 fouten** plus unit/lint/debug/release. Alleen eigen test-AVD/fixture gebruikt.
+Architectuur-, context-, geheugen-, security-, persoonlijkheids- en handmatige
+testdocumentatie toegevoegd; PHASE_7_5_TEST_REPORT.md houdt beperkingen expliciet bij.
+Remote checks voor 084baad inmiddels allemaal geslaagd. Nieuwere privacywijzigingen
+krijgen nog hun eigen CI-run. Fase 7.5 blijft in uitvoering; echte 8765-server nog
+niet gemigreerd, geen fase-8-/productie-/mini-pc-werk.
+
+### Eén gesproken ja voor mail en agenda — 24 november 2026
+
+Nieuwe expliciete opdracht vervangt de eerdere beperking op een korte ja:
+mail/agenda voorbereiden en voorlezen, één ja voert het actuele voorstel uit;
+nee weigert. Op bestaande feature/chat-approvals / PR #24 voortgezet, omdat de
+onderliggende wijziging nog door GitHub Actions geblokkeerd is. Geen merge of
+omzeiling van checks. Alle bestaande preview-/sessie-/payload-/vervalguards en
+actuele automation:approve blijven gelden. De bevestiging komt niet bij de AI.
+
+Mailopdracht maakt een geverifieerd Gmail-concept en automatisch een afzonderlijk
+verzendvoorstel. De sendjob heeft een eigen idempotencykey; dezelfde geverifieerde
+snapshot hergebruikt een bestaande sendjob. Geen dubbele verzending bij herhaling.
+‘Alleen een concept’ of ‘niet versturen’ blijft concept-only. Ja zonder voorstel
+in hetzelfde gesprek bevestigt niets; een dubbele ja na succes leest de status.
+
+51 gerichte tests geslaagd, inclusief synthetische STT→chat→TTS→STT ‘Ja, graag’
+→eenmalige executor voor zowel mail als agenda; nee, ontbrekend approverrecht,
+ander/onderbroken gesprek en alleen-concept. Geen echte accountmutatie uitgevoerd.
+Volledige regressiesuite: 255 servertests geslaagd. Echte Groq/GPT-OSS 120B met
+tijdelijke SQLite en gemockte Google: mail maken→preview→één ja→eenmalig verzonden,
+en afspraak→preview→één ja→aangemaakt geslaagd. Extra ja voert niet opnieuw uit.
+Geen echte accountmutatie. Pip check, repository-/whitespacecontrole geslaagd;
+Bandit nul middel/hoge signalen. Geen actieve chat-/externe taken bij de
+gecontroleerde serverherstart op loopback:8765; credentials/voorstellen behouden.
+Windows/Android gebruiken dezelfde spraak-/chatroute; geen client-/APK-rebuild.
+
+### Goedkeuren in chat en vervolggegevens — 24 november 2026
+
+PR #23 met spraak-/dagvragen na tien groene jobs gemerged naar develop 436bb2b.
+Gebruiker vraagt expliciet agenda- en mailacties in dezelfde chat goed te keuren.
+Featurebranch feature/chat-approvals vanaf die basis. Het eerdere bevestigings-
+loopje kwam doordat vervolggegevens (‘Maak hem van 11 tot 12’) buiten de planner
+vielen. Eigen gebruikersgegevens blijven nu bij de direct voorafgaande vraag;
+een onderbroken oude vraag kan niet door een losse ja worden hervat.
+
+Volledige serverpreview met jaartal, datum/tijd/zone, titel, agenda, locatie,
+genodigden/herhaling of volledige e-mail. Expliciet Goedkeuren/Weigeren gebruikt
+de bestaande ApprovalManager, actuele scopes en nonce-digest. De modelplanner
+heeft geen goedkeurtool. Fingerprint wordt ook binnen de beslistransactie
+gecontroleerd; laatste voltooide assistantantwoord en vijfminuten-geldigheid
+moeten overeenkomen. Geen korte ja als approval. Grote/onvolledige/niet volledig
+toonbare voorstellen blijven in de bestaande eigenaarinterface. Toon mijn
+voorstellen / Toon voorstel ID herstelt context na herstart of meerdere keuzes.
+Resultaat wordt alleen na echte completed-engine-status als uitgevoerd gemeld.
+
+Gerichte tests dekken aanmaken, weigeren, mailverzending, scopes, dubbele
+bevestiging, veranderde/verlopen/onderbroken preview, race tijdens challenge,
+ontbrekende tijden en vervolgcontext. Echte Groq/GPT-OSS 120B-proef met tijdelijke
+SQLite en gesimuleerde executor geslaagd: vraag → gegevens → voorstel → Goedkeuren
+→ completed. Geen echte afspraak of e-mail namens de gebruiker uitgevoerd.
+Verificatie: 45 gerichte tests en 249 volledige servertests geslaagd; pip check,
+repository-/whitespace-/indexgeheimcontrole geslaagd; Bandit nul middel/hoge
+bevindingen. De server bleek bij activering niet meer actief; bestaande helpers
+hebben hem gecontroleerd gestart. Health/ready 200 en anonieme automation-API 401.
+Geen actieve chatvragen of externe taken bij de start; bestaande voorstellen en
+credentials behouden. Remote CI en integratie via feature-PR naar develop.
+GitHub-blokkade op PR #24: geen push-/PR-checks aangemaakt. Alle vier handmatige
+workflow_dispatch-pogingen geweigerd met HTTP 422: ‘Actions has been disabled for
+this repository’, terwijl permissions.enabled=true en workflows active melden.
+Geen oorzaak als billing/policy aangenomen en geen instellingen of bescherming
+gewijzigd. Code gepusht en lokaal actief; PR blijft open, niet gemerged zonder
+groene CI. Eigenaar moet de Actions-/accountblokkade bij GitHub oplossen.
+Windows 0.7.1/Android 0.7.0 gebruiken dezelfde chatroute; geen rebuild of APK nodig.
+Stop na fase 7; accounts, main en private credentials behouden.
+
 ### Spraakagenda en Android-verbinding herstellen — 23 november 2026
 
 Windows-/rechtenuitbreiding via PR #22 geïntegreerd naar develop 237b10c na tien

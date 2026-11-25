@@ -8,6 +8,7 @@ import httpx
 
 from providers.llm_openai import OpenAICompatLLM, TextStreamError
 from server.config import Settings
+from server.ai.policy import current_policy
 
 MESSAGES = {
     "authentication_expired": "Je sessie is verlopen of ingetrokken. Log opnieuw in.",
@@ -37,18 +38,23 @@ class ProviderError(Exception):
 class TextProvider:
     def __init__(self, name: str, settings: Settings, client_factory: Callable | None = None):
         self.name, self.settings = name, settings
-        self.model = {"gemini": settings.gemini_model, "groq": settings.groq_model, "ollama": settings.ollama_model}[name]
+        self._model = {"gemini": settings.gemini_model, "groq": settings.groq_model, "ollama": settings.ollama_model}[name]
         self.key = settings.gemini_api_key if name == "gemini" else settings.groq_api_key if name == "groq" else ""
         self.client_factory = client_factory or httpx.AsyncClient
         self._availability: tuple[float, dict] | None = None
         self._probe_lock = asyncio.Lock()
+
+    @property
+    def model(self):
+        policy = current_policy.get()
+        return (getattr(policy, self.name + "_model") if policy else "") or self._model
 
     async def availability(self, *, refresh: bool = False) -> dict:
         if self.name in ("gemini", "groq"):
             return {"configured": bool(self.key), "available": None if self.key else False,
                     "state": "not_verified" if self.key else "not_configured", "model": self.model}
         async with self._probe_lock:
-            if not refresh and self._availability and time.monotonic() - self._availability[0] < 15:
+            if not refresh and self._availability and self._availability[1]["model"] == self.model and time.monotonic() - self._availability[0] < 15:
                 return self._availability[1]
             result = {"configured": True, "available": False, "model": self.model, "state": "unavailable", "models": []}
             try:
@@ -70,6 +76,11 @@ class TextProvider:
             return result
 
     async def stream(self, messages: list[dict]):
+        policy = current_policy.get()
+        # Defense in depth if a caller directly uses a cloud provider.
+        if policy and policy.offline and self.name != "ollama":
+            raise ProviderError("unavailable", retryable=False)
+        timeout = min(self.settings.provider_timeout_seconds, policy.timeout_seconds) if policy else self.settings.provider_timeout_seconds
         if self.name in ("gemini", "groq") and not self.key:
             raise ProviderError("groq_not_configured" if self.name == "groq" else "not_configured")
         if self.name == "ollama":
@@ -79,9 +90,9 @@ class TextProvider:
         config = {
             "base_url": {"gemini": "https://generativelanguage.googleapis.com/v1beta/openai", "groq": "https://api.groq.com/openai/v1", "ollama": self.settings.ollama_base_url + "/v1"}[self.name],
             "api_key": self.key,
-            "model": self.model, "timeout": self.settings.provider_timeout_seconds,
+            "model": self.model, "timeout": timeout,
             "tools": False, "vision": False, "strict_text": True,
-            "max_output_tokens": self.settings.max_output_tokens,
+            "max_output_tokens": policy.maximum_answer_tokens if policy else self.settings.max_output_tokens,
             "async_client_factory": self.client_factory,
         }
         if self.name == "ollama":
@@ -92,8 +103,9 @@ class TextProvider:
                 config.update(think=True, include_reasoning=False)
         transport = OpenAICompatLLM(config)
         try:
-            deadline = time.monotonic() + self.settings.provider_timeout_seconds
-            async with aclosing(transport.chat(messages, tools=None, stream=True, temperature=0.2 if self.name == "ollama" else None)) as source:
+            deadline = time.monotonic() + timeout
+            temperature = policy.temperature if policy else (0.2 if self.name == "ollama" else None)
+            async with aclosing(transport.chat(messages, tools=None, stream=True, temperature=temperature)) as source:
                 while True:
                     remaining = deadline - time.monotonic()
                     if remaining <= 0:

@@ -73,7 +73,7 @@ class SpeechToTextProvider:
         return " ".join(segment.text.strip() for segment in segments if segment.no_speech_prob < 0.75).strip()[:8000]
 
 
-class TextToSpeechProvider:
+class PiperProvider:
     def __init__(self):
         self.voice, self.key = None, None
 
@@ -100,7 +100,55 @@ class TextToSpeechProvider:
         with wave.open(data, "wb") as output:
             self.voice.synthesize_wav(text, output, syn_config=SynthesisConfig(speaker_id=speaker, length_scale=1 / speed))
         return {"audio": base64.b64encode(data.getvalue()).decode("ascii"), "provider": "piper",
-                "seconds": time.perf_counter() - started}
+                "voice":voice_name,"device":"cpu","seconds": time.perf_counter() - started}
+
+
+class SupertonicProvider:
+    def __init__(self):self.model=None;self.key=None;self.styles={}
+
+    def synthesize(self,request):
+        import numpy as np
+        import onnxruntime as ort
+        from voice_runtime.supertonic_helper import load_cfgs,load_onnx_all,load_text_processor,TextToSpeech,load_voice_style
+        root=Path(request["models"])/"supertonic-3";voice=request.get("supertonic_voice","M1")
+        if voice not in ("M1","M2","M3","M4","M5"):raise ValueError("invalid_settings")
+        required=[root/"onnx"/name for name in ("duration_predictor.onnx","text_encoder.onnx","vector_estimator.onnx","vocoder.onnx","tts.json","unicode_indexer.json")]+[root/"voice_styles"/(voice+".json")]
+        if not all(path.is_file() for path in required):raise ValueError("tts_model_missing")
+        text=request["text"].strip()
+        if not text or len(text)>700:raise ValueError("invalid_text")
+        started=time.perf_counter()
+        if self.key!=str(root):
+            options=ort.SessionOptions();options.intra_op_num_threads=4;options.inter_op_num_threads=1
+            providers=["CPUExecutionProvider"]
+            sessions=load_onnx_all(str(root/"onnx"),options,providers)
+            self.model=TextToSpeech(load_cfgs(str(root/"onnx")),load_text_processor(str(root/"onnx")),*sessions)
+            self.key=str(root);self.styles={}
+        if voice not in self.styles:self.styles[voice]=load_voice_style([str(root/"voice_styles"/(voice+".json"))])
+        speed=min(1.5,max(.7,float(request.get("speed",.95))))
+        steps=min(12,max(2,int(request.get("steps",8))))
+        audio,duration=self.model(text,"nl",self.styles[voice],steps,speed=speed,silence_duration=min(1,max(0,float(request.get("pause_ms",180))/1000)))
+        samples=np.asarray(audio).reshape(-1)[:int(float(duration[0])*self.model.sample_rate)]
+        if len(samples)>self.model.sample_rate*90 or not np.isfinite(samples).all():raise ValueError("invalid_text")
+        data=io.BytesIO()
+        with wave.open(data,"wb") as output:
+            output.setnchannels(1);output.setsampwidth(2);output.setframerate(self.model.sample_rate)
+            output.writeframes((np.clip(samples,-1,1)*32767).astype('<i2').tobytes())
+        return {"audio":base64.b64encode(data.getvalue()).decode("ascii"),"provider":"supertonic","voice":voice,"device":"cpu","seconds":time.perf_counter()-started}
+
+
+class TextToSpeechProvider:
+    """One loaded TTS provider at a time in the existing isolated helper."""
+    def __init__(self):self.provider=None;self.engine=None
+
+    def synthesize(self,request):
+        provider=request.get("provider","piper")
+        if provider not in ("piper","supertonic"):raise ValueError("tts_provider_unavailable")
+        if self.provider!=provider:
+            self.engine=None
+            import gc
+            gc.collect()
+            self.engine=PiperProvider() if provider=="piper" else SupertonicProvider();self.provider=provider
+        return self.engine.synthesize(request)
 
 
 class Runtime:

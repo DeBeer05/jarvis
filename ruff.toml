@@ -1,0 +1,6 @@
+target-version = "py312"
+
+[lint]
+# Existing project style uses short, semicolon-separated statements. Catch
+# undefined names, invalid syntax, unused imports and accidental duplicate keys.
+select = ["F", "E9"]

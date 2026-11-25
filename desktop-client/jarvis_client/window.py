@@ -6,7 +6,7 @@ from PySide6.QtCore import Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QAction, QDesktopServices, QTextCursor
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QFormLayout, QFrame, QHBoxLayout,
                               QLabel, QLineEdit, QListWidget, QListWidgetItem, QMainWindow, QMenu,
-                              QMessageBox, QPlainTextEdit, QPushButton, QScrollArea, QStackedWidget,
+                              QMessageBox, QPlainTextEdit, QPushButton, QScrollArea, QStackedWidget, QTabWidget,
                               QSystemTrayIcon, QTextEdit, QVBoxLayout, QWidget)
 
 from jarvis_client import __version__
@@ -17,6 +17,10 @@ from jarvis_client.voice.panel import VoicePanel
 from jarvis_client.settings import Preferences
 from jarvis_client.theme import icon, stylesheet
 from jarvis_client.automations import AutomationPanel
+from jarvis_client.natural_settings import NaturalSettingsPanel
+from jarvis_client.voice.session import ConversationSession
+from jarvis_client.voice.server_worker import ServerInferenceWorker
+from jarvis_client.voice.worker import InferenceWorker
 
 
 def label(text, name=None):
@@ -66,6 +70,7 @@ class MainWindow(QMainWindow):
         self.active_origin = None
         self.permissions = LocalAgent()
         self.pending_voice = None
+        self.natural_refresh=0
         self.setWindowTitle("JARVIS — Desktop")
         self.setWindowIcon(icon())
         self.resize(1160, 790)
@@ -112,6 +117,11 @@ class MainWindow(QMainWindow):
         self.make_account()
         self.voice_panel = VoicePanel(self)
         self.voice = self.voice_panel.manager
+        self.voice_session=ConversationSession(self)
+        self.voice.session_ended.connect(self.voice_session.end)
+        self.voice.playback_finished.connect(self.voice_session.listened)
+        self.voice.interrupted.connect(lambda:self.stop_answer(stop_voice=False))
+        self.voice.metrics.connect(self.voice_metrics)
         self.pages.addWidget(self.voice_panel)
         self.automation_panel = AutomationPanel(self)
         self.pages.addWidget(self.automation_panel)
@@ -207,6 +217,8 @@ class MainWindow(QMainWindow):
 
     def make_settings(self):
         body = self.page("Instellingen", "Vertrouwde endpoints, rustig gedrag en voorkeuren voor deze Windows-app.")
+        tabs=QTabWidget();body.addWidget(tabs,1)
+        local=QWidget();tabs.addTab(local,"Deze Windows-app");body=QVBoxLayout(local)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         inner = QWidget()
@@ -253,6 +265,10 @@ class MainWindow(QMainWindow):
         permissions.addWidget(self.local_permission, 1)
         permissions.addWidget(button("Systeeminformatie", self.system_info))
         body.addLayout(permissions)
+        self.natural_settings=NaturalSettingsPanel(self)
+        tabs.addTab(self.natural_settings,"Gesprekken en geheugen")
+        self.natural_settings.tabs.currentChanged.connect(lambda index:self.natural_settings.load_memory() if index==1 and self.principal else None)
+        self.natural_settings.tabs.currentChanged.connect(lambda index:self.natural_settings.refresh_diagnostics() if index==2 and self.principal else None)
 
     def make_account(self):
         body = self.page("Account", "Log in met je bestaande JARVIS-gebruikersnaam en wachtwoord. Je blijft na het afsluiten van de app ingelogd.")
@@ -310,6 +326,8 @@ class MainWindow(QMainWindow):
             self.load_device()
         elif index == 7:
             self.automation_panel.refresh()
+        elif index == 4 and self.natural_settings.document is None:
+            self.natural_settings.refresh()
 
     def show_notice(self, text):
         self.notice.setText(text)
@@ -348,6 +366,9 @@ class MainWindow(QMainWindow):
         self.principal = principal
         self.account_info.setText("Ingelogd · Windows-apparaat " + principal["device_id"] + "\nRechten: " + ", ".join(principal["permissions"]))
         self.update_controls()
+        if first or time.monotonic()-self.natural_refresh>30:
+            self.natural_refresh=time.monotonic()
+            self.call("GET","/api/v1/natural/settings",None,self.apply_natural_settings)
         if first:
             self.show_notice("Verbonden. Je gesprekken staan klaar.")
             self.load_history()
@@ -357,6 +378,16 @@ class MainWindow(QMainWindow):
 
     def providers_loaded(self, result):
         self.model_info.setText(" · ".join(f"{name}: {value.get('model', '—')}" for name, value in result.get("providers", {}).items()))
+
+    def apply_natural_settings(self,document):
+        self.voice.configure_natural(document["settings"])
+        enabled=document["settings"]["conversations"]["enabled"]
+        worker=self.voice.next_worker or self.voice.worker
+        if enabled and self.manager.api and (not isinstance(worker,ServerInferenceWorker) or worker.api is not self.manager.api):
+            self.voice.select_worker(ServerInferenceWorker(self.manager.api))
+        elif not enabled and isinstance(worker,ServerInferenceWorker):
+            self.voice.select_worker(InferenceWorker())
+        self.voice_panel.set_authorized(bool(self.principal and "chat:write" in self.principal["permissions"] and self.manager.state=="online"))
 
     def update_controls(self):
         permissions = set(self.principal["permissions"]) if self.principal else set()
@@ -475,6 +506,8 @@ class MainWindow(QMainWindow):
             return
         identifier = row.data(Qt.ItemDataRole.UserRole)
         def loaded(result):
+            self.voice.stop()
+            self.voice_session.end()
             self.conversation = identifier
             self.rows = []
             for turn in result["turns"]:
@@ -500,6 +533,7 @@ class MainWindow(QMainWindow):
         if self.running:
             return
         self.voice.stop()
+        self.voice_session.end()
         self.conversation = None
         self.rows = []
         self.transcript.clear()
@@ -520,6 +554,8 @@ class MainWindow(QMainWindow):
             self.show_notice("Typ een bericht van maximaal 8000 tekens.")
             return
         api = self.manager.api
+        channel="voice" if self.voice.voice_next else "text"
+        epoch=self.voice_session.current["epoch"] if channel=="voice" and self.voice_session.current else None
         self.voice.begin_response()
         self.request_id = str(uuid4())
         request_id, conversation, provider = self.request_id, self.conversation, self.provider.currentData()
@@ -557,18 +593,31 @@ class MainWindow(QMainWindow):
                 self.render()
             self.report_error(error)
             self.update_controls()
-        self.jobs.submit(lambda emit: api.stream(message, conversation, provider, emit, request_id), finished, failed,
+        self.jobs.submit(lambda emit: api.stream(message, conversation, provider, emit, request_id,**({"channel":channel,"session_epoch":epoch} if channel=="voice" else {})), finished, failed,
                          lambda event: self.stream_event(event) if current() else None)
 
     def voice_ptt(self):
         if self.running and not self.voice.recording:
             self.stop_answer()
+        if not self.voice.recording and self.voice_session.enabled() and self.principal and self.voice.consent:
+            self.voice_session.prepare_capture(self.voice.toggle_recording)
+            return
         self.voice.toggle_recording()
+
+    def voice_metrics(self,measurements):
+        if not self.principal or self.manager.state!="online":return
+        items=[]
+        for key,event in (("first_audio_seconds","native_first_audio_ms"),("stt_seconds","native_stt_ms"),("total_seconds","native_total_ms")):
+            if key in measurements:items.append({"event":event,"value":float(measurements[key])*1000})
+        for event in ("interruption","rejected_interruption","wake_miss"):
+            if event in measurements:items.append({"event":event,"value":float(measurements[event])})
+        if items:self.call("POST","/api/v1/natural/diagnostics/metrics",{"items":items},lambda _:None,lambda _:None)
 
     def voice_stop(self):
         self.pending_voice = None
         self.voice.stop()
         self.stop_answer()
+        self.voice_session.end()
 
     def voice_message(self, text):
         if not self.principal or self.manager.state != "online":
@@ -577,8 +626,14 @@ class MainWindow(QMainWindow):
             return
         if self.running:
             self.pending_voice = text
-            self.stop_answer()
+            self.stop_answer(stop_voice=False)
             return
+        if self.voice_session.enabled():
+            self.voice_session.submit(text)
+            return
+        self.send_voice_text(text)
+
+    def send_voice_text(self,text):
         self.composer.setPlainText(text)
         self.send_message()
 
@@ -587,15 +642,19 @@ class MainWindow(QMainWindow):
             return
         kind = event["type"]
         if kind == "meta":
+            self.server_speech=bool(event.get("speech_protocol"))
             self.conversation = event["conversation_id"]
+            if hasattr(self.voice.worker,"begin_utterance"):self.voice.worker.begin_utterance(event["request_id"],self.conversation)
         elif kind == "provider":
             self.model_info.setText(str(event["provider"]) + " · " + str(event["model"]))
         elif kind == "delta":
-            self.voice.delta(event["text"])
+            if not getattr(self,"server_speech",False):self.voice.delta(event["text"])
             self.reply += event["text"]
             self.rows[-1] = ("JARVIS", self.reply)
             if not self.render_timer.isActive():
                 self.render_timer.start(40)
+        elif kind == "speech":
+            if getattr(self,"server_speech",False):self.voice.delta(event["text"])
         elif kind == "fallback":
             self.show_notice("Provider niet beschikbaar. JARVIS schakelt over naar " + event["to"] + ".")
         elif kind == "error":
@@ -610,8 +669,8 @@ class MainWindow(QMainWindow):
             if event["status"] == "completed" and not self.isActiveWindow():
                 self.notify("answer", "Je JARVIS-antwoord staat klaar.")
 
-    def stop_answer(self):
-        self.voice.stop()
+    def stop_answer(self,*,stop_voice=True):
+        if stop_voice:self.voice.stop()
         if not self.running or not self.manager.api:
             return
         self.call("POST", "/api/v1/chat/requests/" + self.request_id + "/cancel", None, lambda _: self.show_notice("Antwoord wordt gestopt."))
@@ -640,7 +699,9 @@ class MainWindow(QMainWindow):
             self.logout(revoke=True)
 
     def clear_private(self):
+        if hasattr(self,"voice_session"):self.voice_session.clear()
         if hasattr(self,"automation_panel"): self.automation_panel.clear()
+        if hasattr(self,"natural_settings"):self.natural_settings.clear()
         self.pending_voice = None
         self.voice_panel.set_authorized(False)
         self.render_timer.stop()

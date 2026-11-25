@@ -2,6 +2,7 @@
 from contextlib import aclosing
 from server.ai.providers import ProviderError, TextProvider
 from server.config import Settings
+from server.ai.policy import current_policy
 
 
 class AIRouter:
@@ -12,18 +13,31 @@ class AIRouter:
     async def stream(self, messages: list[dict], mode: str):
         preferred = self.settings.preferred_provider
         order = [preferred, "gemini" if preferred == "ollama" else "ollama"] if mode == "auto" else [mode]
+        policy = current_policy.get()
+        if policy is not None:
+            order = policy.order(mode, preferred)
         for position, name in enumerate(order):
             provider = self.providers[name]
             started = False
+            buffered=[];buffer_size=0
             try:
                 async with aclosing(provider.stream(messages)) as source:
                     async for text in source:
                         if not text:
                             continue
+                        if policy is not None and not policy.streaming:
+                            buffer_size+=len(text)
+                            if buffer_size>self.settings.max_response_chars:raise ProviderError("response_limit",retryable=False)
+                            buffered.append(text)
+                            continue
                         if not started:
                             started = True
                             yield {"type": "provider", "provider": name, "model": provider.model}
                         yield {"type": "delta", "text": text}
+                if buffered:
+                    started=True
+                    yield {"type":"provider","provider":name,"model":provider.model}
+                    yield {"type":"delta","text":"".join(buffered)}
                 if not started:
                     raise ProviderError("invalid_response")
                 return
@@ -45,7 +59,8 @@ class AIRouter:
         import asyncio
         result=""
         provider=None
-        async with asyncio.timeout(self.settings.ai_timeout_seconds):
+        policy = current_policy.get()
+        async with asyncio.timeout(policy.timeout_seconds if policy else self.settings.ai_timeout_seconds):
             async with aclosing(self.stream(messages,mode or self.settings.ai_provider)) as source:
                 async for event in source:
                     if event["type"]=="delta": result+=event["text"]
