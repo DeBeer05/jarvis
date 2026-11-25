@@ -75,6 +75,15 @@ class PersonalityPreview(StrictModel):
     message:str=Field(default="Ik heb een drukke dag. Hoe pak ik die rustig aan?",min_length=1,max_length=500)
 
 
+@router.get('/planning/{conversation}')
+def activity_planning(request:Request,conversation:UUID):
+    natural=service(request);principal=request.state.principal
+    document=natural.planning.get(principal,str(conversation))
+    if document is None:return {'planning':None}
+    config=natural.settings.get(principal)['settings']['planning']
+    return {'planning':natural.planning.public(document,config)}
+
+
 @router.post("/personality/preview")
 async def personality_preview(request:Request,body:PersonalityPreview):
     import json

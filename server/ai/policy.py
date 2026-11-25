@@ -40,6 +40,13 @@ class RequestPolicy:
 
 
 current_policy = ContextVar("jarvis_ai_policy", default=None)
+structured_schema:ContextVar[dict|None]=ContextVar('jarvis_structured_schema',default=None)
+
+
+async def next_structured(source,schema):
+    token=structured_schema.set(schema)
+    try:return await anext(source)
+    finally:structured_schema.reset(token)
 
 
 @contextmanager

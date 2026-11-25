@@ -2,6 +2,38 @@
 
 ## Huidige opdracht
 
+### Natuurlijke activiteitenplanning — 25 november 2026
+
+Actieve branch `feature/natural-activity-planning`, gestapeld op
+`fix/calendar-and-outing-experience` (65ab65c / PR 29). Origin is opgehaald;
+develop bevat deze fase-7.5-basis nog niet. De branchhelper vereist een schone
+werkmap; de twee bestaande eigenaarmaildiffs zijn onderzocht en intact gehouden,
+zonder stash/reset, tweede projectroot of opname in deze wijziging.
+
+De nieuwe planninglaag houdt een bron-gelabeld concept bij vóór uitvoerende
+toolvalidatie. Meerdere gegevens per beurt, wijzigingen, alternatieven, eigen
+geautoriseerde agenda, bekende kosten/reistijd, extra activiteiten en eten
+gebruiken bestaande context, instellingen en providerrouter. Windows en Android
+delen het overzicht via de bestaande beveiligde chat/API op 8765. Calendar/Gmail
+blijven gesloten bruggen met huidige rechten, exacte preview en eigenaarapproval.
+Geen live reis-/zoek-/weer-/boekingsadapter of automatische deelnemersbevestiging
+gesimuleerd. Openstaande gegevens en menselijke acceptatie staan in
+`docs/PLANNING_TEST_REPORT.md`; architectuur en instellingen in de drie andere
+nieuwe planningsdocumenten. Mastervisie en changelog bijgewerkt.
+
+Eerste volledige technische ronde na herstel: 542 servertests geslaagd,
+126 clienttests, native Windows-build/rooktest en Android-tests/lint/builds.
+De nieuwste volledige serverronde en echte CPU-meetreeks lopen nog en worden
+hieronder met remote CI vastgelegd. Qwen2.5:3B heeft tien echte synthetische
+gesprekken van drie beurten uitgevoerd; JSON-validiteit is geen luisteracceptatie.
+De oorspronkelijke snelle meting had geen werkende CPU-begrenzing. De aparte
+vier-thread CPU-reeks leverde 12 geldige beurten (mediaan 24,942 s); latere
+verlopen-sessie-antwoorden zijn uitgesloten en de benchmark vernieuwt nu tokens
+via de bestaande refreshroute. Gemini weigert met HTTP 402/RESOURCE_EXHAUSTED.
+Geen betaalde activatie, modelwisseling, echte accounttest of externe wijziging.
+Eigenaardiffs blijven 695234ae1147/1f3b5515efc9. Fase 7.5 / desktop-development;
+geen fase 8, permanente dienst, productie of mini-pc-deployment.
+
 ### Aanvullende schermafbeeldingen: activiteitenvraag en standaardagenda
 
 De twee nieuwe screenshots maakten nog twee te smalle herkenningsregels zichtbaar.

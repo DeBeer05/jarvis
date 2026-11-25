@@ -52,6 +52,7 @@ class VoicePanel(QWidget):
         sample = QPushButton("Stemvoorbeeld afspelen")
         sample.clicked.connect(self.manager.sample)
         controls.addWidget(sample)
+        planning=QPushButton('Uitjesplanning');planning.clicked.connect(window.show_planning);controls.addWidget(planning)
         stop = QPushButton("■  Stop alles")
         stop.clicked.connect(window.voice_stop)
         controls.addWidget(stop)

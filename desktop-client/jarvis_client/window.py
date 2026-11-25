@@ -177,6 +177,7 @@ class MainWindow(QMainWindow):
         self.mic = button("Spraak / microfoon", lambda: self.navigate(6))
         self.mic.setToolTip("Open het spraakpaneel; de microfoon vereist jouw toestemming")
         actions.addWidget(self.mic)
+        actions.addWidget(button('Uitjesplanning',self.show_planning))
         actions.addStretch()
         self.stop_button = button("Stop antwoord", self.stop_answer)
         self.send_button = button("Versturen  →", self.send_message, True)
@@ -509,6 +510,9 @@ class MainWindow(QMainWindow):
             self.voice.stop()
             self.voice_session.end()
             self.conversation = identifier
+            if hasattr(self,'planning_panel'):
+                self.planning_panel.overview.clear();self.planning_panel.edit.clear()
+                if self.planning_panel.isVisible():self.planning_panel.refresh()
             self.rows = []
             for turn in result["turns"]:
                 self.rows += [("JIJ", turn["user_text"]), ("JARVIS", turn["assistant_text"] + ("\n[" + turn["status"] + "]" if turn["status"] != "completed" else ""))]
@@ -535,6 +539,8 @@ class MainWindow(QMainWindow):
         self.voice.stop()
         self.voice_session.end()
         self.conversation = None
+        if hasattr(self,'planning_panel'):
+            self.planning_panel.overview.clear();self.planning_panel.edit.clear();self.planning_panel.hide()
         self.rows = []
         self.transcript.clear()
         self.navigate(0)
@@ -545,6 +551,11 @@ class MainWindow(QMainWindow):
         self.transcript.setPlainText("\n\n".join(name + "\n" + text for name, text in self.rows))
         if bottom or self.running:
             self.transcript.moveCursor(QTextCursor.MoveOperation.End)
+
+    def show_planning(self):
+        from jarvis_client.planning_panel import PlanningPanel
+        if not hasattr(self,'planning_panel'):self.planning_panel=PlanningPanel(self)
+        self.planning_panel.show();self.planning_panel.raise_();self.planning_panel.refresh()
 
     def send_message(self):
         if not self.send_button.isEnabled() or self.running:
@@ -647,6 +658,8 @@ class MainWindow(QMainWindow):
             if hasattr(self.voice.worker,"begin_utterance"):self.voice.worker.begin_utterance(event["request_id"],self.conversation)
         elif kind == "provider":
             self.model_info.setText(str(event["provider"]) + " · " + str(event["model"]))
+        elif kind == 'planning':
+            if hasattr(self,'planning_panel'):self.planning_panel.show_plan(event['planning'])
         elif kind == "delta":
             if not getattr(self,"server_speech",False):self.voice.delta(event["text"])
             self.reply += event["text"]
@@ -694,6 +707,8 @@ class MainWindow(QMainWindow):
         self.jobs.submit(lambda _: api.logout(revoke), lambda _: self.logged_out(), lambda error: (self.logged_out(), self.show_notice("Lokaal uitgelogd. Als de server onbereikbaar was: trek deze sessie ook in via de eigenaarinterface.")))
 
     def logged_out(self):
+        if hasattr(self,'planning_panel'):
+            self.planning_panel.overview.clear();self.planning_panel.edit.clear();self.planning_panel.hide()
         self.clear_private()
         self.manager.reset()
         self.navigate(5)

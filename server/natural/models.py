@@ -215,7 +215,33 @@ class ResponseSettings(StrictModel):
     details_on_request:bool=True
 
 
+class ActivityPlanning(StrictModel):
+    enabled:bool=True
+    mode:Literal['together','automatic','surprise','budget','relaxed','detailed']='together'
+    default_budget:float=Field(default=0,ge=0,le=100000,title='Voorlopig totaalbudget (0 = onbekend)')
+    maximum_distance_km:int=Field(default=100,ge=0,le=2000,title='Maximale reisafstand (km)')
+    maximum_travel_minutes:int=Field(default=90,ge=0,le=1440,title='Maximale reistijd (minuten)')
+    transport:Literal['unknown','car','train','bike','walk']='unknown'
+    favorite_activities:list[str]=Field(default_factory=list,max_length=20)
+    duration_minutes:int=Field(default=180,ge=15,le=1440)
+    environment:Literal['any','inside','outside']='any'
+    consider_weather:bool=True
+    consider_calendar:bool=True
+    include_travel:bool=True
+    calculate_costs:bool=True
+    suggest_restaurants:bool=True
+    alternatives:int=Field(default=3,ge=2,le=4)
+    initiative:Literal['suggest','choose']='suggest'
+    questions:Literal['essential','balanced']='essential'
+    automatic_reminders:bool=False
+    communication:Literal['draft_only','propose_message']='draft_only'
+    participant_preferences:dict[str,str]=Field(default_factory=dict,max_length=20)
+    # No search, weather, ticket or route adapter is registered in phase 7.5.
+    search_integrations:list[Literal['none']]=Field(default_factory=list,max_length=1)
+
+
 class UserSettings(StrictModel):
+    planning:ActivityPlanning=Field(default_factory=ActivityPlanning)
     responses: ResponseSettings=Field(default_factory=ResponseSettings)
     general: General = Field(default_factory=General)
     conversations: Conversations = Field(default_factory=Conversations)

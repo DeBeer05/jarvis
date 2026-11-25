@@ -59,6 +59,8 @@ class RetentionManager:
                     changed=True
                 if changed:store.audit(db,user,"system","history_expired")
                 db.execute("DELETE FROM natural_diagnostics WHERE user_id=? AND at<?",(user,now-config["privacy"]["diagnostic_days"]*86400))
+                for plan in db.execute("SELECT id,conversation_id FROM natural_pending WHERE user_id=? AND kind='activity_plan' AND updated<? LIMIT 100",(user,now-config['privacy']['history_days']*86400)).fetchall():
+                    if plan['conversation_id'] not in busy:db.execute('DELETE FROM natural_pending WHERE id=? AND user_id=?',(plan['id'],user))
                 for row in db.execute("SELECT id,payload,conversation_id FROM natural_pending WHERE user_id=? AND kind='automation_context' AND updated<? LIMIT 50",(user,now-config["privacy"]["history_days"]*86400)).fetchall():
                     if row["conversation_id"] in busy:continue
                     payload=json.loads(row["payload"])

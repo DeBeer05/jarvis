@@ -118,12 +118,17 @@ class NaturalSettingsPanel(QWidget):
 
     def changed(self,*_):
         if self.loading:return
-        self.collect();self.dirty=self.draft!=self.document["settings"]
+        try:self.collect()
+        except ValueError:
+            self.dirty=True;self.status.setText('Gebruik voor iedere deelnemer: naam: voorkeur.');return
+        self.dirty=self.draft!=self.document["settings"]
         self.status.setText("Niet-opgeslagen wijzigingen · kies Opslaan of Annuleren." if self.dirty else "Geen niet-opgeslagen wijzigingen.")
 
     def select_category(self,index):
         if index<0 or self.draft is None:return
-        self.collect();self.category=self.keys[index];self.controls={}
+        try:self.collect()
+        except ValueError:self.status.setText('Controleer eerst de voorkeuren per deelnemer.');return
+        self.category=self.keys[index];self.controls={}
         container=QWidget();form=QFormLayout(container);form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
         definition=self.schema["user"]["properties"][self.category]
         definition=self.schema["user"]["$defs"][definition["$ref"].split("/")[-1]]
@@ -131,6 +136,7 @@ class NaturalSettingsPanel(QWidget):
         for key,field in definition["properties"].items():
             title=field.get("title") or LABELS.get(key,key.replace("_"," "))
             if key in LABELS:title=LABELS[key]
+            if self.category=='planning':title=self.schema.get('labels',{}).get(key,title)
             widget,read=self.field(field,self.draft[self.category][key]);self.controls[key]=read
             widget.setAccessibleName(title);widget.setToolTip(field.get("description",title))
             form.addRow(label(title),widget)
@@ -159,7 +165,7 @@ class NaturalSettingsPanel(QWidget):
         if "enum" in field:
             control=QComboBox()
             for item in field["enum"]:
-                control.addItem(VALUES.get(item,str(item))+(" · niet geïnstalleerd" if item in field.get("x-unavailable",[]) else ""),item)
+                control.addItem(self.schema.get('values',{}).get(item,VALUES.get(item,str(item)))+(" · niet geïnstalleerd" if item in field.get("x-unavailable",[]) else ""),item)
                 control.model().item(control.count()-1).setEnabled(item not in field.get("x-unavailable",[]))
             control.setCurrentIndex(control.findData(value));control.currentIndexChanged.connect(self.changed);return control,control.currentData
         kind=field.get("type")
@@ -175,6 +181,17 @@ class NaturalSettingsPanel(QWidget):
                 check=QCheckBox(title);check.setChecked(index in value);check.toggled.connect(self.changed);row.addWidget(check);checks.append(check)
             return control,lambda:[i for i,c in enumerate(checks) if c.isChecked()]
         if kind=="object":
+            if field.get('additionalProperties',{}).get('type')=='string':
+                control=QPlainTextEdit('\n'.join(name+': '+preference for name,preference in value.items()));control.setPlaceholderText('Sam: houdt van wandelen');control.setMaximumHeight(125);control.textChanged.connect(self.changed)
+                def preferences():
+                    result={}
+                    for line in control.toPlainText().splitlines():
+                        if not line.strip():continue
+                        name,separator,preference=line.partition(':')
+                        if not separator or not name.strip() or not preference.strip():raise ValueError('Gebruik naam: voorkeur')
+                        result[name.strip()]=preference.strip()
+                    return result
+                return control,preferences
             control=QWidget();form=QFormLayout(control);inputs={}
             # Registered tools are supplied by the server schema, never executable code.
             names=self.schema.get("actions",list(value))
@@ -199,7 +216,9 @@ class NaturalSettingsPanel(QWidget):
 
     def save(self):
         if not self.document or self.loading:return
-        self.collect();self.call("PUT","/settings",{"revision":self.document["revision"],"settings":self.draft},self.loaded)
+        try:self.collect()
+        except ValueError:self.status.setText('Controleer eerst de voorkeuren per deelnemer.');return
+        self.call("PUT","/settings",{"revision":self.document["revision"],"settings":self.draft},self.loaded)
 
     def make_diagnostics(self):
         page=QWidget();self.tabs.addTab(page,"Diagnostiek");body=QVBoxLayout(page)

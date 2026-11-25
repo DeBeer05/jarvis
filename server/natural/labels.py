@@ -1,5 +1,22 @@
 """Dutch labels for native settings; no platform or credential imports."""
 LABELS = {'actions': 'Regels per actie',
+ 'planning':'Uitjes en planning',
+ 'default_budget':'Voorlopig totaalbudget (0 = onbekend)',
+ 'maximum_distance_km':'Maximale reisafstand (km)',
+ 'maximum_travel_minutes':'Maximale reistijd (minuten)',
+ 'transport':'Voorkeursvervoer',
+ 'favorite_activities':'Favoriete activiteiten',
+ 'environment':'Binnen of buiten',
+ 'consider_weather':'Rekening houden met gemeld weer',
+ 'consider_calendar':'Mijn agenda raadplegen als dit is toegestaan',
+ 'include_travel':'Bekende reistijd meenemen',
+ 'calculate_costs':'Bekende kosten optellen',
+ 'suggest_restaurants':'Eten als aanvulling voorstellen',
+ 'questions':'Voorkeur voor verduidelijkingsvragen',
+ 'automatic_reminders':'Agendaherinnering bij goedgekeurde afspraak',
+ 'communication':'Berichten voorbereiden',
+ 'participant_preferences':'Voorkeuren per deelnemer (naam en voorkeur)',
+ 'search_integrations':'Beschikbare zoekintegraties (momenteel geen)',
  'activation_sound': 'Geluid bij activeren',
  'ai': 'AI en prestaties',
  'alternatives': 'Alternatieven voorstellen',
@@ -126,3 +143,5 @@ LABELS.update({"responses":"Antwoordgedrag","mode":"Standaardmodus","spoken":"Ge
 VALUES.update({"classic_butler":"Classic Butler","modern_butler":"Modern Butler","deep_butler":"Deep Butler (configuratie)","cinematic":"Cinematic Assistant","automatic":"Automatisch","fast":"Snel","offline":"Alleen lokaal","ultrashort":"Ultrakort","short":"Kort","balanced":"Gebalanceerd","extended":"Uitgebreid","full":"Volledig","occasionally":"Af en toe","supertonic":"Supertonic 3","piper":"Piper"})
 
 VALUES.update({"daily":"Dagelijks gesprek","technical":"Technische uitleg","briefing":"Korte briefing"})
+
+VALUES.update({"together":"Samen plannen","surprise":"Verrassingsmodus","budget":"Budgetmodus","relaxed":"Ontspannen planning","detailed":"Gedetailleerde planning","unknown":"Nog onbekend","car":"Auto","train":"Trein","bike":"Fiets","walk":"Lopen","any":"Geen voorkeur","inside":"Binnen","outside":"Buiten","suggest":"Voorstellen doen","choose":"Zelf een voorstel kiezen","essential":"Alleen noodzakelijke vragen","draft_only":"Alleen concept voorbereiden","propose_message":"Verzendvoorstel voorbereiden"})

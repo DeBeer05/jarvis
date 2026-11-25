@@ -184,6 +184,21 @@ internal object SettingsDraft {
         field.has("const") -> Text("$title: ${if(value==false)"uitgeschakeld" else value}",modifier)
         field.has("enum") -> Choice(title,value.toString(),field.getJSONArray("enum").strings().map {it to labels.optString(it,it)},disabled=field.optJSONArray("x-unavailable")?.strings()?.toSet() ?: emptySet(),change=change)
         field.optString("type")=="boolean" -> Row(verticalAlignment=Alignment.CenterVertically) {Switch(value==true,{change(it)},modifier=Modifier.testTag("natural-$name"));Text(title,Modifier.padding(start=10.dp))}
+        field.optString("type")=="object" && field.optJSONObject("additionalProperties")?.optString("type")=="string" -> {
+            fun parsed(text:String):JSONObject {
+                val result=JSONObject()
+                text.lines().filter {it.isNotBlank()}.forEach {line->
+                    val pair=line.split(":",limit=2)
+                    require(pair.size==2 && pair[0].isNotBlank() && pair[1].isNotBlank())
+                    result.put(pair[0].trim(),pair[1].trim())
+                }
+                return result
+            }
+            val current=value as? JSONObject ?: JSONObject()
+            var text by remember(current.toString()) {mutableStateOf(current.keys().asSequence().joinToString("\n"){it+": "+current.optString(it)})}
+            val valid=runCatching {parsed(text)}.isSuccess
+            OutlinedTextField(text,{text=it;runCatching {parsed(it)}.getOrNull()?.let(change)},label={Text(title)},placeholder={Text("Sam: houdt van wandelen")},isError=!valid,modifier=modifier)
+        }
         field.optString("type")=="object" -> {
             Text(title,style=MaterialTheme.typography.titleMedium)
             val current=value as? JSONObject ?: JSONObject();val mandatory=schema.optJSONArray("mandatory_approval")?.strings() ?: emptyList()

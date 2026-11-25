@@ -91,6 +91,7 @@ def test_outing_discussion_does_not_authorize_calendar_creation(text):
 
 def test_real_voice_sse_keeps_overview_text_and_only_announces_it(tools_chat):
     app,c,router=tools_chat
+    for provider in router.providers.values():provider.chunks=(json.dumps({'spoken':'Ik stel museum en wandeling voor.','options':[{'title':'museum','reason':'Rustig binnen.','environment':'inside'},{'title':'wandeling','reason':'Buiten op eigen tempo.','environment':'outside'}]}),)
     initial=call(c,'Hallo').json()
     session=c.post('/api/v1/natural/conversations/start',json={'conversation_id':initial['conversation_id']}).json()
     for event in ('listening','processing'):
@@ -100,9 +101,11 @@ def test_real_voice_sse_keeps_overview_text_and_only_announces_it(tools_chat):
     events=[json.loads(line[6:]) for line in response.text.splitlines() if line.startswith('data: ')]
     assert events[0]['speech_protocol']==1 and events[-1]['status']=='completed'
     speech=''.join(e['text'] for e in events if e['type']=='speech')
-    assert speech.startswith('Ik zet een aantal uitjes voor u klaar.')
+    assert speech.startswith('Ik werk een passend voorstel voor u uit.')
     assert 'Gewone chat.' not in speech
-    assert ''.join(e['text'] for e in events if e['type']=='delta')=='Gewone chat.'
+    written=''.join(e['text'] for e in events if e['type']=='delta')
+    assert 'Voorlopige uitjesplanning' in written and 'Mogelijkheden' in written
+    assert 'Voorlopige uitjesplanning' not in speech and any(e['type']=='planning' for e in events)
     assert not router.planning_calls and not app.state.automation.store.items()
 
 
@@ -128,7 +131,7 @@ def test_switch_to_activity_ideas_then_new_agenda_command_keeps_tasks_separate(t
     old=call(c,'Plan een uitje met Alex op 26 november 2030 van 2 tot 5').json()
     assert 'ochtends' in old['message']
     ideas=call(c,'Wat zijn leuke uiten soms te doen in Duitsland met een budget van 50 euro?',old['conversation_id']).json()
-    assert ideas['message']=='Gewone chat.'
+    assert 'Voorlopige uitjesplanning' in ideas['message']
     assert not app.state.automation.store.items()
     new=call(c,'Ik wil dat je voor 26 november om twee uur smiddag een uitje met Sam in mijn agenda zet.',old['conversation_id']).json()
     assert 'Voorstel-ID' in new['message'],new
