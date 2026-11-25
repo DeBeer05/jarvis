@@ -121,3 +121,17 @@ def test_spoken_put_outing_in_my_calendar_uses_default_without_planner(tools_cha
 
 def test_named_calendar_suffix_is_not_dropped():
     assert outing_title('Plan een uitje met Sam morgen om 14:00 in mijn agenda Werk') is None
+
+
+def test_switch_to_activity_ideas_then_new_agenda_command_keeps_tasks_separate(tools_chat):
+    app,c,router=tools_chat
+    old=call(c,'Plan een uitje met Alex op 26 november 2030 van 2 tot 5').json()
+    assert 'ochtends' in old['message']
+    ideas=call(c,'Wat zijn leuke uiten soms te doen in Duitsland met een budget van 50 euro?',old['conversation_id']).json()
+    assert ideas['message']=='Gewone chat.'
+    assert not app.state.automation.store.items()
+    new=call(c,'Ik wil dat je voor 26 november om twee uur smiddag een uitje met Sam in mijn agenda zet.',old['conversation_id']).json()
+    assert 'Voorstel-ID' in new['message'],new
+    payload=json.loads(app.state.automation.store.items()[0]['payload'])
+    assert payload['summary']=='Uitje met Sam' and datetime.fromisoformat(payload['start']).hour==14
+    assert not router.planning_calls

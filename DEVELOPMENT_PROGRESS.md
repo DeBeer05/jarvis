@@ -12,13 +12,19 @@ Een eenvoudige uitjesopdracht met de afsluiting ‘in mijn agenda zet’ mag de
 ingestelde standaardagenda gebruiken. Genoemde agenda's blijven uitgesloten van
 de snelle route en worden niet stilzwijgend vervangen door primary.
 
-79 gerichte regressies voor agenda, dagdelen en presentatie geslaagd; Ruff/mypy,
-pip-, repository- en diffchecks geslaagd. Volledige serverreeks/remote CI volgen
-afzonderlijk. Bestaande eigenaarmaildiffs onveranderd (695234ae1147/1f3b5515efc9).
+79 gerichte regressies voor agenda, dagdelen en presentatie geslaagd. Volledige
+serverreeks vóór de laatste contextguard: 509 geslaagd (204,00 s); vervolgens
+57 gerichte tests voor de definitieve routes en onderwerpwisselingen geslaagd.
+Een nieuwe activiteitenvraag wordt niet aan een oude taakvraag vastgeplakt;
+een nieuwe expliciete uitjesopdracht gebruikt haar eigen slots. Ruff/mypy,
+pip-, repository- en diffchecks geslaagd; remote CI wordt apart bevestigd.
+Bestaande eigenaarmaildiffs onveranderd (695234ae1147/1f3b5515efc9).
 De actieve Windows-app is inmiddels de geteste outings-overview-build; geen
 nieuwe clientwijziging of computerbediening nodig. Geen echte agenda-accounttest,
 geen externe mutatie; alleen een gecontroleerd voorstel na de gebruikersopdracht.
 Fase 7.5 / desktop-development blijft de grens; geen migratie of modelwisseling.
+De bestaande bureaubladsnelkoppeling verwijst nu ook naar de geteste build;
+de oorspronkelijke snelkoppeling is als lokale genegeerde backup bewaard.
 
 ### Agenda blijft doorvragen
 

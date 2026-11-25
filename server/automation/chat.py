@@ -90,6 +90,8 @@ class AutomationChat:
             if (MORE.fullmatch(run.message) and bound) or re.fullmatch(r"\s*(?:vertel meer over|wat staat er in) .+",run.message,re.I):return True
         if re.fullmatch(r"\s*hoe ziet mijn dag eruit[?.!\s]*",run.message,re.I):return True
         if self.approvals.candidate(run.message):return True
+        from server.natural.presentation import outing_overview
+        if outing_overview(run.message):return False
         if re.match(r"\s*(wat (is|betekent)|hoe werkt|leg (me |mij )?uit|kun je uitleggen)\b",run.message,re.I):
             return False
         if re.search(r"\buitje\b",run.message,re.I) and self.write_intent("CalendarCreate",run.message):return True
@@ -370,7 +372,10 @@ class AutomationChat:
                 if fingerprint(previous.get("content",""))!=observations["write_question"][0].get("question_hash") and self.approvals.is_answer(run.message):
                     self.remember(run,"write_question",[])
                     return "Herhaal de volledige afspraak of e-mail die je wilt voorbereiden; de eerdere vervolgvraag is niet meer de laatste vraag in dit gesprek.",None
-                instruction=observations["write_question"][0]["instruction"]+"\nAanvullende gegevens van dezelfde gebruiker: "+run.message
+                # A fresh explicit outing command owns its own slots; do not
+                # replay an unrelated older ambiguous appointment first.
+                fresh_outing=self.write_intent("CalendarCreate",run.message) and outing_title(run.message)
+                instruction=run.message if fresh_outing else observations["write_question"][0]["instruction"]+"\nAanvullende gegevens van dezelfde gebruiker: "+run.message
                 if len(instruction)>self.router.settings.max_message_chars:return "Geef de volledige afspraak of e-mail opnieuw in één bericht.",None
                 run=replace(run,message=instruction)
         title=outing_title(run.message) if self.write_intent("CalendarCreate",run.message) else None
