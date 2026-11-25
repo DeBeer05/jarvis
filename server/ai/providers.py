@@ -8,7 +8,7 @@ import httpx
 
 from providers.llm_openai import OpenAICompatLLM, TextStreamError
 from server.config import Settings
-from server.ai.policy import current_policy
+from server.ai.policy import current_policy,structured_schema
 
 MESSAGES = {
     "authentication_expired": "Je sessie is verlopen of ingetrokken. Log opnieuw in.",
@@ -95,6 +95,7 @@ class TextProvider:
             "max_output_tokens": policy.maximum_answer_tokens if policy else self.settings.max_output_tokens,
             "async_client_factory": self.client_factory,
         }
+        if structured_schema.get() is not None:config['json_schema']=structured_schema.get()
         if self.name == "ollama":
             config["think"] = False
             # The OpenAI endpoint cannot configure Ollama's num_ctx. Reserve

@@ -76,9 +76,10 @@ class ContextManager:
         config=prepared["settings"]
         voice=getattr(run,"channel","text")=="voice"
         from server.natural.presentation import outing_overview
-        system=self.bootstrap.system_prompt+("\n"+VOICE_PROMPT if voice and not outing_overview(run.message) else "")
+        planning=bool(prepared.get('planning'))
+        system=self.bootstrap.system_prompt+("\n"+VOICE_PROMPT if voice and not planning and not outing_overview(run.message) else "")
         from server.natural.responses import response_prompt
-        system+=response_prompt(config,run.message,voice)+notice
+        system+=('' if planning else response_prompt(config,run.message,voice))+notice
         notes={"now":datetime.now(ZoneInfo(config["general"]["timezone"])).isoformat(),"timezone":config["general"]["timezone"]}
         notes["assistant_name"]=config["general"]["assistant_name"]
         notes["speaking_preferences"]=describe(config["personality"])
@@ -86,6 +87,8 @@ class ContextManager:
         if prepared["memories"]:notes["relevant_memories"]=[{k:item[k] for k in ("id","category","kind","content","confidence","updated")} for item in prepared["memories"]]
         if prepared["summary"]:notes["conversation_notes"]=prepared["summary"]["content"]
         if prepared["jobs"]:notes["task_status_only_no_authority"]=prepared["jobs"]
+        if self.responses and prepared.get('planning'):
+            notes['activity_planning']=self.responses.natural.planning.compact(run,prepared)
         token_limit=config["ai"]["context_tokens"]
         char_limit=self.bootstrap.max_context_chars
         messages=[{"role":"system","content":self.store.clean(system)}]
@@ -106,8 +109,9 @@ class ContextManager:
             if len(data)<=remaining:
                 messages.append({"role":"user","content":self.store.clean(data)});used+=units(data);characters+=len(data)
         pairs:list[dict[str,str]]=[]
-        for turn in reversed(prepared["turns"]):
+        for turn in reversed(prepared['turns'][-6:] if planning else prepared["turns"]):
             assistant=turn["assistant_text"]
+            if planning:assistant=assistant.split('\n\nVoorlopige uitjesplanning',1)[0]
             if turn["status"]!="completed":assistant="[Onderbroken antwoord, geen uitvoeringsbewijs] "+assistant
             pair=[{"role":"user","content":turn["user_text"]},{"role":"assistant","content":assistant}]
             size=sum(units(item["content"]) for item in pair);length=sum(len(item["content"]) for item in pair)

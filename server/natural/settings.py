@@ -6,6 +6,7 @@ from server.natural.store import Conflict, encode
 
 SCHEMA_VERSION=1
 CATEGORIES={
+    "planning":"Uitjes en planning",
     "responses":"Antwoordgedrag",
     "general":"Algemeen", "conversations":"Gesprekken", "listening":"Luisteren",
     "voice":"Stem en audio", "personality":"Persoonlijkheid", "ai":"AI en prestaties",
@@ -103,6 +104,8 @@ class SettingsManager:
         from server.natural.labels import LABELS,VALUES
         from server.natural.capabilities import voice_capabilities
         capabilities=voice_capabilities();user=UserSettings.model_json_schema()
+        for key,field in user['$defs']['ActivityPlanning']['properties'].items():
+            field['title']=LABELS.get(key,field.get('title',key))
         for key,choices in (("whisper_model",capabilities["whisper_models"]),("voice",capabilities["voices"])):
             user["$defs"]["Voice"]["properties"][key]["x-unavailable"]=[name for name,present in choices.items() if not present]
         user["$defs"]["Voice"]["properties"]["tts_provider"]["x-unavailable"]=[key for key in ("piper","supertonic") if key not in capabilities.get("tts_providers",["piper"])]

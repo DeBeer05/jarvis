@@ -980,3 +980,16 @@ toekomstwerk en verlenen geen impliciete toegang of fasevrijgave. Bestaande
 rechten en exacte approvals blijven verplicht. Zie ARCHITECTURE_REVIEW.md,
 USER_EXPERIENCE_REQUIREMENTS.md, CONVERSATION_ACCEPTANCE_TESTS.md en
 EXPERIENCE_IMPROVEMENT_PLAN.md voor de vertaling naar deze codebasis.
+
+## Aanvulling: natuurlijke activiteitenplanning
+
+Op 25 november 2026 expliciet opgedragen: samen brainstormen en een uitje
+ontwikkelen vanuit één gedeeld concept, zonder verplichte vragenreeks. Meerdere
+wensen per uitspraak, context, initiatief, bronlabels, kosten, voorlopige tijden
+en natuurlijke wijzigingen horen bij dezelfde ervaring op Windows en Android.
+Het concept is gescheiden van uitvoering; Calendar/Gmail behouden de bestaande
+rechten en exacte goedkeuring. Onbekende actuele gegevens blijven onbekend.
+De concrete implementatie, beschikbare koppelingen en resterende grenzen staan
+in ACTIVITY_PLANNING.md, CONVERSATIONAL_PLANNING.md, PLANNING_SETTINGS.md en
+PLANNING_TEST_REPORT.md. Deze uitbreiding blijft fase 7.5 / desktop-development,
+met Qwen2.5:3B en poort 8765; geen mini-pc-migratie of nieuwe boekingsdienst.

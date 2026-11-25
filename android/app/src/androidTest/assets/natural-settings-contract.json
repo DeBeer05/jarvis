@@ -2,6 +2,7 @@
   "schema": {
     "schema_version": 1,
     "categories": {
+      "planning": "Uitjes en planning",
       "responses": "Antwoordgedrag",
       "general": "Algemeen",
       "conversations": "Gesprekken",
@@ -19,6 +20,24 @@
     },
     "labels": {
       "actions": "Regels per actie",
+      "planning": "Uitjes en planning",
+      "default_budget": "Voorlopig totaalbudget (0 = onbekend)",
+      "maximum_distance_km": "Maximale reisafstand (km)",
+      "maximum_travel_minutes": "Maximale reistijd (minuten)",
+      "transport": "Voorkeursvervoer",
+      "favorite_activities": "Favoriete activiteiten",
+      "environment": "Binnen of buiten",
+      "consider_weather": "Rekening houden met gemeld weer",
+      "consider_calendar": "Mijn agenda raadplegen als dit is toegestaan",
+      "include_travel": "Bekende reistijd meenemen",
+      "calculate_costs": "Bekende kosten optellen",
+      "suggest_restaurants": "Eten als aanvulling voorstellen",
+      "initiative": "Initiatief",
+      "questions": "Voorkeur voor verduidelijkingsvragen",
+      "automatic_reminders": "Agendaherinnering bij goedgekeurde afspraak",
+      "communication": "Berichten voorbereiden",
+      "participant_preferences": "Voorkeuren per deelnemer (naam en voorkeur)",
+      "search_integrations": "Beschikbare zoekintegraties (momenteel geen)",
       "activation_sound": "Geluid bij activeren",
       "ai": "AI en prestaties",
       "alternatives": "Alternatieven voorstellen",
@@ -60,7 +79,6 @@
       "history": "Gespreksgeschiedenis",
       "history_days": "Gesprekken bewaren (dagen)",
       "humor": "Humor",
-      "initiative": "Initiatief",
       "latency": "Latency meten",
       "listening": "Luisteren",
       "long_term": "Langetermijngeheugen",
@@ -175,7 +193,25 @@
       "piper": "Piper",
       "daily": "Dagelijks gesprek",
       "technical": "Technische uitleg",
-      "briefing": "Korte briefing"
+      "briefing": "Korte briefing",
+      "together": "Samen plannen",
+      "surprise": "Verrassingsmodus",
+      "budget": "Budgetmodus",
+      "relaxed": "Ontspannen planning",
+      "detailed": "Gedetailleerde planning",
+      "unknown": "Nog onbekend",
+      "car": "Auto",
+      "train": "Trein",
+      "bike": "Fiets",
+      "walk": "Lopen",
+      "any": "Geen voorkeur",
+      "inside": "Binnen",
+      "outside": "Buiten",
+      "suggest": "Voorstellen doen",
+      "choose": "Zelf een voorstel kiezen",
+      "essential": "Alleen noodzakelijke vragen",
+      "draft_only": "Alleen concept voorbereiden",
+      "propose_message": "Verzendvoorstel voorbereiden"
     },
     "voice_capabilities": {
       "runtime_installed": true,
@@ -299,6 +335,170 @@
             }
           },
           "title": "AI",
+          "type": "object"
+        },
+        "ActivityPlanning": {
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "default": true,
+              "title": "Ingeschakeld",
+              "type": "boolean"
+            },
+            "mode": {
+              "default": "together",
+              "enum": [
+                "together",
+                "automatic",
+                "surprise",
+                "budget",
+                "relaxed",
+                "detailed"
+              ],
+              "title": "Standaardmodus",
+              "type": "string"
+            },
+            "default_budget": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Voorlopig totaalbudget (0 = onbekend)",
+              "type": "number"
+            },
+            "maximum_distance_km": {
+              "default": 100,
+              "maximum": 2000,
+              "minimum": 0,
+              "title": "Maximale reisafstand (km)",
+              "type": "integer"
+            },
+            "maximum_travel_minutes": {
+              "default": 90,
+              "maximum": 1440,
+              "minimum": 0,
+              "title": "Maximale reistijd (minuten)",
+              "type": "integer"
+            },
+            "transport": {
+              "default": "unknown",
+              "enum": [
+                "unknown",
+                "car",
+                "train",
+                "bike",
+                "walk"
+              ],
+              "title": "Voorkeursvervoer",
+              "type": "string"
+            },
+            "favorite_activities": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 20,
+              "title": "Favoriete activiteiten",
+              "type": "array"
+            },
+            "duration_minutes": {
+              "default": 180,
+              "maximum": 1440,
+              "minimum": 15,
+              "title": "Standaard afspraakduur (minuten)",
+              "type": "integer"
+            },
+            "environment": {
+              "default": "any",
+              "enum": [
+                "any",
+                "inside",
+                "outside"
+              ],
+              "title": "Binnen of buiten",
+              "type": "string"
+            },
+            "consider_weather": {
+              "default": true,
+              "title": "Rekening houden met gemeld weer",
+              "type": "boolean"
+            },
+            "consider_calendar": {
+              "default": true,
+              "title": "Mijn agenda raadplegen als dit is toegestaan",
+              "type": "boolean"
+            },
+            "include_travel": {
+              "default": true,
+              "title": "Bekende reistijd meenemen",
+              "type": "boolean"
+            },
+            "calculate_costs": {
+              "default": true,
+              "title": "Bekende kosten optellen",
+              "type": "boolean"
+            },
+            "suggest_restaurants": {
+              "default": true,
+              "title": "Eten als aanvulling voorstellen",
+              "type": "boolean"
+            },
+            "alternatives": {
+              "default": 3,
+              "maximum": 4,
+              "minimum": 2,
+              "title": "Alternatieven voorstellen",
+              "type": "integer"
+            },
+            "initiative": {
+              "default": "suggest",
+              "enum": [
+                "suggest",
+                "choose"
+              ],
+              "title": "Initiatief",
+              "type": "string"
+            },
+            "questions": {
+              "default": "essential",
+              "enum": [
+                "essential",
+                "balanced"
+              ],
+              "title": "Voorkeur voor verduidelijkingsvragen",
+              "type": "string"
+            },
+            "automatic_reminders": {
+              "default": false,
+              "title": "Agendaherinnering bij goedgekeurde afspraak",
+              "type": "boolean"
+            },
+            "communication": {
+              "default": "draft_only",
+              "enum": [
+                "draft_only",
+                "propose_message"
+              ],
+              "title": "Berichten voorbereiden",
+              "type": "string"
+            },
+            "participant_preferences": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "maxProperties": 20,
+              "title": "Voorkeuren per deelnemer (naam en voorkeur)",
+              "type": "object"
+            },
+            "search_integrations": {
+              "items": {
+                "const": "none",
+                "type": "string"
+              },
+              "maxItems": 1,
+              "title": "Beschikbare zoekintegraties (momenteel geen)",
+              "type": "array"
+            }
+          },
+          "title": "ActivityPlanning",
           "type": "object"
         },
         "Autonomy": {
@@ -1260,6 +1460,9 @@
       },
       "additionalProperties": false,
       "properties": {
+        "planning": {
+          "$ref": "#/$defs/ActivityPlanning"
+        },
         "responses": {
           "$ref": "#/$defs/ResponseSettings"
         },
@@ -1377,6 +1580,29 @@
   "document": {
     "revision": 0,
     "settings": {
+      "planning": {
+        "enabled": true,
+        "mode": "together",
+        "default_budget": 0.0,
+        "maximum_distance_km": 100,
+        "maximum_travel_minutes": 90,
+        "transport": "unknown",
+        "favorite_activities": [],
+        "duration_minutes": 180,
+        "environment": "any",
+        "consider_weather": true,
+        "consider_calendar": true,
+        "include_travel": true,
+        "calculate_costs": true,
+        "suggest_restaurants": true,
+        "alternatives": 3,
+        "initiative": "suggest",
+        "questions": "essential",
+        "automatic_reminders": false,
+        "communication": "draft_only",
+        "participant_preferences": {},
+        "search_integrations": []
+      },
       "responses": {
         "profile": "auto",
         "mode": "auto",

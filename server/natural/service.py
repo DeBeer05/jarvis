@@ -35,10 +35,15 @@ class NaturalService:
         self.tasks=TaskMemory(self.store,self.settings,automation)
         self.diagnostics=DiagnosticsManager(self.store,self.settings)
         self.retention=RetentionManager(self)
+        from server.natural.planning import ActivityPlanningManager
+        self.planning=ActivityPlanningManager(self)
         chat.natural=self
 
     def authorize_conversation(self,principal,conversation):
         with self.store.transaction(principal,write=True) as (db,user):
+            if not db.execute('SELECT id FROM chat_conversations WHERE id=?',(conversation,)).fetchone():
+                from server.chat_store import ChatError
+                raise ChatError('not_found','Gesprek niet gevonden.',404)
             owner=db.execute("SELECT user_id FROM natural_conversation_owners WHERE conversation_id=?",(conversation,)).fetchone()
             # The existing database has exactly one owner account (id=1).
             # Conversations created before natural mode belong to that owner.
@@ -55,6 +60,7 @@ class NaturalService:
             turns=self.context.private_turns(run.principal,run.conversation_id,config)
             run.history=[item for row in turns for item in ({"role":"user","content":row["user_text"]},{"role":"assistant","content":row["assistant_text"]})]
         prepared=self.context.prepare(run)
+        prepared['planning']=self.planning.prepare(run,prepared)
         messages,metrics=self.context.build(run,prepared)
         return prepared,messages,metrics
 

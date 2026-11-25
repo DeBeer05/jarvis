@@ -4,6 +4,14 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Gespreksgestuurde uitjesconcepten met gedeelde bron-gelabelde planning,
+  meerdere gegevens per beurt, natuurlijke correcties en gecombineerde activiteiten.
+- Windows-/Android-overzicht en centrale planningsvoorkeuren; beknopte spraak,
+  bekende kosten/reistijd en expliciet onbekende live gegevens.
+- Hergebruik van Calendar/Gmail en exacte eenmalige approvals, met herhaalde
+  voorstellen zonder dubbele taken. Planning geeft geen nieuwe actierechten.
+- Aanvraaggebonden native JSON-schema voor lokale planning; Qwen2.5:3B behouden.
+
 - Uitjespresentatie herkent ook activiteitvragen wanneer STT het woord uitjes
   verkeerd transcribeert; volledige gebruikerstekst blijft behouden.
 - Uitjesopdracht ‘in mijn agenda zet’ gaat naar de ingestelde standaardagenda

@@ -134,6 +134,7 @@ private fun navigationTitle(screen: String, language: String): String = if(langu
 @Composable private fun ColumnScope.Chat(state: ScreenState, model: JarvisViewModel) {
     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
         Text(state.model.ifBlank{"Een nieuw perspectief begint hier"},modifier=Modifier.weight(1f),style=MaterialTheme.typography.labelMedium)
+        PlanningButton(state,model)
         TextButton(onClick=model::newConversation,enabled=!state.busy){Text("＋ Nieuw")}
     }
     Row(horizontalArrangement=Arrangement.spacedBy(6.dp),modifier=Modifier.horizontalScroll(rememberScrollState())) { listOf("auto","groq","gemini","ollama").forEach {provider ->
@@ -154,6 +155,7 @@ private fun navigationTitle(screen: String, language: String): String = if(langu
     }
 }
 @Composable private fun ColumnScope.Voice(state: ScreenState, model: JarvisViewModel, mic: () -> Unit,takeover:()->Unit) {
+    PlanningButton(state,model)
     val color by animateColorAsState(if(state.recording) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
     Text(state.voiceStatus,style=MaterialTheme.typography.headlineMedium,color=color)
     Text(if(state.recording) "Microfoon actief" else "Microfoon uit",style=MaterialTheme.typography.labelLarge)
@@ -167,6 +169,18 @@ private fun navigationTitle(screen: String, language: String): String = if(langu
     LazyColumn(Modifier.weight(1f).fillMaxWidth()) {item {SelectionContainer {Text(state.messages.lastOrNull{it.role=="JARVIS"}?.text ?: "Mijn antwoord…",Modifier.padding(vertical=16.dp))}}}
     Text("Doorlopende gesprekken werken na bewuste activatie zolang deze app vooraan staat en de vervolgmodus is ingeschakeld. Stop alles beëindigt het gesprek. Geen achtergrondopnames.",style=MaterialTheme.typography.bodySmall)
 }
+@Composable private fun PlanningButton(state:ScreenState,model:JarvisViewModel) {
+    var open by remember(state.conversation,state.connection.authenticated) {mutableStateOf(false)};var edit by remember(state.conversation,state.connection.authenticated) {mutableStateOf("")}
+    TextButton(onClick={open=true;model.refreshPlanning()},enabled=state.connection.authenticated&&state.conversation!=null){Text("Uitjesplanning")}
+    if(open) AlertDialog(onDismissRequest={open=false},title={Text("Voorlopige uitjesplanning")},text={
+        Column(Modifier.verticalScroll(rememberScrollState())) {
+            val overview=runCatching {org.json.JSONObject(state.activityPlanning).optString("overview")}.getOrDefault("")
+            SelectionContainer {Text(overview.ifBlank {"Begin een planningsgesprek of open een eerder gesprek."})}
+            OutlinedTextField(edit,{edit=it},label={Text("Wijziging bespreken")},placeholder={Text("Doe toch zondag en daarna ergens eten.")},modifier=Modifier.fillMaxWidth())
+        }
+    },confirmButton={TextButton(onClick={model.send(edit);edit="";open=false},enabled=edit.isNotBlank()&&!state.busy&&"chat:write" in state.connection.permissions){Text("Bespreken")}},dismissButton={TextButton(onClick={open=false}){Text("Sluiten")}})
+}
+
 @Composable private fun History(state: ScreenState,model: JarvisViewModel) {
     var deleting by remember {mutableStateOf<String?>(null)}
     Text(if(state.connection.online) "Je gesprekken" else "Lokaal versleutelde geschiedenis",style=MaterialTheme.typography.headlineMedium)

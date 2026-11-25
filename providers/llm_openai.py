@@ -390,6 +390,7 @@ class OpenAICompatLLM:
         # allocation. Existing desktop/OpenAI-compatible callers stay unchanged.
         self._ollama_chat = self._strict_text and bool(cfg.get("ollama_chat", False))
         self._context_tokens = cfg.get("context_tokens", 8192)
+        self._json_schema = cfg.get('json_schema') if self._strict_text else None
 
         # A budget on a model running on your own hardware, unless the user
         # chose one themselves.
@@ -450,7 +451,9 @@ class OpenAICompatLLM:
             body["options"]={"num_ctx":self._context_tokens,"num_predict":self._max_output_tokens}
             if temperature is not None:body["options"]["temperature"]=temperature
             if self._think is not None:body["think"]=self._think
+            if self._json_schema is not None:body['format']=self._json_schema
             return body
+        if self._json_schema is not None:body['response_format']={'type':'json_object'}
         if tools and self.caps["tools"]:
             body["tools"] = tools
             body["tool_choice"] = "auto"

@@ -149,18 +149,22 @@ class ChatService:
         run.started = True
         pending = None
         memory_command=bool(self.natural and run.natural_context and self.natural.is_command(run))
+        planning_route=bool(self.natural and run.natural_context and run.natural_context.get('planning'))
         cancellation = asyncio.create_task(run.cancel.wait())
         try:
             yield {"type": "meta", "request_id": run.request_id, "conversation_id": run.conversation_id, **({"speech_protocol":1} if run.channel=="voice" and self.natural else {})}
             if run.cancel.is_set():
                 raise GenerationCancelled
-            if memory_command:
+            if planning_route:
+                source=self.natural.planning.stream(run)
+                tool_route=False
+            elif memory_command:
                 source=self.natural.stream_command(run)
                 tool_route=False
             else:
                 tool_route=bool(self.automation_chat and self.automation_chat.candidate(run))
                 source = self.automation_chat.stream(run) if tool_route else self.router.stream(self.context(run), run.mode)
-            if self.natural and run.channel=="voice" and run.natural_context:
+            if self.natural and run.channel=="voice" and run.natural_context and not planning_route:
                 source=self.natural.responses.stream(run,source,tool=tool_route)
             async with aclosing(source) as stream:
                 try:

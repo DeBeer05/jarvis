@@ -149,6 +149,33 @@ def test_native_ollama_is_explicit_opt_in_for_shared_transport():
     assert 'options' not in transport._body([{'role':'user','content':'Hallo'}],None,True,.2)
 
 
+def test_planning_schema_is_request_local_and_transport_opt_in(settings):
+    from server.ai.policy import next_structured,structured_schema
+    from server.natural.planning_models import PlanningReply
+    schema=PlanningReply.model_json_schema();bodies=[]
+    def handler(request):
+        if request.url.path=='/api/tags':return httpx.Response(200,json={'models':[{'name':settings.ollama_model}]})
+        bodies.append(json.loads(request.content))
+        return httpx.Response(200,text=json.dumps({'message':{'content':'{}'},'done':True})+'\n')
+    async def scenario():
+        provider=TextProvider('ollama',settings,factory(handler))
+        source=provider.stream([{'role':'user','content':'Ideeën'}])
+        assert await next_structured(source,schema)=='{}'
+        assert structured_schema.get() is None
+        await source.aclose()
+        assert [part async for part in provider.stream([{'role':'user','content':'Hallo'}])]==['{}']
+        async def failure():
+            assert structured_schema.get()==schema
+            raise asyncio.CancelledError()
+            yield ''
+        with pytest.raises(asyncio.CancelledError):await next_structured(failure(),schema)
+        assert structured_schema.get() is None
+    asyncio.run(scenario())
+    assert bodies[0]['format']==schema and 'format' not in bodies[1]
+    legacy=OpenAICompatLLM({'base_url':'http://127.0.0.1:11434/v1','model':'example','json_schema':schema})
+    assert 'response_format' not in legacy._body([{'role':'user','content':'Hallo'}],None,True,.2)
+
+
 @pytest.mark.parametrize("problem,expected", [(httpx.ReadTimeout, "timeout"), (httpx.ConnectError, "unavailable")])
 def test_provider_network_errors(settings, problem, expected):
     def fail(request):
