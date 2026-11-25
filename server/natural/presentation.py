@@ -4,7 +4,7 @@ import re
 
 def outing_overview(message):
     text=message.casefold()
-    if not re.search(r"\b(?:uitjes?|dagjes? uit|dagje weg)\b",text):return False
+    if not re.search(r"\b(?:uitjes?|dagjes? uit|dagje weg|bezienswaardigheden|dagtrips?|dagtochten?|uitstapjes?)\b",text):return False
     if re.match(r"\s*(?:wat (?:is|betekent)|hoe werkt|leg\b)",text):return False
     if re.search(r"\b(?:agenda|afspraak|toevoeg\w*|inplan\w*|boek\w*|annuleer\w*|verzet\w*)\b",text):return False
     return bool(re.match(r"\s*(?:jarvis[, ]+)?(?:zoek\w*|bedenk\w*|geef|toon|welke|wat|kan|kun|wil|zou|ik (?:wil|zoek|zou))\b",text))

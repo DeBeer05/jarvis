@@ -8,7 +8,7 @@ from server.natural.presentation import outing_overview,ANNOUNCEMENT
 from server.natural.responses import IntelligentResponseManager,response_prompt
 
 
-@pytest.mark.parametrize('text',['Bedenk vijf leuke uitjes voor ons.','Welke uitjes zijn leuk in Haarlem?','Ik wil een lijst met uitjes voor morgen.'])
+@pytest.mark.parametrize('text',['Bedenk vijf leuke uitjes voor ons.','Welke uitjes zijn leuk in Haarlem?','Ik wil een lijst met uitjes voor morgen.','Geef een paar bezienswaardigheden voor een dagtrip.'])
 def test_outing_ideas_request_a_screen_overview(text):assert outing_overview(text)
 
 
