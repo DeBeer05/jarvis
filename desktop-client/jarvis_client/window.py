@@ -650,11 +650,15 @@ class MainWindow(QMainWindow):
         elif kind == "delta":
             if not getattr(self,"server_speech",False):self.voice.delta(event["text"])
             self.reply += event["text"]
+            if getattr(self,"server_speech",False):self.voice_panel.answer.setPlainText(self.reply)
             self.rows[-1] = ("JARVIS", self.reply)
             if not self.render_timer.isActive():
                 self.render_timer.start(40)
         elif kind == "speech":
-            if getattr(self,"server_speech",False):self.voice.delta(event["text"],ready=True)
+            if getattr(self,"server_speech",False):
+                self.voice.delta(event["text"],ready=True)
+                # Echo suppression tracks spoken text; the panel shows all text.
+                if self.reply:self.voice_panel.answer.setPlainText(self.reply)
         elif kind == "fallback":
             self.show_notice("Provider niet beschikbaar. JARVIS schakelt over naar " + event["to"] + ".")
         elif kind == "error":
@@ -664,6 +668,7 @@ class MainWindow(QMainWindow):
             self.voice.finish_response(event["status"] == "completed")
             self.render_timer.stop()
             self.reply = event["message"]
+            if getattr(self,"server_speech",False):self.voice_panel.answer.setPlainText(self.reply)
             self.rows[-1] = ("JARVIS", self.reply + ("\n[" + event["status"] + "]" if event["status"] != "completed" else ""))
             self.render()
             if event["status"] == "completed" and not self.isActiveWindow():

@@ -19,6 +19,10 @@ Uitjesvragen gebruiken één bestaande generatie: vroege gesproken aankondiging,
 volledige genummerde lijst in de app/geschiedenis. Geen hele lijst automatisch
 voorlezen, geen Word-/Kladblokproces, extra modelcall, modeldownload of extra
 clientruntime. Windows en Android hergebruiken hun bestaande speechprotocol.
+Laatste schermcontrole vond dat de Windows-spraakpagina alleen uitgesproken
+tekst liet zien. Die toont nu ook alle geschreven delta's en het definitieve
+antwoord; 124 clienttests slagen. Nieuwe Windows-build wordt lokaal uitgerold;
+Android heeft deze scheiding al en behoeft geen nieuwe APK.
 Zie `docs/CALENDAR_OUTING_EXPERIENCE.md`. Volledige lokale serverreeks vóór laatste
 hardening: 493 geslaagd; daarna 50 gerichte ervarings-/taaktests en 34 definitieve
 nieuwe regressies geslaagd. Ruff/mypy, pip check, repository-/diffcheck en Android-

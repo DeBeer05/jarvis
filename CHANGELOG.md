@@ -10,6 +10,8 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
   bestaande volledige preview en verplichte exacte eenmalige goedkeuring.
 - Uitjesideeën kort gesproken aankondigen en als volledige lijst in de app
   laten verschijnen, via dezelfde generatie en bestaande Windows-/Android-clients.
+- Windows-spraakpagina houdt het volledige geschreven antwoord zichtbaar,
+  ook wanneer de gesproken reactie alleen een korte aankondiging is.
 
 - Spraakstart kan bij een voldoende lange eerste clausule eerder beginnen;
   Windows/Android gebruiken gereed speech-materiaal zonder tweede zinsbuffer.

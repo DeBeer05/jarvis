@@ -24,7 +24,10 @@ spraak verschijnt eerst het bestaande speech-event met ‘Ik zet een aantal
 uitjes voor u klaar. De lijst verschijnt hier in de app.’ De tekstgeneratie
 maakt vervolgens een compacte genummerde lijst voor het scherm. Dezelfde
 tekst blijft in de gespreksgeschiedenis; Windows en Android gebruiken hun
-bestaande delta-/speechprotocol. Geen nieuwe clientbuild nodig.
+bestaande delta-/speechprotocol. De Windows-spraakpagina is ook aangepast: het
+antwoordvak toont de volledige geschreven lijst, ook als alleen de aankondiging
+wordt uitgesproken. Hiervoor is een nieuwe Windows-build gemaakt. Android
+scheidt geschreven tekst en audio al en hoeft niet opnieuw geïnstalleerd te worden.
 
 De lijst bevat activiteiten, waarom ze passen en praktische afwegingen. De
 modelinstructie vraagt onzekerheden te benoemen: prijzen, openingstijden en
@@ -58,6 +61,8 @@ Daarna slaagden 50 gerichte tests voor de taak-/presentatieroutes en bestaande
 gesprekservaring. Ruff/mypy, afhankelijkheden, repositorystructuur, diff- en
 settingscontractcontroles slaagden. De uiteindelijke collectie bevat 503 lokale
 tests; de gepubliceerde tree sluit de tien eigenaarmailtests uit.
+De volledige Windows-clientreeks slaagde met 124 tests, inclusief de controle
+dat latere korte speech-events de geschreven lijst niet overschrijven.
 
 Een echte begrensde CPU-only Qwen2.5:3B-proef met 8192 contexttokens gaf eerste
 tekst na 13,64 s en 240 tokens na 30,10 s. Dit is geen hoorbare eind-tot-eindmeting.

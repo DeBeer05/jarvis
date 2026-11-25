@@ -31,6 +31,28 @@ def window(tmp_path, vault):
     return MainWindow(SettingsStore(tmp_path), vault, preferences=Preferences(auto_connect=False), manager_factory=Manager)
 
 
+def test_voice_page_keeps_written_overview_when_spoken_answer_is_short(qt,tmp_path,vault,monkeypatch):
+    app=window(tmp_path,vault)
+    app.running=True;app.server_speech=True;app.reply='';app.rows=[('JARVIS','')]
+    spoken=[]
+    def delta(text,*,ready=False):
+        spoken.append((text,ready));app.voice.answer.emit(text)
+    monkeypatch.setattr(app.voice,'delta',delta)
+    monkeypatch.setattr(app,'notify',lambda *args:None)
+    try:
+        app.stream_event({'type':'speech','text':'Ik zet uitjes voor u klaar.'})
+        app.stream_event({'type':'delta','text':'1. Wandeling\n2. Museum'})
+        assert app.voice_panel.answer.toPlainText()=='1. Wandeling\n2. Museum'
+        app.stream_event({'type':'speech','text':'De lijst staat in de app.'})
+        assert app.voice_panel.answer.toPlainText()=='1. Wandeling\n2. Museum'
+        app.stream_event({'type':'done','status':'completed','message':'1. Wandeling\n2. Museum\nControleer openingstijden.'})
+        assert 'Controleer openingstijden.' in app.voice_panel.answer.toPlainText()
+        assert all('Museum' not in text and ready for text,ready in spoken)
+        assert not app.voice.recording
+    finally:
+        app.running=False;app.closing=True;app.tray.hide();app.close()
+
+
 def test_initialization_navigation_and_safe_defaults(qt, tmp_path, vault):
     app = window(tmp_path, vault)
     app.show()
