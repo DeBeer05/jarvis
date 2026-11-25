@@ -27,6 +27,17 @@ def number(value):
     return int(value) if value.isdecimal() else NUMBERS[value]
 
 
+def normalize_dayparts(text):
+    """Common joined Dutch speech transcripts, without guessing arbitrary words."""
+    return re.sub(r"\b(?:s|sch)(middags?|ochtends?|avonds?)\b",r"\1",text,flags=re.I)
+
+
+def daypart(text):
+    text=normalize_dayparts(text).casefold()
+    found={match[1] for match in re.finditer(r"\b(?:van|morgen)?(middag|avond|ochtend|nacht)s?\b",text)}
+    return next(iter(found)) if len(found)==1 else None
+
+
 def local_time(day,hour,minute,zone):
     naive=datetime.combine(day,time(hour,minute))
     candidates:list[datetime]=[]
@@ -42,7 +53,7 @@ def local_time(day,hour,minute,zone):
 def resolve(text,*,now=None,timezone="Europe/Amsterdam",anchor=None,work_start=9,work_end=17):
     """Return only unambiguous explicit hints. Unmentioned slots remain None."""
     zone=ZoneInfo(timezone);now=(now or datetime.now(zone)).astimezone(zone)
-    message=text.casefold().replace("één","een").replace("tweeën","tweeen")
+    message=normalize_dayparts(text.casefold()).replace("één","een").replace("tweeën","tweeen")
     duration=None
     duration_match=re.search(r"\b(?:van|duurt|duur|ongeveer)\s+(anderhalf|een half|"+NUMBER+r")\s*(uur|uren|minuten?|min)\b",message)
     if duration_match:
@@ -105,7 +116,7 @@ def resolve(text,*,now=None,timezone="Europe/Amsterdam",anchor=None,work_start=9
         if not 0<=hour<24:raise AmbiguousTime("Welk tijdstip tussen 00:00 en 23:59 bedoel je?")
         explicit24=bool(numeric and (numeric[2] or numeric[3]))
         if hour<12 and not explicit24:
-            if re.search(r"\b(?:middags?|avonds?|vanavond|morgenavond|morgenmiddag)\b",message):hour+=12
+            if daypart(message) in ("middag","avond"):hour+=12
             elif not re.search(r"ochtend|nacht",message):
                 candidates=[h for h in (hour,hour+12) if work_start<=h<work_end]
                 if len(candidates)!=1:return TimeHint(date=day.isoformat() if day else None,duration_minutes=duration,clarification="Bedoel je dat tijdstip 's ochtends of 's middags/avonds?")

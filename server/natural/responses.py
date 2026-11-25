@@ -4,6 +4,7 @@ import time
 from copy import deepcopy
 from contextlib import aclosing
 from providers.speech_format import format_speech,speech_chunks as speech_parts
+from server.natural.presentation import outing_overview,OVERVIEW_PROMPT,ANNOUNCEMENT
 
 FULL=re.compile(r'\b(?:lees (?:de |het )?(?:volledige|hele|alles)|alle details|geef alles|volledige (?:mail|tekst|antwoord)|letterlijk)\b',re.I)
 MORE=re.compile(r'\s*(?:vertel meer|leg dat verder uit|wat bedoel je|wat staat er precies|lees alles voor|geef alle details|maak het korter|vat dat samen|alleen de belangrijkste informatie|wat moet ik hiervan weten)[?.!\s]*',re.I)
@@ -22,6 +23,8 @@ def mode_for(config,message,voice):
 
 
 def response_prompt(config,message,voice):
+    overview=outing_overview(message)
+    if overview:voice=False
     mode=mode_for(config,message,voice);personality=config['personality'];options=config['responses']
     text=' Reageer passend op het gesprek; geef bij een vraag eerst het antwoord. '+MODES[mode]
     text+=' Een verhaal, grap of gedachte vraagt een inhoudelijke reactie, geen automatische samenvatting, taak of vervolgvraag. '
@@ -37,7 +40,7 @@ def response_prompt(config,message,voice):
     if personality['profile']=='classic_butler':text+='Je bent een rustige, professionele, elegante Nederlandse persoonlijke butler, met subtiele droge humor. Geen imitatie van een specifieke acteur. '
     if personality['honorific_frequency']=='off' or not personality['honorific']:text+='Gebruik geen aanspreekvorm als meneer. '
     else:text+='Gebruik de ingestelde aanspreekvorm hooguit af en toe, nooit in iedere zin. '
-    return text
+    return text+(OVERVIEW_PROMPT if overview else '')
 
 
 def sentences(text):return [part.strip() for part in re.split(r'(?<=[.!?])\s+|\n+',text) if part.strip()]
@@ -160,11 +163,16 @@ class IntelligentResponseManager:
 
     async def stream(self,run,source,tool=False):
         pending='';original=''
+        overview=not tool and outing_overview(getattr(run,'message','')) and not FULL.search(getattr(run,'message',''))
         async with aclosing(source) as stream:
+            if overview:
+                run.speech_message+=ANNOUNCEMENT
+                yield {'type':'speech','text':ANNOUNCEMENT}
             async for event in stream:
                 yield event
                 if event['type']!='delta':continue
                 original+=event['text']
+                if overview:continue
                 if tool and not run.conversational_reply:continue
                 pending+=event['text']
                 while (end:=speech_boundary(pending,not run.speech_message)) is not None:
@@ -173,6 +181,7 @@ class IntelligentResponseManager:
                     spoken=format_speech(part,run.natural_context["settings"]["general"]["timezone"])
                     for piece in speech_parts(spoken):
                         run.speech_message+=piece+' ';yield {'type':'speech','text':piece+' '}
+        if overview:return
         if tool and not run.conversational_reply:pending=self.summarize(run,original)
         spoken=format_speech(pending,run.natural_context["settings"]["general"]["timezone"])
         for piece in speech_parts(spoken):

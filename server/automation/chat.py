@@ -16,7 +16,7 @@ from server.automation.store import encode, fingerprint
 from server.security.types import AuthError
 from server.automation.chat_approval import ChatApprovals
 from server.natural.temporal import resolve, AmbiguousTime
-from server.natural.calendar import create_parameters,update_parameters
+from server.natural.calendar import create_parameters,update_parameters,outing_title
 from server.natural.intents import KINDS,WRITE_KIND,compound_candidate,interpret
 
 TOPIC = re.compile(r"\b(agenda\w*|afsprak\w*|afspraak\w*|kalender\w*|calendar\w*|meeting\w*|vergadering\w*|(?:e[-‑]?)?mails?\w*|concept\w*|inbox|postvak|bericht\w*|herinner\w*|reminder\w*|melding\w*|notificatie\w*|workflow\w*|automatisering\w*)\b|\bwat (?:staat|heb).*\bgepland\b", re.I)
@@ -90,8 +90,11 @@ class AutomationChat:
             if (MORE.fullmatch(run.message) and bound) or re.fullmatch(r"\s*(?:vertel meer over|wat staat er in) .+",run.message,re.I):return True
         if re.fullmatch(r"\s*hoe ziet mijn dag eruit[?.!\s]*",run.message,re.I):return True
         if self.approvals.candidate(run.message):return True
+        from server.natural.presentation import outing_overview
+        if outing_overview(run.message):return False
         if re.match(r"\s*(wat (is|betekent)|hoe werkt|leg (me |mij )?uit|kun je uitleggen)\b",run.message,re.I):
             return False
+        if re.search(r"\buitje\b",run.message,re.I) and self.write_intent("CalendarCreate",run.message):return True
         memory=self.memory(run)
         if self.slot_answer(run,memory):return True
         if (memory.get("pending") or memory.get("decision")) and self.approvals.is_answer(run.message):return True
@@ -152,6 +155,11 @@ class AutomationChat:
             "WorkflowCreate": r"\b(workflow\w*|automatisering\w*)\b.*\b(maak|plan|aanmaken|instellen)\b|\b(maak|plan)\b.*\b(workflow\w*|automatisering\w*)\b",
         }
         # Domain separation: calendar wording cannot authorize sending an email.
+        if (tool=="CalendarCreate" and re.search(r"\buitje\b",text)
+            and REQUEST.match(text) and not re.match(r"\s*(?:wat|waarom|hoe|leg)\b",text)
+            and not re.search(r"\b(?:niet|geen|misschien)\b",text)
+            and re.search(r"\b(?:toevoeg\w*|(?:in)?plan\w*|boek\w*)\b",text)):
+            return True
         if tool.startswith("Calendar") and not re.search(r"agenda|afspraak|afsprak|kalender|calendar|meeting|vergadering", text):
             return False
         if tool.startswith("Email") and not re.search(r"mail|bericht|concept|antwoord|reply|draft", text):
@@ -364,9 +372,22 @@ class AutomationChat:
                 if fingerprint(previous.get("content",""))!=observations["write_question"][0].get("question_hash") and self.approvals.is_answer(run.message):
                     self.remember(run,"write_question",[])
                     return "Herhaal de volledige afspraak of e-mail die je wilt voorbereiden; de eerdere vervolgvraag is niet meer de laatste vraag in dit gesprek.",None
-                instruction=observations["write_question"][0]["instruction"]+"\nAanvullende gegevens van dezelfde gebruiker: "+run.message
+                # A fresh explicit outing command owns its own slots; do not
+                # replay an unrelated older ambiguous appointment first.
+                fresh_outing=self.write_intent("CalendarCreate",run.message) and outing_title(run.message)
+                instruction=run.message if fresh_outing else observations["write_question"][0]["instruction"]+"\nAanvullende gegevens van dezelfde gebruiker: "+run.message
                 if len(instruction)>self.router.settings.max_message_chars:return "Geef de volledige afspraak of e-mail opnieuw in één bericht.",None
                 run=replace(run,message=instruction)
+        title=outing_title(run.message) if self.write_intent("CalendarCreate",run.message) else None
+        if title:
+            try:
+                payload=create_parameters({"summary":title},run.message,run.natural_context["settings"] if run.natural_context else None)
+            except AmbiguousTime as error:
+                question=str(error)
+                self.remember(run,"write_question",[{"instruction":run.message,"question_hash":fingerprint(self.clean(question))}])
+                return question,None
+            self.guard(run,"automation:write")
+            return await self.write(run,"CalendarCreate",validate("CalendarCreate",payload)),None
         # Complete everyday read commands do not need a model to grant access.
         # This also keeps STT punctuation/capitalization and past tense equivalent.
         day_question=re.fullmatch(r"\s*(?:wat (?:staat|stond) er|wat (?:heb|had) ik|toon(?: me)?|laat(?: me)?)\s+(?:voor |er )?(vandaag|morgen|overmorgen)\s+(?:in|op)\s+(?:mijn|de)\s+agenda\s*[?.!]*",run.message,re.I)

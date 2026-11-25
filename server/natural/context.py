@@ -75,7 +75,8 @@ class ContextManager:
     def build(self,run,prepared,*,notice=""):
         config=prepared["settings"]
         voice=getattr(run,"channel","text")=="voice"
-        system=self.bootstrap.system_prompt+("\n"+VOICE_PROMPT if voice else "")
+        from server.natural.presentation import outing_overview
+        system=self.bootstrap.system_prompt+("\n"+VOICE_PROMPT if voice and not outing_overview(run.message) else "")
         from server.natural.responses import response_prompt
         system+=response_prompt(config,run.message,voice)+notice
         notes={"now":datetime.now(ZoneInfo(config["general"]["timezone"])).isoformat(),"timezone":config["general"]["timezone"]}

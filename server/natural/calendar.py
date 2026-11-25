@@ -3,7 +3,20 @@ import re
 from datetime import date,datetime,timedelta,UTC
 from zoneinfo import ZoneInfo
 
-from server.natural.temporal import resolve,local_time,AmbiguousTime,NUMBER,number
+from server.natural.temporal import resolve,local_time,AmbiguousTime,NUMBER,number,normalize_dayparts,daypart
+
+
+def outing_title(instruction):
+    """Literal title for simple personal outings; invitation/complex flows keep the planner."""
+    text=instruction.split("\nAanvullende gegevens van dezelfde gebruiker: ")[0]
+    # Only an unqualified own/default-calendar suffix can use this path.
+    # A named calendar remains a planner lookup, never silently primary.
+    text=re.sub(r"\s+(?:in|op)\s+(?:mijn|de)\s+(?:hoofd)?agenda(?:\s+(?:zet|zetten|toevoegen|toe))?[.!?\s]*$","",text,flags=re.I)
+    if re.search(r"uitnodig|\bnodig\b|\b(?:agenda|kalender|calendar|locatie|adres|beschrijving|titel|genaamd|herhaal|wekelijks|dagelijks)\b|\b(?:en|of)\s+(?:maak|plan|stuur|verzet)\b",text,re.I):return None
+    match=re.search(r"\buitje\b(.*?)(?=\s+(?:toevoegen|inplannen|plannen|toe|voor|op|morgen|overmorgen|vandaag|om|van|tussen)\b|[.!?]|$)",text,re.I)
+    if not match:return None
+    title="Uitje"+match[1].rstrip()
+    return title if len(title)<=180 else None
 
 
 def create_parameters(payload,instruction,config=None):
@@ -12,7 +25,14 @@ def create_parameters(payload,instruction,config=None):
     def hour(value):
         h,m=map(int,value.split(":"));return h+m/60
     start_day=start_clock=duration=end_clock=None;reminder=None;explicit_reminder=False
+    utterances:list[str]=[]
     for utterance in instruction.split("\nAanvullende gegevens van dezelfde gebruiker: "):
+        utterance=normalize_dayparts(utterance)
+        # Apply a bound daypart reply before replaying an ambiguous clock.
+        if utterances and re.fullmatch(r"\s*(?:(?:nee|toch|maar|in|de|['’]?s)\W+)*(?:middag|ochtend|avond|nacht)s?[.!?\s]*",utterance,re.I):
+            utterances[-1]+=" "+utterance
+        else:utterances.append(utterance)
+    for utterance in utterances:
         previous_clock=start_clock
         if end_clock and start_clock and duration is None:
             begin_h,begin_m=map(int,start_clock.split(":"));end_h,end_m=map(int,end_clock.split(":"))
@@ -27,16 +47,25 @@ def create_parameters(payload,instruction,config=None):
             reminder=number(match[1].casefold())*({"uur":60,"uren":60,"dag":1440,"dagen":1440,"week":10080,"weken":10080}.get(match[2].casefold(),1))
             if not 0<=reminder<=40320:raise AmbiguousTime("Kies een herinnering tussen nul minuten en vier weken vóór de afspraak.")
         if re.match(r"\s*(?:"+NUMBER+r"|anderhalf|een half)\s+(?:uur|uren|minuten?)\b",text,re.I):text="duur "+text
-        hint=resolve(text,timezone=timezone,work_start=hour(calendar.get("work_start","09:00")),work_end=hour(calendar.get("work_end","17:00")))
+        start_text=re.split(r"\btot\b",text,maxsplit=1,flags=re.I)[0]
+        if len(start_text)<len(text):
+            start_text=re.sub(r"\bvan(?=\s+"+NUMBER+r"\s+uur\b)","vanaf",start_text,flags=re.I)
+        # A shared trailing daypart applies to both clocks unless the start
+        # already states a different daypart (09:00 morning to 17:00 afternoon).
+        if not daypart(start_text) and daypart(text):start_text+=" "+daypart(text)
+        hint=resolve(start_text,timezone=timezone,work_start=hour(calendar.get("work_start","09:00")),work_end=hour(calendar.get("work_end","17:00")))
         if hint.clarification:raise AmbiguousTime(hint.clarification)
         if hint.date:start_day=hint.date
         if hint.clock:start_clock=hint.clock
         if hint.duration_minutes is not None:duration=hint.duration_minutes
         ending=re.search(r"\btot\s+((?:kwart\s+(?:voor|over)|half)\s+"+NUMBER+r"|"+NUMBER+r"(?::[0-5]\d)?)(?:\s+uur)?\b",text,re.I)
         if ending:
-            end_hint=resolve("om "+ending[1],timezone=timezone,work_start=hour(calendar.get("work_start","09:00")),work_end=hour(calendar.get("work_end","17:00")))
+            end_text="om "+ending[1]+" "+text[ending.end():]
+            if not daypart(end_text) and daypart(start_text):end_text+=" "+daypart(start_text)
+            end_hint=resolve(end_text,timezone=timezone,work_start=hour(calendar.get("work_start","09:00")),work_end=hour(calendar.get("work_end","17:00")))
             if end_hint.clarification:raise AmbiguousTime(end_hint.clarification)
             end_clock=end_hint.clock
+            if end_hint.duration_minutes is not None:duration=end_hint.duration_minutes
         # A corrected duration supersedes a previously supplied end time.
         elif hint.duration_minutes is not None or hint.clock and hint.clock!=previous_clock:end_clock=None
     if not start_day or not start_clock:
