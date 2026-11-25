@@ -654,7 +654,7 @@ class MainWindow(QMainWindow):
             if not self.render_timer.isActive():
                 self.render_timer.start(40)
         elif kind == "speech":
-            if getattr(self,"server_speech",False):self.voice.delta(event["text"])
+            if getattr(self,"server_speech",False):self.voice.delta(event["text"],ready=True)
         elif kind == "fallback":
             self.show_notice("Provider niet beschikbaar. JARVIS schakelt over naar " + event["to"] + ".")
         elif kind == "error":

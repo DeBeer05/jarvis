@@ -3,7 +3,7 @@ import re
 import time
 from copy import deepcopy
 from contextlib import aclosing
-from providers.speech_format import format_speech
+from providers.speech_format import format_speech,speech_chunks as speech_parts
 
 FULL=re.compile(r'\b(?:lees (?:de |het )?(?:volledige|hele|alles)|alle details|geef alles|volledige (?:mail|tekst|antwoord)|letterlijk)\b',re.I)
 MORE=re.compile(r'\s*(?:vertel meer|leg dat verder uit|wat bedoel je|wat staat er precies|lees alles voor|geef alle details|maak het korter|vat dat samen|alleen de belangrijkste informatie|wat moet ik hiervan weten)[?.!\s]*',re.I)
@@ -49,6 +49,14 @@ def extractive(text,mode):
     selected=set(range(1 if mode=='ultrashort' else 2))
     selected.update(index for index,part in enumerate(parts) if CRITICAL.search(part))
     return ' '.join(part for index,part in enumerate(parts) if index in selected)
+
+
+def speech_boundary(text,first):
+    # Only the first long clause may start early. Keep short salutations and
+    # decimal commas together; later audio keeps normal sentence boundaries.
+    boundaries=[match.end() for match in re.finditer(r'[.!?]\s+',text)]
+    if first:boundaries.extend(match.end() for match in re.finditer(r'[,;:]\s+',text) if 60<=match.end()<=240)
+    return min(boundaries) if boundaries else None
 
 
 class IntelligentResponseManager:
@@ -159,11 +167,13 @@ class IntelligentResponseManager:
                 original+=event['text']
                 if tool and not run.conversational_reply:continue
                 pending+=event['text']
-                while (match:=re.search(r'[.!?](?:\s+|$)',pending)) and match.end()<len(pending):
-                    if pending.lstrip().startswith(('{','[','<')) or pending[:match.end()].count('```')%2:break
-                    part,pending=pending[:match.end()],pending[match.end():]
+                while (end:=speech_boundary(pending,not run.speech_message)) is not None:
+                    if pending.lstrip().startswith(('{','[','<')) or pending[:end].count('```')%2:break
+                    part,pending=pending[:end],pending[end:]
                     spoken=format_speech(part,run.natural_context["settings"]["general"]["timezone"])
-                    if spoken:run.speech_message+=spoken+' ';yield {'type':'speech','text':spoken+' '}
+                    for piece in speech_parts(spoken):
+                        run.speech_message+=piece+' ';yield {'type':'speech','text':piece+' '}
         if tool and not run.conversational_reply:pending=self.summarize(run,original)
         spoken=format_speech(pending,run.natural_context["settings"]["general"]["timezone"])
-        if spoken:run.speech_message+=spoken;yield {'type':'speech','text':spoken}
+        for piece in speech_parts(spoken):
+            run.speech_message+=piece+' ';yield {'type':'speech','text':piece+' '}

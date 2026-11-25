@@ -53,3 +53,7 @@ vastgelegd. Groene tests betekenen geen definitieve gebruikersacceptatie.
 
 De uitgevoerde eerste verbetering en alle meet-/acceptatiegrenzen staan in
 [EXPERIENCE_TEST_REPORT.md](EXPERIENCE_TEST_REPORT.md).
+
+Het vervolg voor reactietijd en de 8-GB-randvoorwaarde staat in
+[VOICE_LATENCY_8GB.md](VOICE_LATENCY_8GB.md): CPU-only meting, begrensde
+spraakvoorbereiding en de afweging tussen resident geheugen en herlaadlatency.

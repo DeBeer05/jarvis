@@ -5,6 +5,7 @@ import re
 from copy import deepcopy
 from dataclasses import replace
 from uuid import uuid4
+from providers.speech_format import speech_chunks
 
 from PySide6.QtCore import QObject, QTimer, Signal, Slot
 
@@ -373,35 +374,60 @@ class VoiceConversationManager(QObject):
         self.first_token = self.first_audio = 0.
         self.set_state("JARVIS denkt…")
         generation, settings, pending = self.interruptions.generation, self.effective_settings(), self.pending
+        worker=self.worker
+        valid = lambda: self.interruptions.valid(generation) and not self.closed
+        # One prepared WAV alongside the one playing; never an unbounded audio
+        # queue or another inference engine. Keep STT priority when barge-in is on.
+        prefetch=not (self.options and self.options.get('listening',{}).get('barge_in',False))
+        prepared:queue.Queue[tuple[str,bytes|str|None]]=queue.Queue(maxsize=1)
+        capacity=threading.Semaphore(1)
+
+        def synthesize(text):
+            key = text, settings.provider, settings.voice, settings.speaker, settings.speed, settings.models
+            with self.cache_lock:
+                audio = self.cache.get(key) if settings.cache and not getattr(worker,"centralized",False) else None
+            if audio is None:
+                audio, _ = worker.synthesize(text, settings, valid)
+                if settings.cache and valid() and not getattr(worker,"centralized",False):
+                    with self.cache_lock:self.cache.put(key, audio)
+            return audio
+
+        def prepare():
+            while valid():
+                if not capacity.acquire(timeout=.1):continue
+                try:text=pending.get(timeout=.1)
+                except queue.Empty:capacity.release();continue
+                try:packet=('audio',synthesize(text)) if text is not None else ('done',None)
+                except Exception as error:packet=('error',str(error))
+                if valid():prepared.put_nowait(packet)
+                if packet[0]!='audio':return
 
         def consume():
-            while self.interruptions.valid(generation) and not self.closed:
+            while valid():
                 try:
-                    text = pending.get(timeout=0.1)
-                except queue.Empty:
-                    continue
-                if text is None:
-                    self.delivered.emit((generation, "drained", None))
-                    return
-                try:
-                    valid = lambda: self.interruptions.valid(generation) and not self.closed
-                    key = text, settings.provider, settings.voice, settings.speaker, settings.speed, settings.models
-                    with self.cache_lock:
-                        audio = self.cache.get(key) if settings.cache and not getattr(self.worker,"centralized",False) else None
-                    if audio is None:
-                        audio, _ = self.worker.synthesize(text, settings, valid)
-                        if settings.cache and valid() and not getattr(self.worker,"centralized",False):
-                            with self.cache_lock:
-                                self.cache.put(key, audio)
+                    if prefetch:
+                        try:kind,audio=prepared.get(timeout=.1)
+                        except queue.Empty:continue
+                        capacity.release()
+                        if kind=='error':raise RuntimeError(audio)
+                        finished=kind=='done'
+                    else:
+                        try:text=pending.get(timeout=.1)
+                        except queue.Empty:continue
+                        finished=text is None
+                        audio=None if finished else synthesize(text)
+                    if finished:
+                        self.delivered.emit((generation, "drained", None));return
                     if valid():
                         self.output.play(audio, settings, valid, lambda: self.delivered.emit((generation, "playing", None)))
                 except Exception as error:
                     self.delivered.emit((generation, "error", str(error)))
                     return
 
+        if prefetch:self._thread(prepare)
         self._thread(consume)
 
-    def delta(self, text):
+    def delta(self, text, *, ready=False):
         if not self.responding:
             return
         if text and not self.first_token:
@@ -411,7 +437,7 @@ class VoiceConversationManager(QObject):
         self.answer.emit(self.answer_text)
         if not self.stream_audio:return
         try:
-            for sentence in self.sentence.feed(text):
+            for sentence in (speech_chunks(text) if ready else self.sentence.feed(text)):
                 self.pending.put_nowait(sentence)
         except (queue.Full, ValueError):
             self.stop()

@@ -2,6 +2,38 @@
 
 ## Huidige opdracht
 
+Reactiesnelheid verbeteren met toekomstige **8 GB RAM als randvoorwaarde**, op
+`fix/voice-latency-8gb`, afhankelijk van de bestaande PR27-code (5b015b5).
+Origin/develop opnieuw opgehaald en actueel. Twee bestaande mailwijzigingen
+inhoudelijk gecontroleerd en intact gelaten; geen stash/reset/tweede projectroot.
+Scope blijft fase 7.5 / desktop-development; geen mini-pc-deployment.
+
+Verbeterd: eerste lange spreekclausule eerder beschikbaar; beide clients
+herbufferen gereed servermateriaal niet tot een hele zin. Maximaal één WAV
+voorbereiden naast playback, uit bij barge-in; Stop wist oude generatie/audio.
+CUDA-negatieve probe/inferencefallback wordt per helper onthouden; oude
+STT-gewichten vrij vóór nieuwe allocatie. Licht profiel behoudt devicecache.
+Geen nieuw model, grotere cache, GPU-installatie of automatische stemwisseling.
+CPU-fallback komt hier door ontbrekende cuBLAS; GPU is geen toekomstige vereiste.
+Greedy-decodering en timestampwijziging leverden maar tientallen ms op; greedy
+herkende een annuleringszin slechter. Beide productie-defaults zijn behouden.
+
+Bewijs: server **469 geslaagd** (200,40 s; inclusief tien ongestagede
+gebruikersmailtests), Windows **122 geslaagd**, Android unit/lint/debug/release
+geslaagd, portable smoke acht pagina's zonder mic/netwerk/helper, verpakte
+voice-helper-smoke geslaagd. Ruff/mypy, drie pip checks, contract/repo/diffchecks
+geslaagd. CPU-only Ollama bevestigd met 8192 contexttokens en nul VRAM; actieve
+getelde set Ollama/helper/testbackend circa **3,30 GiB**, exclusief Windows/client.
+Dit is geen opgelegde 8-GB-limiet en geen bewijs van mini-pc-snelheid. Warme live-
+PCM-reacties nieuwe route 5,46/6,05 s; baseline 7,00/9,18 s maar verschillende
+antwoordteksten, dus geen gecontroleerd winstpercentage. Koude opwarmbeurt 20,46 s.
+Zie `docs/VOICE_LATENCY_8GB.md` voor bronnen, meetgrenzen en resterende acceptatie.
+
+Geen Android-device aangesloten; APK wel gebouwd, geen telefooninstallatie of
+fysieke microfoon-/luisteracceptatie geclaimd. Windows-focusprobleem blijft open.
+Lokale uitrol, push/PR en echte CI worden afzonderlijk bevestigd. Geen merge van
+open afhankelijkheden, geen fase 8 of migratie.
+
 Master Vision / Experience Overhaul op `feature/jarvis-experience-overhaul`.
 Volledige visie (32 hoofdstukken), architectuurreview/gap analysis, UX-eisen,
 scenario's A–H en geprioriteerd plan vastgelegd; AGENTS verwijst er blijvend naar.
