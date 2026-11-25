@@ -10,6 +10,7 @@ import sys
 import time
 import wave
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "desktop-client"))
 from jarvis_client.voice.processing import WakeWordEngine
 from jarvis_client.voice.settings import VoiceSettings

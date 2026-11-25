@@ -1,5 +1,6 @@
 """Explicit synthetic TTS comparison; saves no real conversation or microphone audio."""
 import base64
+import argparse
 import io
 import json
 import os
@@ -15,7 +16,10 @@ TEXTS=["Goedemorgen, meneer. Uw agenda is bijgewerkt en u heeft twee belangrijke
 
 
 def main():
-    root=Path(__file__).resolve().parents[1];output=root/'.local/tts-benchmark';output.mkdir(parents=True,exist_ok=True)
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--output',type=Path,default=Path('.local/tts-benchmark'))
+    args=parser.parse_args()
+    root=Path(__file__).resolve().parents[1];output=args.output.resolve();output.mkdir(parents=True,exist_ok=True)
     models=Path(os.environ['LOCALAPPDATA'])/'JARVIS/Desktop/models';records=[]
     for provider,voices in [('supertonic',['M1','M2','M3','M4','M5']),('piper',['ronnie','mls'])]:
         worker=OwnedVoicePipe([str(root/'.local/voice-venv/Scripts/python.exe'),str(root/'desktop-client/voice_worker.py')]);previous_cpu=0.

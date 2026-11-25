@@ -78,19 +78,19 @@ def test_ollama_model_probe_cache_and_stream(settings):
         calls.append(request.url.path)
         assert "authorization" not in request.headers
         if request.url.path == "/api/tags":
-            return httpx.Response(200, json={"models": [{"name": "qwen3:0.6b"}]})
+            return httpx.Response(200, json={"models": [{"name": "qwen2.5:3b"}]})
         body = json.loads(request.content)
-        assert body["model"] == "qwen3:0.6b" and body["reasoning_effort"] == "none"
-        assert body["temperature"] == 0.2
-        assert "think" not in body
-        return response_stream("Lokaal antwoord")
+        assert request.url.path == '/api/chat'
+        assert body["model"] == "qwen2.5:3b" and body['think'] is False
+        assert body['options']=={'temperature':0.2,'num_ctx':8192,'num_predict':settings.max_output_tokens}
+        return httpx.Response(200,text=json.dumps({'message':{'content':'Lokaal antwoord'},'done':True})+'\n')
     async def check():
         provider = TextProvider("ollama", settings, factory(handler))
         assert (await provider.availability())["available"]
         assert (await provider.availability())["available"]
         assert [text async for text in provider.stream([])] == ["Lokaal antwoord"]
     asyncio.run(check())
-    assert calls == ["/api/tags", "/v1/chat/completions"]
+    assert calls == ["/api/tags", "/api/chat"]
 
 
 def test_missing_ollama_model(settings):
@@ -100,6 +100,53 @@ def test_missing_ollama_model(settings):
         with pytest.raises(ProviderError, match="model_missing"):
             _ = [text async for text in provider.stream([])]
     asyncio.run(check())
+
+
+@pytest.mark.parametrize('frames',[
+    ['{bad}'],
+    ['[]'],
+    [json.dumps({'message':{'content':[]},'done':True})],
+    [json.dumps({'message':{'content':'x'},'done':'true'})],
+    [json.dumps({'message':{'content':'x'}})],
+    [json.dumps({'message':{'thinking':'hidden'}})],
+    [json.dumps({'message':{'content':'','tool_calls':[{}]},'done':True})],
+])
+def test_native_ollama_rejects_malformed_or_unfinished_output(settings,frames):
+    def handler(request):
+        if request.url.path=='/api/tags':return httpx.Response(200,json={'models':[{'name':settings.ollama_model}]})
+        return httpx.Response(200,text='\n'.join(frames)+'\n')
+    async def scenario():
+        provider=TextProvider('ollama',settings,factory(handler))
+        with pytest.raises(ProviderError,match='invalid_response'):
+            _=[part async for part in provider.stream([{'role':'user','content':'Hallo'}])]
+    asyncio.run(scenario())
+
+
+def test_native_ollama_context_allocation_tracks_request_and_keeps_roles(settings):
+    from server.ai.policy import RequestPolicy,use_policy
+    from server.natural.models import UserSettings
+    config=UserSettings().model_dump(mode='json')
+    config['ai'].update(context_tokens=10000,maximum_answer_tokens=2048)
+    policy=RequestPolicy.from_document({'revision':1,'settings':config})
+    messages=[{'role':'system','content':'Stijl'},{'role':'user','content':'Eerder'},
+              {'role':'assistant','content':'Reactie'},{'role':'user','content':'Nu'}]
+    def handler(request):
+        if request.url.path=='/api/tags':return httpx.Response(200,json={'models':[{'name':settings.ollama_model}]})
+        body=json.loads(request.content)
+        assert body['messages']==messages and body['options']['num_ctx']==13312
+        assert body['options']['num_predict']==2048 and 'max_tokens' not in body
+        return httpx.Response(200,text=json.dumps({'message':{'content':'Antwoord','thinking':'never spoken'},'done':True})+'\n')
+    async def scenario():
+        with use_policy(policy):
+            provider=TextProvider('ollama',settings,factory(handler))
+            assert [part async for part in provider.stream(messages)]==['Antwoord']
+    asyncio.run(scenario())
+
+
+def test_native_ollama_is_explicit_opt_in_for_shared_transport():
+    transport=OpenAICompatLLM({'base_url':'http://127.0.0.1:11434/v1','model':'example','strict_text':True})
+    assert not transport._ollama_chat
+    assert 'options' not in transport._body([{'role':'user','content':'Hallo'}],None,True,.2)
 
 
 @pytest.mark.parametrize("problem,expected", [(httpx.ReadTimeout, "timeout"), (httpx.ConnectError, "unavailable")])

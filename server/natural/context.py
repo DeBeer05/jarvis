@@ -72,15 +72,15 @@ class ContextManager:
         with self.store.transaction(principal) as (db,user):
             return db.execute("SELECT coalesce(max(id),0) FROM natural_audit WHERE user_id=? AND event LIKE 'memory_%'",(user,)).fetchone()[0]
 
-    def build(self,run,prepared):
+    def build(self,run,prepared,*,notice=""):
         config=prepared["settings"]
         voice=getattr(run,"channel","text")=="voice"
         system=self.bootstrap.system_prompt+("\n"+VOICE_PROMPT if voice else "")
         from server.natural.responses import response_prompt
-        system+=response_prompt(config,run.message,voice)
+        system+=response_prompt(config,run.message,voice)+notice
         notes={"now":datetime.now(ZoneInfo(config["general"]["timezone"])).isoformat(),"timezone":config["general"]["timezone"]}
         notes["assistant_name"]=config["general"]["assistant_name"]
-        if voice:notes["speaking_preferences"]=describe(config["personality"])
+        notes["speaking_preferences"]=describe(config["personality"])
         if config["general"]["address_name"]:notes["preferred_address"]=config["general"]["address_name"]
         if prepared["memories"]:notes["relevant_memories"]=[{k:item[k] for k in ("id","category","kind","content","confidence","updated")} for item in prepared["memories"]]
         if prepared["summary"]:notes["conversation_notes"]=prepared["summary"]["content"]
@@ -124,10 +124,21 @@ class ContextManager:
         older=[row for row in turns if row["sequence"]<=through]
         # Extractive, source-linked, local: no second model call or secret cloud upload.
         lines=[]
-        for row in older[-20:]:
+        for row in older:
             if SENSITIVE.search(row["user_text"]):continue
             lines.append(f"Beurt {row['sequence']}: {row['user_text'][:240]}")
-        content=self.store.clean("\n".join(lines))[:5000]
+        # Preserve opening topics and recent older turns within a bounded source
+        # window. A sliding tail alone lost the beginning of a 50-turn chat.
+        if len("\n".join(lines))>5000:
+            head:list[str]=[];tail:list[str]=[];size=0
+            for line in lines:
+                if size+len(line)+1>2400:break
+                head.append(line);size+=len(line)+1
+            for line in reversed(lines[len(head):]):
+                if size+len(line)+1>4950:break
+                tail.insert(0,line);size+=len(line)+1
+            lines=head+["[Tussenliggende beurten weggelaten]"]+tail
+        content=self.store.clean("\n".join(lines))
         with self.store.transaction(principal,write=True) as (db,user):
             old=db.execute("SELECT * FROM natural_summaries WHERE user_id=? AND conversation_id=?",(user,conversation)).fetchone()
             if old and old["through_sequence"]>=through:return dict(old)

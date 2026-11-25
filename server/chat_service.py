@@ -52,6 +52,7 @@ class Generation:
     persist_history:bool=True
     speech_message:str=""
     response_data:dict|None=field(default=None,repr=False)
+    conversational_reply:bool=False
 
     def public(self) -> dict:
         return {"request_id": self.request_id, "conversation_id": self.conversation_id,
@@ -126,11 +127,13 @@ class ChatService:
             self.persistence_tasks.add(task)
             task.add_done_callback(self.persistence_tasks.discard)
 
-    def context(self, run: Generation) -> list[dict]:
+    def context(self, run: Generation, *, notice="") -> list[dict]:
+        if notice and run.natural_context and self.natural:
+            return self.natural.context.build(run,run.natural_context,notice=notice)[0]
         if run.context_messages is not None:
             return run.context_messages
         # Keep complete user/assistant pairs, newest first within a strict character budget.
-        remaining = self.settings.max_context_chars - len(run.message) - len(self.settings.system_prompt)
+        remaining = self.settings.max_context_chars - len(run.message) - len(self.settings.system_prompt) - len(notice)
         kept = []
         for index in range(len(run.history) - 2, -1, -2):
             pair = run.history[index:index + 2]
@@ -139,7 +142,7 @@ class ChatService:
                 break
             kept[0:0] = pair
             remaining -= size
-        return [{"role": "system", "content": self.store.clean(self.settings.system_prompt)}, *kept,
+        return [{"role": "system", "content": self.store.clean(self.settings.system_prompt+notice)}, *kept,
                 {"role": "user", "content": run.message}]
 
     async def events(self, run: Generation):
@@ -153,10 +156,12 @@ class ChatService:
                 raise GenerationCancelled
             if memory_command:
                 source=self.natural.stream_command(run)
+                tool_route=False
             else:
-                source = self.automation_chat.stream(run) if self.automation_chat and self.automation_chat.candidate(run) else self.router.stream(self.context(run), run.mode)
+                tool_route=bool(self.automation_chat and self.automation_chat.candidate(run))
+                source = self.automation_chat.stream(run) if tool_route else self.router.stream(self.context(run), run.mode)
             if self.natural and run.channel=="voice" and run.natural_context:
-                source=self.natural.responses.stream(run,source,tool=bool(self.automation_chat and self.automation_chat.candidate(run)))
+                source=self.natural.responses.stream(run,source,tool=tool_route)
             async with aclosing(source) as stream:
                 try:
                     async with asyncio.timeout(run.ai_policy.timeout_seconds if run.ai_policy else self.settings.ai_timeout_seconds):

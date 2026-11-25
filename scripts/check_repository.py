@@ -32,6 +32,9 @@ DOCUMENTS = (
     "server/static/security.html", "server/static/security.js",
     "docs/AUTHENTICATION.md", "docs/DEVICE_PAIRING.md", "docs/SECURITY.md",
     "docs/PHASE_3_TEST_REPORT.md",
+    "docs/JARVIS_MASTER_VISION.md", "docs/ARCHITECTURE_REVIEW.md",
+    "docs/USER_EXPERIENCE_REQUIREMENTS.md", "docs/CONVERSATION_ACCEPTANCE_TESTS.md",
+    "docs/EXPERIENCE_IMPROVEMENT_PLAN.md",
 )
 IGNORED_PROBES = (
     ".env", ".env.local", ".env.production", ".env - kopie.example", ".venv/probe", "venv/probe",
@@ -164,7 +167,7 @@ def main() -> int:
         "JARVIS_PROFILE": "desktop-development", "JARVIS_AI_PREFERRED_PROVIDER": "gemini",
         "GROQ_API_KEY": "", "GROQ_MODEL": "openai/gpt-oss-120b",
         "GEMINI_MODEL": "gemini-3.8-flash", "OLLAMA_BASE_URL": "http://127.0.0.1:11434",
-        "OLLAMA_MODEL": "qwen3:0.6b", "JARVIS_SYSTEM_PROMPT_FILE": "config/jarvis-system-prompt.txt",
+        "OLLAMA_MODEL": "qwen2.5:3b", "JARVIS_SYSTEM_PROMPT_FILE": "config/jarvis-system-prompt.txt",
         "JARVIS_AI_TIMEOUT_SECONDS": "60", "JARVIS_PROVIDER_TIMEOUT_SECONDS": "25",
         "JARVIS_AI_MAX_CONCURRENT": "2", "JARVIS_CHAT_MAX_MESSAGE_CHARS": "8000",
         "JARVIS_AI_MAX_CONTEXT_CHARS": "24000", "JARVIS_AI_MAX_OUTPUT_TOKENS": "1024",

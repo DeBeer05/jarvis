@@ -98,7 +98,7 @@ def create_app(
     app.state.mobile_push = {}
     app.state.automation = AutomationEngine(database, security)
     app.state.natural = NaturalService(database,security,chat,app.state.automation)
-    chat.automation_chat = AutomationChat(app.state.automation, security, chat.router, store.clean)
+    chat.automation_chat = AutomationChat(app.state.automation, security, chat.router, store.clean, conversation_context=chat.context)
     chat.automation_chat.task_memory = app.state.natural.tasks
     chat.automation_chat.contacts = app.state.natural.contacts
     chat.automation_chat.response_manager = app.state.natural.responses

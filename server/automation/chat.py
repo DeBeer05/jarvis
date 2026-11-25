@@ -5,6 +5,7 @@ import json
 import re
 import time
 import httpx
+from contextlib import aclosing
 from dataclasses import replace
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -26,14 +27,21 @@ REPLY_STATUS=re.compile(r"\s*(?:heb ik|is er|hebben we)\s+(?:daar\s+)?(?:al\s+)?
 CONTINUE_WRITE = re.compile(r"\s*(?:ja\b|akkoord\b|nee[, ]+toch\b|(?:maak|zet|plan|doe)\s+(?:hem|die|dat|het)\b|(?:morgen|overmorgen|vandaag|maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag|titel|volgende week|aanstaande|komende)\b|(?:van|om|tussen)\s+(?:\d{1,2}|een|twee|drie|vier|vijf|zes|zeven|acht|negen|tien|elf|twaalf|half|kwart)\b|(?:op|voor)\s+(?:\d{1,2}|morgen|overmorgen|vandaag|maandag|dinsdag|woensdag|donderdag|vrijdag|zaterdag|zondag)\b|(?:\d{1,3}|een|twee|drie|vier|anderhalf|een half)\s+(?:uur|uren|minuten?)\b|met\s+(?:titel|onderwerp|tekst|ontvanger)\b|\d{1,2}(?:[:.]|\s))",re.I)
 
 
+# Cheap routing hints, never execution authority. Domain nouns in a story do not
+# justify a planner round. Independent write/permission/approval guards remain.
+REQUEST = re.compile(r"^\s*(?:jarvis[, ]+)?(?:graag\s+)?(?:wat|welk\w*|hoe|wanneer|waar\w*|wie|heb|heeft|is|zijn|kan|kun|wil|zou|mag|lees|toon|laat|zoek|bekijk|vertel|geef|vat|maak|plan|boek|zet|voeg|verzet\w*|verplaats\w*|verschuif\w*|wijzig\w*|verander\w*|annuleer\w*|verwijder\w*|schrap\w*|schrijf\w*|stuur\w*|verstuur\w*|verzend\w*|antwoord\w*|herinner\w*|stop|mail|ik\s+(?:wil|zou\s+graag))\b",re.I)
+DISCUSSION = re.compile(r"^\s*(?:(?:ik|wij|we|hij|zij|ze|dat|dit|het)\s+(?:ben|is|zijn|was|waren|heb|heeft|hebben|had|hadden|vind|vindt|vinden|denk|denkt|denken|voel|voelt|voelen|ga|gaat|gaan)|(?:vandaag|gisteren)\s+(?:ben|was|heb|had|ging)\s+ik)\b",re.I)
+
+
 class AutomationChat:
-    def __init__(self, engine, security, router, clean, *, clock=time.monotonic):
+    def __init__(self, engine, security, router, clean, *, clock=time.monotonic, conversation_context=None):
         self.engine, self.security, self.router, self.clean = engine, security, router, clean
         self.clock = clock
         self.references = {}
         self.approvals = ChatApprovals(self)
         self.task_memory=None
         self.contacts=None
+        self.conversation_context=conversation_context
 
     def key(self, run):
         return (run.principal.session_id, run.principal.device_id, run.conversation_id)
@@ -90,7 +98,13 @@ class AutomationChat:
         if memory.get("pending") and re.match(r"\s*(?:nee[, ]+toch|pas eerst|toch maar|verander)\b",run.message,re.I):return True
         if memory.get("write_question") and (CONTINUE_WRITE.match(run.message) or re.fullmatch(r"\s*(nee|laat maar|annuleer)[.!\s]*",run.message,re.I)):return True
         day_followup=memory.get("recent")==[{"kind":"events"}] and re.fullmatch(r"\s*(?:en\s+)?(?:vandaag|morgen|overmorgen)(?:\s+dan)?\s*[?.!]*",run.message,re.I)
-        return bool(TOPIC.search(run.message) or day_followup or memory.get("read_question") or (REFERENCE.search(run.message) and memory))
+        previous=run.history[-1] if run.history else {}
+        read_question=(memory.get("read_question") or [{}])[0]
+        read_followup=bool(read_question and previous.get("role")=="assistant" and previous.get("content")==read_question.get("question")
+            and not DISCUSSION.match(run.message))
+        routing_text=re.sub(r"^\s*(?:ja|nee|nou|ok[eé])[, ]+","",run.message,flags=re.I)
+        requested=bool(REQUEST.match(routing_text) or run.message.rstrip().endswith('?'))
+        return bool((requested and (TOPIC.search(run.message) or REFERENCE.search(run.message) and memory)) or day_followup or read_followup)
 
     def task_question(self,memory):
         if memory.get("write_question"):return memory["write_question"][0]
@@ -104,6 +118,7 @@ class AutomationChat:
     def slot_answer(self,run,memory):
         question=self.task_question(memory)
         if not question:return False
+        if DISCUSSION.match(run.message):return False
         if CONTINUE_WRITE.match(run.message):return True
         current={tool for tool in TOOLS-READ if self.write_intent(tool,run.message)}
         original={tool for tool in TOOLS-READ if self.write_intent(tool,question["instruction"])}
@@ -275,6 +290,17 @@ class AutomationChat:
         except httpx.TransportError:
             result = "De Google-verbinding is onderbroken. Ik kan je gegevens nu niet betrouwbaar ophalen. Controleer de verbinding en de accountkoppeling."
             provider = None
+        if result is None:
+            # A planner may decline a tool. Rejoin the exact same bounded,
+            # privacy-filtered conversation instead of creating a second persona.
+            run.conversational_reply=True
+            notice='\nIn deze beurt zijn geen nieuwe persoonlijke gegevens opgehaald en geen acties uitgevoerd. Reageer met de bestaande gesprekscontext; benoem ontbrekende actuele gegevens zonder resultaten te verzinnen.'
+            context=self.conversation_context(run,notice=notice) if self.conversation_context else None
+            if context is None:raise ValueError("Conversation context unavailable")
+            async with aclosing(self.router.stream(context,run.mode)) as source:
+                async for event in source:
+                    yield event
+            return
         if provider:
             yield provider
         else:
@@ -383,12 +409,10 @@ class AutomationChat:
             plan, provider = await self.plan(run, observations, completed)
             self.guard(run, "automation:read")
             if plan.get("chat"):
-                if re.search(r"\b(mijn|vandaag|morgen|overmorgen|laatste|eerste|die|deze)\b",run.message,re.I):
-                    return "Ik kan je agenda, e-mails en herinneringen via de gekoppelde functies opvragen. Noem de dag of het bericht dat je wilt bekijken, bijvoorbeeld: ‘Wat staat er morgen in mijn agenda?’.",provider
-                return await self.router.bounded_result([
-                    {"role":"system","content":"Geef algemene uitleg in het Nederlands. In deze beurt zijn geen persoonlijke Google-gegevens opgehaald en geen acties uitgevoerd. Verzin geen persoonlijke afspraken, e-mails of actieresultaten. Je kunt geen tools aanroepen."},
-                    {"role":"user","content":run.message},
-                ],run.mode)
+                if completed:return last_result,provider
+                if run.allowed_tools is not None:
+                    return "Dit onderdeel heeft geen bevestigd toolresultaat; er is niets uitgevoerd.",provider
+                return None,provider
             if "clarification" in plan:
                 if any(self.write_intent(t,run.message) for t in TOOLS-READ):
                     self.remember(run,"write_question",[{"instruction":run.message,"question_hash":fingerprint(self.clean(plan["clarification"]))}])

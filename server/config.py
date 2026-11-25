@@ -39,7 +39,7 @@ class Settings:
     preferred_provider: str = "gemini"
     gemini_model: str = "gemini-3.8-flash"
     ollama_base_url: str = "http://127.0.0.1:11434"
-    ollama_model: str = "qwen3:0.6b"
+    ollama_model: str = "qwen2.5:3b"
     system_prompt: str = field(repr=False, default="")
     ai_timeout_seconds: int = 60
     provider_timeout_seconds: int = 25
@@ -191,7 +191,7 @@ def load_settings(
         preferred_provider=choice("JARVIS_AI_PREFERRED_PROVIDER", "gemini", ("gemini", "groq", "ollama")),
         gemini_model=model("GEMINI_MODEL", "gemini-3.8-flash"),
         ollama_base_url=base_url,
-        ollama_model=model("OLLAMA_MODEL", "qwen3:0.6b"),
+        ollama_model=model("OLLAMA_MODEL", "qwen2.5:3b"),
         system_prompt=prompt,
         ai_timeout_seconds=number("JARVIS_AI_TIMEOUT_SECONDS", "60", 1, 180),
         provider_timeout_seconds=number("JARVIS_PROVIDER_TIMEOUT_SECONDS", "25", 1, 120),

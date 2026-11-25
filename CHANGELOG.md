@@ -4,6 +4,19 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Centrale JARVIS-mastervisie met architectuur-/gapanalyse, ervaringscriteria,
+  gespreksscenario's A–H en verbeterplan; blijvende verwijzingen vanuit AGENTS.
+- Gesprek als standaard bij verhalen met domeinwoorden; oude leesvragen binden
+  aan de laatste vraag. Planner-chat behoudt historie, persoonlijkheid en
+  streaming; geen vaste functie-uitleg of dubbele kandidaatselectie voor voice.
+- Persoonlijkheidswaarden ook voor tekst, situationele basisprompt en begrensde
+  bronnotities die beginonderwerpen van lange gesprekken beter behouden.
+- Headless Ollama gebruikt native Chat met expliciete contextallocatie in de
+  bestaande transportklasse. Desktop-/cloudtransport blijft compatibel. Lokale
+  repositorydefault Qwen2.5:3B; bestaande .env-/modelkeuze niet overschreven.
+- Reproduceerbare lokale gesprek-/audio-/TTS-benchmarks en eerlijk gescheiden
+  technische resultaten, modelbeperkingen en open menselijke acceptatie.
+
 - Korte mailoverzichten noemen de afzender eerst in een natuurlijke gesprekszin.
 - Mailoverzicht standaard in één korte zin, gegroepeerd op afzender en doel met
   aantallen; zonder aparte kop of herhaalde bespreking van vergelijkbare berichten.

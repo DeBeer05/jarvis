@@ -110,6 +110,21 @@ a small built-in fallback — instead of crashing.
 
 ## JARVIS fork: blijvende Codex-projectinstructies (fase 7.5)
 
+### Centrale productvisie en ervaringsacceptatie
+
+Lees vóór gespreks-/architectuurwijzigingen `docs/JARVIS_MASTER_VISION.md`,
+`docs/ARCHITECTURE_REVIEW.md`, `docs/USER_EXPERIENCE_REQUIREMENTS.md`,
+`docs/CONVERSATION_ACCEPTANCE_TESTS.md` en `docs/EXPERIENCE_IMPROVEMENT_PLAN.md`.
+Iedere toekomstige fase houdt rekening met deze visie: natuurlijke gesprekken
+zijn de standaard; bestaande vaardigheden, context en persoonlijkheid vormen
+één ervaring. Hergebruik bestaande managers, voorkom onnodige classificatie- en
+samenvattingsaanroepen, en test volledige gesprekken naast losse functies.
+Technische tests en menselijke luister-/gespreksacceptatie worden afzonderlijk
+gerapporteerd. Een roadmapwens verleent geen nieuwe rechten of fasevrijgave:
+de actuele grens blijft fase 7.5; telefonie, permanente beschikbaarheid en
+mini-pc-migratie vereisen hun eigen vervolgopdracht. Behoud Qwen2.5:3B als lokaal
+uitgangspunt zonder automatische modelvervanging.
+
 Deze aanvullende regels behouden de upstreamrichtlijnen hierboven. De opdracht
 van de gebruiker blijft leidend. Fase 6 is expliciet opgedragen: native Android
 in android/, bestaande server en poort 8765 behouden. Kotlin/Compose/Material3,

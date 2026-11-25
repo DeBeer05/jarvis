@@ -97,6 +97,11 @@ class TextProvider:
         }
         if self.name == "ollama":
             config["think"] = False
+            # The OpenAI endpoint cannot configure Ollama's num_ctx. Reserve
+            # input, output and role overhead explicitly, without changing model.
+            context=policy.context_tokens if policy else 6000
+            output=policy.maximum_answer_tokens if policy else self.settings.max_output_tokens
+            config.update(ollama_chat=True,context_tokens=((context+output+256+1023)//1024)*1024)
         if self.name == "groq":
             config["use_completion_tokens"] = True
             if self.model.startswith("openai/gpt-oss-"):

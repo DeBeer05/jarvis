@@ -2,6 +2,38 @@
 
 ## Huidige opdracht
 
+Master Vision / Experience Overhaul op `feature/jarvis-experience-overhaul`.
+Volledige visie (32 hoofdstukken), architectuurreview/gap analysis, UX-eisen,
+scenario's A–H en geprioriteerd plan vastgelegd; AGENTS verwijst er blijvend naar.
+Eerste incrementele correcties: gesprekroute bij domeinverhalen, gebonden oude
+leesvragen, context-/stijlbehoud en streaming bij planner-chat, één routeselectie,
+persoonlijkheidswaarden ook in tekst, beginonderwerpen in bronnotities behouden.
+Verouderde 'alleen tekst/geen tools'-basisinstructie vervangen door servergrenzen.
+Echte Ollama-proef vond 4096 runtimecontext tegenover 6000 aangeboden inputtokens.
+Headless gebruikt nu opt-in native Chat in het bestaande gedeelde transport met
+expliciete input/output-contextreserve; desktop-/clouddefaults blijven compatibel.
+Qwen2.5:3B behouden en repositorydefault gelijkgetrokken; geen lokale .env gewijzigd.
+Geen nieuw model, framework, SQL-migratie, nieuwe rechten, accounttest of fase 8.
+
+Validatie: volledige serverregressie **465 geslaagd** (184,00 s), inclusief tien
+reeds aanwezige ongestagede gebruikersmailtests; eigen commit sluit die bestanden
+uit. Windows **114 geslaagd**. Gerichte providers/ervaring/mail **67 geslaagd**;
+Ruff/mypy, settingscontract, pip-, repository-/diffchecks geslaagd. Echte lokale
+20/50-beurtproeven, 42 TTS-zinnen, drie STT-WAV's en synthetische STT→AI→eerste
+antwoordzin-PCM uitgevoerd zonder microfoon, playback of gebruikersdatabase.
+Na contextallocatiecorrectie: 50-beurt-beginverwijzing goed en nul exacte
+antwoordduplicaten (eerste 4096-proef: verwijzing fout en 27 duplicaten).
+Nederlands, roltoeschrijving en onnodige vragen blijven onvoldoende voor volledige
+acceptatie. Zie `docs/EXPERIENCE_TEST_REPORT.md` voor alle cijfers en beperkingen.
+De echte Windows-focus-/microfoonacceptatie blijft open. Ook algemene vrije
+gesprek-naar-taakverwijzingen en melding-naar-gesprek zijn nog niet volledig af.
+
+Git: origin/develop gecontroleerd actueel. Fase-7.5-afhankelijkheid staat nog in
+PR25/26; deze branch behoudt PR26-head 3643cb0. Standaardbranchhelper kon niet op
+de twee bestaande gebruikerswijzigingen worden toegepast; geen stash/reset of
+tweede projectroot gebruikt. Publicatie/CI worden afzonderlijk bevestigd; geen
+merge van de afhankelijkheden of main. Stop blijft na fase 7.5.
+
 Aanvullende stijlvoorkeur: afzender meteen noemen, in gespreksvorm. De bestaande
 gevalideerde mailgroepen worden nu geformuleerd als ‘Van [afzender] heeft u ...
 en van [afzender] ... , meneer.’ Geen nieuwe AI-aanroep, rechten of clientbuild.

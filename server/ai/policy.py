@@ -17,6 +17,7 @@ class RequestPolicy:
     temperature: float
     timeout_seconds: float
     streaming: bool = True
+    context_tokens: int = 6000
 
     @classmethod
     def from_document(cls, document):
