@@ -35,3 +35,8 @@
 - Eerstvolgend: cloud-checkpoint/push/PR/CI afronden. Daarna afzonderlijk akkoord
   vragen op concrete Oracle-installatie (deploy/oracle/README.md); persoonlijke
   gegevensmigratie/cutover vereist apart akkoord. Windows blijft lokaal draaien.
+- Cloud-checkpoint 2ecfe39 gepusht; draft PR 31. Bij CI-review YAML-quoting en
+  onderhoudsfence gecorrigeerd naar de echte JARVIS_ENABLE_AUTOMATIONS-instelling;
+  twee contracttests voorkomen dat alleen een gelijknamige mock wordt getest.
+  Gerichte CI-fixronde 14 passed/1 POSIX-skip. Windows process-start-timeouts
+  verruimd na echte runner-timeouts; assertions behouden. Nieuwe CI controleren.

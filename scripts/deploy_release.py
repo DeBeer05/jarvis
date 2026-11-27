@@ -73,7 +73,7 @@ def healthy():
 
 def promote(release,commit):
     settings=dotenv_values(ENV,interpolate=False)
-    if settings.get('JARVIS_AUTOMATIONS_ENABLED')!='false' or settings.get('JARVIS_DATABASE_PATH')!=str(DATA):raise ValueError('Maintenance fence and standard data path required')
+    if settings.get('JARVIS_ENABLE_AUTOMATIONS')!='false' or settings.get('JARVIS_DATABASE_PATH')!=str(DATA):raise ValueError('Maintenance fence and standard data path required')
     current=BASE/'current';old=current.resolve(strict=True)
     if old==release:raise ValueError('Release is already active')
     run('runuser','-u','jarvis','--',str(release/'.venv/bin/python'),'-m','pip','check')

@@ -26,3 +26,8 @@
 Nog geen bewijs van echte Oracle-inferencelatentie, publiek TLS/renewal,
 systemd/Caddy-configvalidatie of persoonlijke restore/cutover. Daarvoor is eerst
 de afzonderlijke installatietoestemming vereist. Plan: deploy/oracle/README.md.
+
+CI-review: workflow-YAML gecorrigeerd; onderhoudsfence expliciet tegen echte
+backendconfiguratie en het deploymenttemplate getest. 14 gerichte tests passed,
+1 POSIX-skip. Windows-runner had eerder vijf subprocess-start-timeouts;
+opstartdeadline verruimd zonder assertions te veranderen. Nieuwe CI afwachten.

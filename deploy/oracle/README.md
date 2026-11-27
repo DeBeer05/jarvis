@@ -106,7 +106,7 @@ en een bewuste nieuwe eigenaarstoestemming. Dit is nog niet uitgevoerd.
    Valideer `systemd-analyze verify`, `caddy validate`, pip check, lokale health
    en echte CPU-inference. Qwen-download alleen na akkoord op omvang (circa
    2 GB); behoud Qwen2.5:3B. Meet latentie en RAM; geen snelheid claimen vooraf.
-4. Eerst synthetische testdatabase en `AUTOMATIONS_ENABLED=false`. Open pas
+4. Eerst synthetische testdatabase en `JARVIS_ENABLE_AUTOMATIONS=false`. Open pas
    afgesproken 80/443, test geldig TLS/certificaatvernieuwing, login/pairing,
    autorisaties, spraak/cancel en externe afwijzing van interne endpoints.
 5. Voor persoonlijke cutover: stop lokale planner/server, maak finale consistente

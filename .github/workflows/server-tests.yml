@@ -12,7 +12,7 @@ jobs:
   server-tests:
     name: Server tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -42,7 +42,8 @@ jobs:
         run: ${{ matrix.python }} -m pip check
       - name: Verify ARM64 inference wheels without downloading models
         if: matrix.os == 'ubuntu-24.04-arm'
-        run: ${{ matrix.python }} -m pip install --dry-run --ignore-installed --only-binary=:all: -r requirements-voice-server.txt
+        run: >-
+          ${{ matrix.python }} -m pip install --dry-run --ignore-installed --only-binary=:all: -r requirements-voice-server.txt
       - name: Lint and type-check natural conversation
         run: ${{ matrix.python }} scripts/check_natural_quality.py
       - name: Validate Android settings contract
