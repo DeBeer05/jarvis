@@ -21,15 +21,15 @@ OPEN_TASKS=re.compile(r"(?:jarvis[, ]+)?(?:welke taken staan (?:er )?nog open|wa
 
 class NaturalService:
     def __init__(self,database,security,chat,automation):
+        self.security,self.chat,self.automation=security,chat,automation
         self.store=NaturalStore(database,security,chat.store.clean)
         self.settings=SettingsManager(self.store)
         self.memory=MemoryManager(self.store)
         from server.natural.tts import TTSRouter
-        self.tts=TTSRouter()
+        self.tts=TTSRouter(self)
         self.responses=IntelligentResponseManager(self)
         from server.natural.contacts import ContactManager
         self.contacts=ContactManager(self.store)
-        self.security,self.chat,self.automation=security,chat,automation
         self.conversations=NaturalConversationManager(self.store,self.settings,chat)
         self.context=ContextManager(self.store,self.settings,self.memory,chat.settings,self.responses)
         self.tasks=TaskMemory(self.store,self.settings,automation)

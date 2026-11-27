@@ -2,6 +2,28 @@
 
 ## Huidige opdracht
 
+### ElevenLabs premium stem en Oracle-voorbereiding
+
+Vervolgopdracht 25 november: `feature/elevenlabs-voice`, gestapeld op de actuele
+planningbranch c320d7a/PR 30 omdat develop de fase-7.5-basis nog niet bevat.
+Origin gecontroleerd; eigenaarmaildiffs blijven buiten de wijziging, zonder
+stash/reset. Nieuwe opdracht autoriseert ElevenLabs en read-only Oracle-inspectie/
+ARM64-voorbereiding; §15/§16 vereisen goedkeuring vóór remote installatie en
+productiemigratie. Die specifieke grens staat ook in AGENTS.md.
+
+TTS-router, instellingen, zinsstreaming en native clients hergebruikt. Sleutel
+via DPAPI buiten het project. De gekozen ontworpen stem is via de echte beveiligde
+backendroute getest en door de eigenaar beluisterd/bevestigd: 73 tekens, 3,854 s
+audio, 4,247 s tot volledige ontvangst, fallback uit. 33 gerichte/63 bredere
+serverregressies, 128 clienttests en native builds geslaagd. Volledige reeks en
+remote CI volgen apart. Zie ELEVENLABS_VOICE.md en ELEVENLABS_TEST_REPORT.md.
+
+SSH-inspectie zonder hostwijzigingen: 2 OCPU, 12 GB RAM volgens IMDSv2, ARM64
+Ubuntu 24.04.5, Python 3.12.3, circa 49 GB vrij, geen swap/Ollama/reverse proxy.
+SSH-sleutel niet gekopieerd of rechten aangepast. Cloudconfiguratie, backups en
+cutover worden afzonderlijk voorbereid. Geen productie, betaalde dienst, extra
+cloudresource of telefonie geactiveerd.
+
 ### Natuurlijke activiteitenplanning — 25 november 2026
 
 Actieve branch `feature/natural-activity-planning`, gestapeld op

@@ -251,3 +251,31 @@ De structuurcheck is geen applicatietest.
 Voer tests niet uit als ze apps, accounts of installaties activeren buiten de opdracht.
 Controleer push en CI in de remote repository en rapporteer blokkades eerlijk.
 Leg resterende stappen en de fasegrens vast in DEVELOPMENT_PROGRESS.md.
+
+## Expliciete vervolgopdracht 25 november 2026: premium stem en Oracle
+
+De eigenaar heeft ElevenLabs uitsluitend voor TTS opgedragen: backend-only
+sleutel, instelbare kostenlimieten, lokale privacy/fallback, bestaande managers.
+Dit vervangt voor deze opdracht het eerdere verbod op online TTS. Geen cloning,
+ElevenAgents, abonnement of extra credits aanschaffen. Tests gebruiken mocks;
+echte proefspraak alleen begrensd binnen de opdracht. Sleutels nooit in chat,
+Git, clientinstellingen of logs. Windows gebruikt DPAPI buiten het project.
+
+Oracle ARM64-compatibiliteit, read-only SSH-inspectie en concrete veilige
+deployment-/migratievoorbereiding zijn expliciet opgedragen. De opdracht §15/§16
+vereist afzonderlijke goedkeuring vóór remote software-installatie en de echte
+productiemigratie. Tot die goedkeuring geen installatie, service-/firewall-/DNS-
+wijziging, gegevensoverdracht of cutover. Behoud intern 8765 en 11434, nooit
+rechtstreeks publiek publiceren. Geen nieuwe telefonie, training, betaalde
+Oracle-resources of accountupgrade. De lokale installatie blijft behouden.
+
+## Efficiënt hervatten
+
+Lees eerst `docs/PROGRESS.md` en de actuele sectie van DEVELOPMENT_PROGRESS.md.
+Hergebruik analyses, testlogs en werkende componenten. Zoek gericht met rg; lees
+alleen relevante bestanddelen en houd outputs/documentatie compact. Geen brede
+heranalyse, onnodige refactor, retries of nieuwe branches. Gebruik gerichte tests
+tijdens ontwikkeling en volledige relevante regressie vóór afronding. Geen
+subagents zonder concrete efficiëntiewinst en expliciete toepasselijke opdracht.
+Werk docs/PROGRESS.md na iedere belangrijke afgeronde stap bij met testbewijs,
+resterende blokkades en eerstvolgende actie; bewaar logische Git-checkpoints.

@@ -32,6 +32,8 @@ class Settings:
     ai_provider: str
     gemini_api_key: str = field(repr=False, default="")
     groq_api_key: str = field(repr=False, default="")
+    elevenlabs_api_key: str = field(repr=False, default="")
+    elevenlabs_voice_id: str = ""
     groq_model: str = "openai/gpt-oss-120b"
     google_client_file: str = field(repr=False, default="")
     automations_enabled: bool = True
@@ -171,6 +173,14 @@ def load_settings(
     refresh_seconds = number("JARVIS_REFRESH_SECONDS", "604800", 3600, 2592000)
     if refresh_seconds > session_seconds:
         raise ConfigurationError("JARVIS_REFRESH_SECONDS exceeds JARVIS_SESSION_SECONDS")
+    elevenlabs_key=text('ELEVENLABS_API_KEY','')
+    elevenlabs_file=text('ELEVENLABS_API_KEY_FILE','')
+    elevenlabs_voice=text('ELEVENLABS_VOICE_ID','')
+    if not re.fullmatch(r'[A-Za-z0-9_-]{0,64}',elevenlabs_voice):raise ConfigurationError('Invalid ELEVENLABS_VOICE_ID')
+    if not elevenlabs_key and elevenlabs_file:
+        from server.voice_secrets import read_secret
+        try:elevenlabs_key=read_secret(elevenlabs_file)
+        except (ValueError,OSError,UnicodeError):raise ConfigurationError('Cannot load protected ELEVENLABS_API_KEY_FILE') from None
     return Settings(
         environment=choice("JARVIS_ENV", "production" if mini else "development", ("development", "production")),
         automations_enabled=automations_enabled,
@@ -186,6 +196,8 @@ def load_settings(
         ai_provider="auto" if provider == "none" else provider,
         gemini_api_key=text("GEMINI_API_KEY", ""),
         groq_api_key=text("GROQ_API_KEY", ""),
+        elevenlabs_api_key=elevenlabs_key,
+        elevenlabs_voice_id=elevenlabs_voice,
         groq_model=model("GROQ_MODEL", "openai/gpt-oss-120b"),
         profile=profile,
         preferred_provider=choice("JARVIS_AI_PREFERRED_PROVIDER", "gemini", ("gemini", "groq", "ollama")),

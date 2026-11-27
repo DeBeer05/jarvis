@@ -133,6 +133,7 @@ class Speak(BaseModel):
 @router.post("/speech/synthesize", dependencies=[Depends(require_permission("chat:read"))])
 async def synthesize(request: Request, body: Speak):
     started=time.perf_counter()
+    request.app.state.natural.tts.validate_text(body.text)
     principal = request.state.principal
     await asyncio.to_thread(request.app.state.security.store.rate, "mobile-tts:" + principal.device_id, 60)
     preferences=await audio_preferences(request)

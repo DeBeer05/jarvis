@@ -25,6 +25,7 @@ class RequestPolicy:
         if not document["revision"]:
             return None
         values = document["settings"]["ai"]
+        if document['settings'].get('voice',{}).get('mode')=='offline':values={**values,'offline':True}
         return cls(**{name: values[name] for name in cls.__dataclass_fields__})
 
     def order(self, mode, preferred):

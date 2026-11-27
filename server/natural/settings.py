@@ -9,7 +9,7 @@ CATEGORIES={
     "planning":"Uitjes en planning",
     "responses":"Antwoordgedrag",
     "general":"Algemeen", "conversations":"Gesprekken", "listening":"Luisteren",
-    "voice":"Stem en audio", "personality":"Persoonlijkheid", "ai":"AI en prestaties",
+    "voice":"Spraak en stem", "personality":"Persoonlijkheid", "ai":"AI en prestaties",
     "memory":"Geheugen", "calendar":"Agenda", "tasks":"Taken en automatiseringen",
     "autonomy":"Zelfstandigheid en machtigingen", "notifications":"Meldingen",
     "privacy":"Privacy", "diagnostics":"Diagnostiek",
@@ -57,11 +57,14 @@ class SettingsManager:
                 for key,value in PROFILES[personality["profile"]][1].items():
                     if personality[key]==previous["personality"][key]:personality[key]=value
             before=previous["voice"];voice=validated["voice"];available=voice_capabilities()
+            premium=voice['mode'] not in ('local','offline') and (voice['mode'] in ('premium','budget') or voice['tts_provider']=='elevenlabs')
+            if premium and voice['elevenlabs_model'] in ('eleven_flash_v2_5','eleven_multilingual_v2'):voice['speed']=min(1.2,voice['speed'])
+            if premium and voice['elevenlabs_model'].startswith('eleven_v3'):voice['elevenlabs_stability']=min((0.,.5,1.),key=lambda value:abs(value-voice['elevenlabs_stability']))
             from server.natural.tts import PROFILES as VOICE_PROFILES
             if voice["profile"]!=before["profile"]:
                 for key,value in VOICE_PROFILES[voice["profile"]].items():
                     if voice[key]==before[key]:voice[key]=value
-            if voice["mode"]=="manual" and voice["tts_provider"] not in available.get("tts_providers",["piper"]):raise ValueError("Spraakprovider niet geïnstalleerd")
+            if voice["mode"]=="manual" and voice["tts_provider"]!='elevenlabs' and voice["tts_provider"] not in available.get("tts_providers",["piper"]):raise ValueError("Spraakprovider niet geïnstalleerd")
             for key,choices in (("whisper_model",available["whisper_models"]),("voice",available["voices"])):
                 if voice[key]!=before[key] and not choices.get(voice[key],False):raise ValueError("Kies een geïnstalleerd spraakmodel of stemprofiel")
         payload=self.store.safe_content(encode(validated));device=principal.device_id if scope=="device" else ""
@@ -104,6 +107,16 @@ class SettingsManager:
         from server.natural.labels import LABELS,VALUES
         from server.natural.capabilities import voice_capabilities
         capabilities=voice_capabilities();user=UserSettings.model_json_schema()
+        from server.natural.elevenlabs import CONTROLS,MODELS
+        fields=user['$defs']['Voice']['properties']
+        for name,field in fields.items():
+            field['title']=LABELS.get(name,field.get('title',name))
+            if name.startswith('elevenlabs_'):field['x-voice-visible']={'premium':True}
+            if name in ('voice','speaker','supertonic_voice','steps','pause_ms'):field['x-voice-visible']={'premium':False}
+        for name in ('elevenlabs_stability','elevenlabs_similarity','elevenlabs_style','elevenlabs_speaker_boost'):
+            fields[name]['x-voice-visible']['models']=[model for model in MODELS if name in CONTROLS[model]]
+        fields['speed']['x-voice-visible']={'speed_models':[model for model in MODELS if 'speed' in CONTROLS[model]]}
+        fields['elevenlabs_model']['x-voice-visible']['exclude_modes']=['budget']
         for key,field in user['$defs']['ActivityPlanning']['properties'].items():
             field['title']=LABELS.get(key,field.get('title',key))
         for key,choices in (("whisper_model",capabilities["whisper_models"]),("voice",capabilities["voices"])):

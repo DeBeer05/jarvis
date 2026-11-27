@@ -7,7 +7,7 @@
       "general": "Algemeen",
       "conversations": "Gesprekken",
       "listening": "Luisteren",
-      "voice": "Stem en audio",
+      "voice": "Spraak en stem",
       "personality": "Persoonlijkheid",
       "ai": "AI en prestaties",
       "memory": "Geheugen",
@@ -20,6 +20,16 @@
     },
     "labels": {
       "actions": "Regels per actie",
+      "elevenlabs_voice_id": "ElevenLabs Voice ID (leeg = backendstandaard)",
+      "elevenlabs_model": "ElevenLabs-model",
+      "elevenlabs_stability": "Stabiliteit",
+      "elevenlabs_similarity": "Stemgelijkenis",
+      "elevenlabs_style": "Stijloverdrijving",
+      "elevenlabs_speaker_boost": "Speaker Boost",
+      "elevenlabs_daily_limit": "Daglimiet gereserveerde credits (schatting; 0 = uit)",
+      "elevenlabs_monthly_limit": "Maandlimiet gereserveerde credits (schatting; 0 = uit)",
+      "elevenlabs_warning_percent": "Waarschuwing vanaf verbruik (%)",
+      "elevenlabs_sensitive_local": "Gevoelige tekst uitsluitend lokaal uitspreken",
       "planning": "Uitjes en planning",
       "default_budget": "Voorlopig totaalbudget (0 = onbekend)",
       "maximum_distance_km": "Maximale reisafstand (km)",
@@ -32,7 +42,6 @@
       "include_travel": "Bekende reistijd meenemen",
       "calculate_costs": "Bekende kosten optellen",
       "suggest_restaurants": "Eten als aanvulling voorstellen",
-      "initiative": "Initiatief",
       "questions": "Voorkeur voor verduidelijkingsvragen",
       "automatic_reminders": "Agendaherinnering bij goedgekeurde afspraak",
       "communication": "Berichten voorbereiden",
@@ -79,6 +88,7 @@
       "history": "Gespreksgeschiedenis",
       "history_days": "Gesprekken bewaren (dagen)",
       "humor": "Humor",
+      "initiative": "Initiatief",
       "latency": "Latency meten",
       "listening": "Luisteren",
       "long_term": "Langetermijngeheugen",
@@ -1293,7 +1303,7 @@
             "stt_provider": {
               "const": "whisper",
               "default": "whisper",
-              "title": "Stt Provider",
+              "title": "Spraakherkenning",
               "type": "string"
             },
             "whisper_model": {
@@ -1303,7 +1313,7 @@
                 "whisper-base",
                 "whisper-tiny"
               ],
-              "title": "Whisper Model",
+              "title": "Whisper-model",
               "type": "string",
               "x-unavailable": [
                 "whisper-base",
@@ -1315,9 +1325,10 @@
               "enum": [
                 "auto",
                 "piper",
-                "supertonic"
+                "supertonic",
+                "elevenlabs"
               ],
-              "title": "Tts Provider",
+              "title": "Spraakuitvoer",
               "type": "string",
               "x-unavailable": [
                 "supertonic"
@@ -1330,10 +1341,133 @@
                 "quality",
                 "fast",
                 "offline",
-                "manual"
+                "manual",
+                "premium",
+                "budget",
+                "local"
               ],
-              "title": "Mode",
+              "title": "Standaardmodus",
               "type": "string"
+            },
+            "elevenlabs_voice_id": {
+              "default": "",
+              "pattern": "^[A-Za-z0-9_-]{0,64}$",
+              "title": "ElevenLabs Voice ID (leeg = backendstandaard)",
+              "type": "string",
+              "x-voice-visible": {
+                "premium": true
+              }
+            },
+            "elevenlabs_model": {
+              "default": "eleven_flash_v2_5",
+              "enum": [
+                "eleven_flash_v2_5",
+                "eleven_multilingual_v2",
+                "eleven_v3",
+                "eleven_v4",
+                "eleven_v4_turbo",
+                "eleven_v3_conversational"
+              ],
+              "title": "ElevenLabs-model",
+              "type": "string",
+              "x-voice-visible": {
+                "premium": true,
+                "exclude_modes": [
+                  "budget"
+                ]
+              }
+            },
+            "elevenlabs_stability": {
+              "default": 0.5,
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Stabiliteit",
+              "type": "number",
+              "x-voice-visible": {
+                "premium": true,
+                "models": [
+                  "eleven_flash_v2_5",
+                  "eleven_multilingual_v2",
+                  "eleven_v3",
+                  "eleven_v3_conversational"
+                ]
+              }
+            },
+            "elevenlabs_similarity": {
+              "default": 0.75,
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Stemgelijkenis",
+              "type": "number",
+              "x-voice-visible": {
+                "premium": true,
+                "models": [
+                  "eleven_flash_v2_5",
+                  "eleven_multilingual_v2"
+                ]
+              }
+            },
+            "elevenlabs_style": {
+              "default": 0,
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Stijloverdrijving",
+              "type": "number",
+              "x-voice-visible": {
+                "premium": true,
+                "models": [
+                  "eleven_multilingual_v2"
+                ]
+              }
+            },
+            "elevenlabs_speaker_boost": {
+              "default": true,
+              "title": "Speaker Boost",
+              "type": "boolean",
+              "x-voice-visible": {
+                "premium": true,
+                "models": [
+                  "eleven_multilingual_v2"
+                ]
+              }
+            },
+            "elevenlabs_daily_limit": {
+              "default": 2000,
+              "maximum": 1000000,
+              "minimum": 0,
+              "title": "Daglimiet gereserveerde credits (schatting; 0 = uit)",
+              "type": "integer",
+              "x-voice-visible": {
+                "premium": true
+              }
+            },
+            "elevenlabs_monthly_limit": {
+              "default": 10000,
+              "maximum": 10000000,
+              "minimum": 0,
+              "title": "Maandlimiet gereserveerde credits (schatting; 0 = uit)",
+              "type": "integer",
+              "x-voice-visible": {
+                "premium": true
+              }
+            },
+            "elevenlabs_warning_percent": {
+              "default": 80,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Waarschuwing vanaf verbruik (%)",
+              "type": "integer",
+              "x-voice-visible": {
+                "premium": true
+              }
+            },
+            "elevenlabs_sensitive_local": {
+              "default": true,
+              "title": "Gevoelige tekst uitsluitend lokaal uitspreken",
+              "type": "boolean",
+              "x-voice-visible": {
+                "premium": true
+              }
             },
             "profile": {
               "default": "classic_butler",
@@ -1347,7 +1481,7 @@
                 "fast",
                 "custom"
               ],
-              "title": "Profile",
+              "title": "Profiel",
               "type": "string"
             },
             "supertonic_voice": {
@@ -1359,8 +1493,11 @@
                 "M4",
                 "M5"
               ],
-              "title": "Supertonic Voice",
+              "title": "Supertonic-mannenstem",
               "type": "string",
+              "x-voice-visible": {
+                "premium": false
+              },
               "x-unavailable": [
                 "M1",
                 "M2",
@@ -1374,18 +1511,24 @@
               "maximum": 12,
               "minimum": 2,
               "title": "Supertonic kwaliteitsstappen",
-              "type": "integer"
+              "type": "integer",
+              "x-voice-visible": {
+                "premium": false
+              }
             },
             "pause_ms": {
               "default": 180,
               "maximum": 1000,
               "minimum": 0,
               "title": "Pauze tussen tekstblokken (ms)",
-              "type": "integer"
+              "type": "integer",
+              "x-voice-visible": {
+                "premium": false
+              }
             },
             "fallback": {
               "default": true,
-              "title": "Fallback",
+              "title": "Fallback-provider",
               "type": "boolean"
             },
             "voice": {
@@ -1394,8 +1537,11 @@
                 "ronnie",
                 "mls"
               ],
-              "title": "Voice",
+              "title": "Stemprofiel",
               "type": "string",
+              "x-voice-visible": {
+                "premium": false
+              },
               "x-unavailable": []
             },
             "speaker": {
@@ -1403,14 +1549,23 @@
               "maximum": 51,
               "minimum": 0,
               "title": "Piper-stemnummer (MLS 0–51)",
-              "type": "integer"
+              "type": "integer",
+              "x-voice-visible": {
+                "premium": false
+              }
             },
             "speed": {
               "default": 1,
               "maximum": 1.5,
               "minimum": 0.7,
               "title": "Spreeksnelheid",
-              "type": "number"
+              "type": "number",
+              "x-voice-visible": {
+                "speed_models": [
+                  "eleven_flash_v2_5",
+                  "eleven_multilingual_v2"
+                ]
+              }
             },
             "volume": {
               "default": 0.8,
@@ -1423,7 +1578,7 @@
               "default": 120,
               "maximum": 1000,
               "minimum": 40,
-              "title": "Buffer Ms",
+              "title": "Audiobuffer (ms)",
               "type": "integer"
             },
             "streaming": {
@@ -1438,19 +1593,19 @@
                 "cpu",
                 "cuda"
               ],
-              "title": "Processing",
+              "title": "Audioverwerking",
               "type": "string"
             },
             "cache": {
               "default": true,
-              "title": "Cache",
+              "title": "Audiocache",
               "type": "boolean"
             },
             "unload_after_seconds": {
               "default": 300,
               "maximum": 3600,
               "minimum": 30,
-              "title": "Unload After Seconds",
+              "title": "Ongebruikte modellen vrijgeven na (s)",
               "type": "integer"
             }
           },
@@ -1670,6 +1825,16 @@
         "whisper_model": "whisper-small",
         "tts_provider": "auto",
         "mode": "automatic",
+        "elevenlabs_voice_id": "",
+        "elevenlabs_model": "eleven_flash_v2_5",
+        "elevenlabs_stability": 0.5,
+        "elevenlabs_similarity": 0.75,
+        "elevenlabs_style": 0.0,
+        "elevenlabs_speaker_boost": true,
+        "elevenlabs_daily_limit": 2000,
+        "elevenlabs_monthly_limit": 10000,
+        "elevenlabs_warning_percent": 80,
+        "elevenlabs_sensitive_local": true,
         "profile": "classic_butler",
         "supertonic_voice": "M1",
         "steps": 8,

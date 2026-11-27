@@ -158,6 +158,7 @@ def main() -> int:
 
     example = ROOT / ".env.example"
     expected = {
+        'ELEVENLABS_API_KEY':'','ELEVENLABS_API_KEY_FILE':'','ELEVENLABS_VOICE_ID':'',
         "JARVIS_PHASE": "7", "JARVIS_ENV": "development", "JARVIS_HOST": "127.0.0.1",
         "JARVIS_PORT": "8765", "JARVIS_LOG_LEVEL": "info",
         "JARVIS_LOG_PATH": ".local/logs/server.log", "JARVIS_LOG_MAX_BYTES": "1048576",
