@@ -106,9 +106,10 @@ def test_cancel_closes_upstream_and_keeps_conservative_credit_reservation(premiu
     principal=app.state.security.store.authenticate(c.cookies.get('jarvis_access'))
     config=c.get('/api/v1/natural/settings').json()['settings']
     request=SimpleNamespace(state=SimpleNamespace(principal=principal))
-    closed=[]
+    closed=[];stream_state={}
     class Hanging(httpx.AsyncByteStream):
         async def __aiter__(self):
+            stream_state['started'].set()
             yield PCM
             await asyncio.Event().wait()
         async def aclose(self):closed.append(True)
@@ -125,12 +126,14 @@ def test_cancel_closes_upstream_and_keeps_conservative_credit_reservation(premiu
         provider.client_factory=factory
         async def metadata(**kwargs):return provider.metadata
         provider.inspect=metadata
+        started=asyncio.Event();stream_state['started']=started
         task=asyncio.create_task(provider.synthesize(request,'Annuleerbare tekst.',config['voice'],config))
-        for _ in range(100):
-            if provider.usage.usage(principal,config)['monthly_reserved_credits']:break
-            await asyncio.sleep(.01)
-        await asyncio.sleep(.02);task.cancel()
-        with pytest.raises(asyncio.CancelledError):await task
+        try:
+            # Reservation precedes HTTP: wait for an actual open stream, not a timer.
+            await asyncio.wait_for(started.wait(),timeout=15)
+        finally:
+            task.cancel()
+            with pytest.raises(asyncio.CancelledError):await task
     c.portal.call(scenario)
     assert closed and provider.usage.usage(principal,config)['monthly_reserved_credits']==len('Annuleerbare tekst.')
     provider.client_factory=original

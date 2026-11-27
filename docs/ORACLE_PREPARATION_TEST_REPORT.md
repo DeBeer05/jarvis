@@ -37,5 +37,7 @@ Functioneel checkpoint **afd9586** heeft geslaagde PR-controles voor Windows-,
 Linux- en ARM64-server, Windows-client, Android en repositorystructuur:
 [PR 31](https://github.com/DeBeer05/jarvis/pull/31),
 [server-CI](https://github.com/DeBeer05/jarvis/actions/runs/46016459643).
-Een dubbele push-run had nog een Windows-job lopen bij de laatste snapshot.
-De afsluitende wijziging betreft uitsluitend voortgangsdocumentatie.
+Een dubbele push-run vond daarna een timingaanname in de annuleringsmock: de
+test annuleerde soms vóór de HTTP-stream was geopend. Expliciete event-
+synchronisatie vervangt de wachttijd; sluitings-/kostenasserties zijn behouden.
+Geen productiecode gewijzigd; nieuwe CI controleert de deterministische test.

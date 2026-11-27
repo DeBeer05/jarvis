@@ -41,4 +41,6 @@
   twee contracttests voorkomen dat alleen een gelijknamige mock wordt getest.
   Gerichte CI-fixronde 14 passed/1 POSIX-skip. Windows process-start-timeouts
   verruimd na echte runner-timeouts; assertions behouden. PR-CI nu geslaagd;
-  dubbele push-run had nog een Windows-job lopen bij de laatste snapshot.
+  dubbele push-run vond daarna een timingaanname in de annuleringsmock: reservering
+  is nog geen geopende HTTP-stream. Test wacht nu op een echt stream-start-event;
+  sluiting en kostenasserties blijven behouden. Geen productiecode gewijzigd.
