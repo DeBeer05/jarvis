@@ -34,6 +34,10 @@ def tools_chat(settings):
     with client_for(app) as client:
         app.state.security.store.create_owner("owner",owner_hash());assert login(client).status_code==200
         client.portal.call(app.state.automation.scheduler.stop)
+        # This suite exercises explicit preview/approval policy. The direct
+        # personal-calendar contract is covered separately in test_calendar_dialogue.
+        document=client.get('/api/v1/natural/settings').json()
+        assert client.patch('/api/v1/natural/settings/autonomy',json={'revision':document['revision'],'changes':{'actions':{'CalendarCreate':'ask','CalendarUpdate':'ask'}}}).status_code==200
         yield app,client,router
 
 
@@ -156,7 +160,6 @@ def test_native_device_must_have_separately_granted_automation_permissions(tools
 
 def test_permission_revoked_during_planning_prevents_read(tools_chat):
     app,c,router=tools_chat;called=[]
-    original=router.bounded_result
     async def plan(messages,mode=None):
         with app.state.automation.store.db(True) as db:db.execute("DELETE FROM auth_permissions WHERE permission='automation:read'")
         return json.dumps(calendar_plan()),None
@@ -430,7 +433,7 @@ def test_chat_approves_exact_shown_calendar_and_executes_once(tools_chat):
     answer=call(c,"Goedkeuren",shown["conversation_id"]).json();background.result(timeout=5)
     assert "afspraak is aangemaakt" in answer["message"] and calls==[row["id"]]
     again=call(c,"Goedkeuren",shown["conversation_id"]).json()
-    assert calls==[row["id"]] and app.state.automation.store.get(row["id"])["status"]=="completed"
+    assert again['status']=='completed' and calls==[row["id"]] and app.state.automation.store.get(row["id"])["status"]=="completed"
     assert "afspraak is aangemaakt" in call(c,"Wat is de status van het voorstel?",shown["conversation_id"]).json()["message"]
 
 
@@ -459,13 +462,15 @@ def test_changed_or_old_preview_is_shown_again_before_decision(tools_chat):
     assert "Zeg ‘ja’" in expired["message"] and app.state.automation.store.get(row["id"])["status"]=="approval"
 
 
-def test_intervening_chat_and_other_conversation_do_not_approve_unseen_proposal(tools_chat):
+def test_intervening_chat_keeps_bound_action_but_other_conversation_cannot_approve(tools_chat):
     app,c,router=tools_chat;shown,row=create_proposal(tools_chat)
     call(c,"Hallo",shown["conversation_id"])
-    refreshed=call(c,"Goedkeuren",shown["conversation_id"]).json()
-    assert "Voorstel-ID" in refreshed["message"] and app.state.automation.store.get(row["id"])["status"]=="approval"
     other=call(c,"Goedkeuren").json()
     assert "Voorstel-ID" in other["message"] and app.state.automation.store.get(row["id"])["status"]=="approval"
+    calls=[];background=complete_after_decision(app,c,row,calls)
+    app.state.chat.automation_chat.references.clear()
+    result=call(c,'Ja',shown['conversation_id']).json();background.result(timeout=5)
+    assert 'aangemaakt' in result['message'] and calls==[row['id']]
 
 
 def test_cancelled_preview_is_not_treated_as_fully_seen(tools_chat):
@@ -504,11 +509,11 @@ def test_write_clarification_keeps_original_user_task_and_can_be_cancelled(tools
     first=call(c,"Maak een afspraak in mijn agenda met titel test").json()
     router.plans=[{"tool":"CalendarCreate","input":{"summary":"test","start":"2030-01-01T11:00:00+01:00","end":"2030-01-01T12:00:00+01:00"}}]
     second=call(c,"Maak hem op 1 januari 2030 van 11 tot 12",first["conversation_id"]).json()
-    assert "wijzigingsvoorstel" in second["message"] and "Maak een afspraak" in router.planning_calls[-1][0][1]["content"]
+    assert "wijzigingsvoorstel" in second["message"] and not router.planning_calls
     assert app.state.automation.store.items()[0]["status"]=="approval"
     router.plans=[{"clarification":"Wanneer?"}]
     another=call(c,"Maak een afspraak in mijn agenda").json()
-    assert "gestopt" in call(c,"Laat maar",another["conversation_id"]).json()["message"]
+    assert "niets ingepland" in call(c,"Laat maar",another["conversation_id"]).json()["message"]
     assert len(app.state.automation.store.items())==1
 
 
@@ -517,14 +522,14 @@ def test_unrelated_turn_cannot_revive_an_old_write_clarification(tools_chat):
     first=call(c,"Maak een afspraak in mijn agenda").json()
     call(c,"Hallo",first["conversation_id"])
     result=call(c,"Ja",first["conversation_id"]).json()
-    assert "Herhaal de volledige" in result["message"] and not app.state.automation.store.items()
+    assert "datum en begintijd" in result["message"] and not app.state.automation.store.items()
 
 
 def test_model_cannot_invent_missing_calendar_times(tools_chat):
     app,c,router=tools_chat
     router.plans=[{"tool":"CalendarCreate","input":{"summary":"test","start":"2030-01-01T11:00:00+01:00","end":"2030-01-01T12:00:00+01:00"}}]
     result=call(c,"Maak een afspraak in mijn agenda met titel test").json()
-    assert "van hoe laat" in result["message"] and not app.state.automation.store.items()
+    assert "hoe laat begint" in result["message"] and not app.state.automation.store.items()
 
 
 def test_natural_appointment_preview_correction_replaces_unapproved_proposal(tools_chat):
@@ -540,8 +545,8 @@ def test_natural_appointment_preview_correction_replaces_unapproved_proposal(too
     payload=json.loads(replacement["payload"])
     assert datetime.fromisoformat(payload["start"]).weekday()==4
     assert datetime.fromisoformat(payload["start"]).hour==16 and datetime.fromisoformat(payload["end"]).hour==18
-    assert payload["summary"]=="Noah" and payload["reminder_minutes"]==1440
-    assert "Zeg ‘ja’" in corrected["message"] and len(router.planning_calls)==1
+    assert payload["summary"]=="Afspraak met Noah" and payload["reminder_minutes"]==1440
+    assert "Zeg ‘ja’" in corrected["message"] and not router.planning_calls
 
 
 def test_explicit_missing_slots_resume_after_intervening_chat(tools_chat):
@@ -630,7 +635,7 @@ def test_spoken_request_preview_then_one_spoken_ja_executes_once(tools_chat,kind
     assert executed==[proposal["id"]] and operations==["stt","tts","stt"]
     again=call(c,"ja",conversation).json()
     assert executed==[proposal["id"]] and again["status"]=="completed"
-    assert len(router.planning_calls)==1,"The spoken ja must not invoke a model"
+    assert len(router.planning_calls)==(1 if kind=='mail' else 0),"The spoken ja must not invoke a model"
     if kind=="mail":assert json.loads(proposal["payload"])==actual
 
 
@@ -656,8 +661,9 @@ def test_ja_without_preview_in_this_conversation_does_not_approve_other_job(tool
     assert call(c,"ja").json()["message"]=="Gewone chat."
     assert app.state.automation.store.get(row["id"])["status"]=="approval"
     call(c,"Hallo",shown["conversation_id"])
-    refreshed=call(c,"Ja.",shown["conversation_id"]).json()
-    assert "Zeg ‘ja’" in refreshed["message"] and app.state.automation.store.get(row["id"])["status"]=="approval"
+    calls=[];background=complete_after_decision(app,c,row,calls)
+    confirmed=call(c,"Ja.",shown["conversation_id"]).json();background.result(timeout=5)
+    assert 'aangemaakt' in confirmed['message'] and calls==[row['id']]
 
 
 def test_one_ja_still_requires_explicit_device_approval_permission(tools_chat):

@@ -55,7 +55,7 @@ class SpeechToTextProvider:
         device = request.get("device", "auto")
         if device not in ("auto", "cpu", "cuda"):
             raise ValueError("invalid_settings")
-        beam=request.get('beam_size',3)
+        beam=request.get('beam_size',3 if request.get('profile')=='light' else 5)
         if type(beam) is not int or not 1<=beam<=5:raise ValueError('invalid_settings')
         text_only=request.get('without_timestamps',False)
         if type(text_only) is not bool:raise ValueError('invalid_settings')
@@ -93,10 +93,11 @@ class SpeechToTextProvider:
             self.model = factory(str(directory), device=device, compute_type="int8" if device == "cpu" else "float16",
                                  cpu_threads=4, num_workers=1, local_files_only=True)
             self.key = key
-        segments, _ = self.model.transcribe(audio, language="nl", beam_size=beam, vad_filter=True,
+        segments, _ = self.model.transcribe(audio, language="nl", task='transcribe',temperature=0.0,beam_size=beam, vad_filter=True,
+                                            initial_prompt="Nederlandse spraak over agenda en afspraken. Woorden: titel, locatie, overleg, teamoverleg. Datum en tijd: vandaag, morgen, vanmorgen, overmorgen, 's middags, half, kwart.",
                                             without_timestamps=text_only,
                                             condition_on_previous_text=False,
-                                            vad_parameters={"min_silence_duration_ms": 500})
+                                            vad_parameters={"min_silence_duration_ms":500,'speech_pad_ms':500,'min_speech_duration_ms':100,'threshold':0.4})
         return " ".join(segment.text.strip() for segment in segments if segment.no_speech_prob < 0.75).strip()[:8000]
 
 

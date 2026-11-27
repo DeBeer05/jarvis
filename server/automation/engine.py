@@ -344,11 +344,16 @@ class AutomationEngine:
             if status=="cancelled": db.execute("UPDATE automation_jobs SET status='cancelled',approval_hash=NULL WHERE parent_id=? AND status IN ('queued','approval','paused')",(identifier,))
             self.store.event(db,status,identifier,device)
 
-    async def tick(self):
+    async def tick(self,*,job_id=None):
         async with self.lock:
-            self.followups.schedule_automatic()
-            self.workflows.advance()
-            for row in self.triggers.due():
+            if job_id is None:
+                self.followups.schedule_automatic()
+                self.workflows.advance()
+                due=self.triggers.due()
+            else:
+                with self.store.db() as db:
+                    due=[dict(row) for row in db.execute("SELECT * FROM automation_jobs WHERE id=? AND status='queued' AND due<=?",(job_id,self.store.clock()))]
+            for row in due:
                 if row["parent_id"] and self.store.get(row["parent_id"])["status"]!="waiting": continue
                 if row["tool"] in self.store.preference("disabled_tools",[]):
                     with self.store.db(True) as db:db.execute("UPDATE automation_jobs SET status='blocked' WHERE id=? AND status='queued'",(row["id"],))
@@ -393,14 +398,18 @@ class AutomationEngine:
                             db.execute("UPDATE automation_jobs SET due=? WHERE id=?",(due,row["id"]))
                         db.execute("UPDATE automation_jobs SET status=?,result=?,updated=? WHERE id=?",(status,encode(safe_result),self.store.clock(),row["id"]))
                         self.store.event(db,"completed",row["id"],row["device_id"])
-                except asyncio.CancelledError: raise
+                except asyncio.CancelledError:
+                    with self.store.db(True) as db:
+                        external=row['tool'] in ('EmailDraft','EmailSend','CalendarCreate','CalendarUpdate','CalendarDelete')
+                        db.execute("UPDATE automation_jobs SET status=?,updated=? WHERE id=? AND status='running'",('uncertain' if external else 'queued',self.store.clock(),row['id']))
+                    raise
                 except Exception:
                     with self.store.db(True) as db:
                         external=row["tool"] in ("EmailDraft","EmailSend","CalendarCreate","CalendarUpdate","CalendarDelete")
                         retry=not external and row["tool"] in ("CalendarRead","EmailSearch","EmailRead","EmailCheck","CalendarSummary") and row["attempts"]<5
                         db.execute("UPDATE automation_jobs SET status=?,result=?,attempts=attempts+1,due=? WHERE id=?",("uncertain" if external else "queued" if retry else "failed",encode({"error":"Uitvoering niet bevestigd; controleer integratie of provider vóór een nieuwe actie."}),self.store.clock()+min(3600,30*2**row["attempts"]) if retry else row["due"],row["id"]))
                         self.store.event(db,"execution_unconfirmed",row["id"],row["device_id"])
-            await self.followups.check()
+            if job_id is None:await self.followups.check()
 
     async def close(self):
         await self.scheduler.stop()

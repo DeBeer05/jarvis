@@ -50,12 +50,13 @@ def test_task_question_does_not_swallow_topic_change_or_later_yes(tools_chat,kin
     app,c,router=tools_chat
     router.plans=[{'clarification':'Welke agenda bedoel je?' if kind=='read' else 'Welke titel wil je?'}]
     first=call(c,'Welke afspraken staan in mijn andere agenda?' if kind=='read' else 'Maak een afspraak in mijn agenda').json()
-    assert len(router.planning_calls)==1
+    expected=1 if kind=='read' else 0
+    assert len(router.planning_calls)==expected
     second=call(c,'Ik ben moe en wil even over mijn hobby praten.',first['conversation_id']).json()
-    assert second['message']=='Gewone chat.' and len(router.planning_calls)==1
+    assert second['message']=='Gewone chat.' and len(router.planning_calls)==expected
     third=call(c,'Ja',first['conversation_id']).json()
-    assert third['status']=='completed' and len(router.planning_calls)==1
-    assert third['message']=='Gewone chat.' if kind=='read' else 'Herhaal de volledige' in third['message']
+    assert third['status']=='completed' and len(router.planning_calls)==expected
+    assert third['message']=='Gewone chat.' if kind=='read' else 'datum en begintijd' in third['message']
     assert not app.state.automation.store.items()
 
 

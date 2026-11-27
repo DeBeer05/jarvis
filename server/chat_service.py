@@ -263,6 +263,10 @@ class ChatService:
                 self.store.finish, run.request_id, run.text if run.persist_history else "", run.provider, run.model,
                 run.status, run.error["code"] if run.error else None,
             )
+            approvals=getattr(self.automation_chat,'approvals',None)
+            if approvals and run.principal and run.status=='completed':
+                try:approvals.record_display(run)
+                except Exception:logger.debug('proposal_display_proof_unavailable')
             if self.natural and run.principal and run.natural_context and run.status in ("completed","cancelled"):
                 try:await asyncio.to_thread(self.natural.context.complete,run)
                 except Exception:logger.debug("private_context_unavailable")

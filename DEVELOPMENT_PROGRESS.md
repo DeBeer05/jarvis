@@ -2,6 +2,35 @@
 
 ## Huidige opdracht
 
+### Structureel agendagesprek en Nederlands STT — 27 november 2026
+
+`fix/calendar-dialogue` is gestapeld op e6bff7c/PR 31; develop mist nog deze basis.
+Eigenaarmaildiffs zijn intact en blijven buiten commits. Expliciete vervolgopdracht
+staat persoonlijke, deterministisch gevalideerde CalendarCreate/Update toe met
+actuele read/write/approve-rechten. Ask/block-beleid blijft gelden; uitnodigingen,
+series, verwijderingen en mail houden hun bestaande approval. AGENTS verduidelijkt
+deze nieuwe uitzondering. Geen echte Google-acties of ElevenLabs-proeven uitgevoerd.
+
+Oorzaken: activiteitrouter zag titels als planning; vragen/‘ja’ hingen aan laatste
+chatberichten; kalendercontext verloor eventreferenties; VAD/decoderuitvoer kon
+tijdwoorden interpunctie of samengeplakte titelmarkers geven. Herstel hergebruikt
+TaskMemory, AutomationEngine, ApprovalManager en dezelfde speechhelper op 8765.
+Datum/begintijd/titel volstaan; standaard 60 minuten/standaardagenda. Amsterdam
+en serverklok bepalen relatieve dagen. Eigen event-ID/verse etag, PATCH en
+geverifieerd API-resultaat bepalen wijzigingen en bevestigingen. Veranderde
+payloads krijgen geen directe autorisatie; afgebroken externe acties blijven
+onzeker en worden niet blind herhaald. Pending referenties bewaren geen nonces.
+
+203 gerichte regressies en 18 nieuwe gesprekscontracten geslaagd; Ruff/mypy,
+pip-, contract- en structuurcheck geslaagd. 130 clienttests geslaagd met sys-capture;
+een eerdere offscreen-Qt-abort blijft als bestaande testbeperking gedocumenteerd.
+Lokale Piper→Whisper-proef met vier synthetische Nederlandse uitingen uitgevoerd,
+zonder download/API-kosten; geen bewijs voor menselijke microfoonacceptatie.
+Laatste volledige lokale regressie: 598 passed/1 POSIX-skip; extra agendaselectie
+geslaagd. Windows-build/helper-rooktest geslaagd; backend herstart (ok/ready),
+snelkoppeling bijgewerkt. Remote CI volgt afzonderlijk.
+Oracle-installatie/migratie blijft uitgesteld en vereist afzonderlijk akkoord.
+
 ### ElevenLabs premium stem en Oracle-voorbereiding
 
 Vervolgopdracht 25 november: `feature/elevenlabs-voice`, gestapeld op de actuele

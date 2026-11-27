@@ -142,17 +142,16 @@ class IntegrationManager:
         if tool != "CalendarCreate": path += "/"+quote(p["event_id"],safe="")
         body = {"summary":p["summary"], "start":{"dateTime":p["start"],"timeZone":p["timezone"]}, "end":{"dateTime":p["end"],"timeZone":p["timezone"]}, "location":p["location"], "attendees":[{"email":x} for x in p["attendees"]]}
         if p["recurrence"]: body["recurrence"] = p["recurrence"]
+        if p.get('description') is not None:body['description']=p['description']
         if p.get("reminder_minutes") is not None:
             body["reminders"]={"useDefault":False,"overrides":[{"method":"popup","minutes":p["reminder_minutes"]}]}
         if tool == "CalendarCreate": body["id"] = "j"+hashlib.sha256(key.encode()).hexdigest()[:40]
         if tool == "CalendarUpdate":
             current = await self.api("calendar_read", path)
             if current.get("etag") != p["etag"]: raise ValueError("Afspraak gewijzigd; maak een nieuw voorstel")
-            # Preserve fields not edited by this operation, including recurring series.
-            editable={"summary","description","location","start","end","recurrence","attendees","reminders","visibility","transparency","colorId","guestsCanInviteOthers","guestsCanModify","guestsCanSeeOtherGuests","extendedProperties"}
-            current={k:v for k,v in current.items() if k in editable}
-            current.update(body); body = current
-        method = {"CalendarCreate":"POST", "CalendarUpdate":"PUT", "CalendarDelete":"DELETE"}[tool]
+            # PATCH preserves untouched fields (including attachments/conference
+            # metadata), rather than rebuilding a partial event for PUT.
+        method = {"CalendarCreate":"POST", "CalendarUpdate":"PATCH", "CalendarDelete":"DELETE"}[tool]
         result = await self.api("calendar_write", path, method, body=None if method=="DELETE" else body, etag=p["etag"] or None, params={"sendUpdates":"all"})
         if method == "DELETE":
             # A successful conditional DELETE is the provider's confirmation.

@@ -271,6 +271,19 @@ Oracle-resources of accountupgrade. De lokale installatie blijft behouden.
 
 ## Efficiënt hervatten
 
+Vervolgopdracht agenda 27 november 2026: expliciete persoonlijke CalendarCreate/
+CalendarUpdate-opdrachten mogen direct via bestaande Automation/ApprovalManager
+worden uitgevoerd na gevalideerde datum, begintijd en titel, actuele read/write/
+approve-rechten en eigenaarbeleid. Standaardduur 60 minuten, standaardagenda.
+Deze uitzondering geldt alleen voor deterministisch uit de gebruikersopdracht
+afgeleide persoonlijke afspraken; geen genodigden/series, verwijderingen, mail of
+modelgegenereerde goedkeuring. Expliciet ask/block-beleid blijft gelden. Overige
+hoogrisicoacties behouden hun volledige preview en eenmalige approval. ‘Ja’ bindt
+aan persistente sessie-/apparaat-/gespreksgebonden pending actions, geverifieerde
+preview, fingerprint en vervaltijd; berichtpositie verleent geen autoriteit.
+Bevestig uitsluitend geverifieerd Calendar-API-succes; gebruik event-ID/actuele
+etag voor vervolgen en voorkom dubbele uitvoering. Geen echte accounttests.
+
 Lees eerst `docs/PROGRESS.md` en de actuele sectie van DEVELOPMENT_PROGRESS.md.
 Hergebruik analyses, testlogs en werkende componenten. Zoek gericht met rg; lees
 alleen relevante bestanddelen en houd outputs/documentatie compact. Geen brede
