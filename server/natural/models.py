@@ -46,6 +46,7 @@ class Listening(StrictModel):
     normal_silence_ms: int = Field(default=900, ge=300, le=4000, title="Normale stilte (ms)")
     thinking_pause_ms: int = Field(default=2500, ge=500, le=8000, title="Denkpauze (ms)")
     adaptive: bool = Field(default=True, title="Adaptieve spreekbeurten")
+    incremental_stt: bool = Field(default=False,title="Spraakherkenning tijdens het spreken",description="Verwerkt lange uitspraken in delen met overlap; voorlopig resultaat voert nooit een opdracht uit. Vereist adaptieve spreekbeurten.")
     maximum_listen_seconds: int = Field(default=60, ge=5, le=60, title="Maximale opname (s)")
     barge_in: bool = Field(default=False, title="Onderbreken met spraak")
     barge_in_sensitivity: float = Field(default=.7, ge=.1, le=1)

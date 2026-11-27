@@ -87,3 +87,23 @@ De typed formulieren volgen fase 8; de beveiligde API is reeds beschikbaar.
 Primaire bronnen: [Open-Meteo](https://open-meteo.com/en/docs),
 [geocodering](https://open-meteo.com/en/docs/geocoding-api) en
 [Phone Link notificatie-integratie](https://learn.microsoft.com/en-us/windows/apps/develop/windows-integration/phone-link-notification-integration).
+
+## Fase 4: spraak in delen
+
+1. Laat de nieuwe luisterinstelling eerst uit en controleer normale PTT en de
+   reeds beschikbare vervolgmodus. Microfoontoestemming wordt niet automatisch gegeven.
+2. Activeer adaptieve spreekbeurten en ‘Spraakherkenning tijdens het spreken’.
+   Spreek een lange Nederlandse zin met een denkpauze en een vervolg. Het hele
+   bericht mag eenmaal naar chat gaan, met behoud van het laatste zinsdeel.
+3. Begin opnieuw te spreken terwijl een voorlopige herkenning bezig is. Een
+   oude ‘ja’ mag geen voorstel goedkeuren. Stop: late resultaten blijven weg.
+4. Test een aangesloten headset en vervolgens onderbreken met spraak, alleen als
+   u dat zelf hebt ingeschakeld. JARVIS mag zijn eigen antwoord niet uitvoeren.
+5. Vergelijk STT/first-audio in de bestaande diagnostiek; resultaten hangen af van
+   CPU, modellen, microfoon en netwerk. Bij slechte woordovergangen kunt u de
+   segmentoptie uitzetten; de bestaande volledige herkenning blijft beschikbaar.
+6. ElevenLabs uitval/privacy wordt technisch met mocks getest. Een echte test
+   verbruikt eventueel het bestaande ingestelde budget; geen automatische proef.
+
+Implementatiegrens: incrementele audiosegmenten via de bestaande WAV-route,
+geen nieuw model of vendor-WebSocket. [Faster-Whisper documentatie](https://github.com/SYSTRAN/faster-whisper).

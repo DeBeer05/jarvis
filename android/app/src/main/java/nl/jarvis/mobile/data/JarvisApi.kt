@@ -112,8 +112,9 @@ class JarvisApi(val endpoint: Endpoint, private val vault: SecretVault) {
             if (!done) throw MobileError("stream_lost", message="Antwoord onderbroken; je vraag wordt niet automatisch opnieuw verstuurd")
         } } finally { streamCall = null }
     }
-    suspend fun transcribe(wav: ByteArray): String = withContext(Dispatchers.IO) {
+    suspend fun transcribe(wav: ByteArray,speculative:Boolean=false): String = withContext(Dispatchers.IO) {
         val call = make("/api/v1/mobile/speech/transcribe", "POST", wav.toRequestBody("audio/wav".toMediaType()), bearer()); transcriptionCall = call
+        if(speculative)call.timeout().timeout(8,TimeUnit.SECONDS)
         try { call.execute().use { JSONObject(read(it).toString(Charsets.UTF_8)).getString("text") } } finally { if(transcriptionCall===call)transcriptionCall = null }
     }
     suspend fun previewVoice(body:JSONObject):JSONObject=withContext(Dispatchers.IO) {

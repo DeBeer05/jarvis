@@ -2,6 +2,12 @@
 
 ## Actueel: acht productfases persoonlijke butler
 
+- Fase 4 technisch gereed: opt-in incrementele STT op Windows/Android, 500 ms
+  overlap, restaudio en achtsecondenlimiet voor voorlopige herkenning. Alleen
+  afgeronde uitspraak naar tools. 140 clienttests, 28 server/ElevenLabs-tests,
+  Android unit/lint/debug/release en kwaliteit groen; nog niet live geactiveerd.
+  Logs .local/butler-phase4-*.log. Eerstvolgend: fase 5 OS-/Android-integratie.
+
 - Fase 3 technisch: brongebonden briefings, Open-Meteo/NOS-cache, lijsten/routines/
   gelegenheden/sollicitaties, bestaande reminders en reply-watches; SQLite v11.
   Brede reeks 629 passed/1 skip, finale 37 automation/briefingtests en 60 kalender-

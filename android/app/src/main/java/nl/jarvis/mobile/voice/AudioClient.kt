@@ -57,6 +57,7 @@ open class AudioClient(private val context: Context) {
     var focusLost:(()->Unit)?=null
     var playbackStarted:(()->Unit)?=null
     var turnRecognizer:(suspend(ByteArray)->String)?=null
+    var incrementalStt=false
     var normalSilenceMs=900
     @Volatile var lastTranscript:String?=null;private set
     open fun supportsBargeIn()=AcousticEchoCanceler.isAvailable()
@@ -89,6 +90,7 @@ open class AudioClient(private val context: Context) {
     }
     open suspend fun record(device: Int,threshold: Float=.015f,silenceMs: Int=1200,maximumSeconds: Int=60,echo: Boolean=false,noise: Boolean=false,level: (Float) -> Unit): ByteArray = recordLock.withLock {withContext(Dispatchers.IO) {
         val recognize=turnRecognizer;val normal=normalSilenceMs.coerceIn(200,silenceMs.coerceAtLeast(200))
+        val incremental=if(incrementalStt && recognize!=null)IncrementalTranscript() else null
         lastTranscript=null
         var revision=0;var tried=-1;var pendingRevision=-1;var pending:Deferred<String?>?=null
         check(context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) { "Microfoontoestemming nodig" }
@@ -114,10 +116,10 @@ open class AudioClient(private val context: Context) {
                 if (rms > threshold.coerceIn(.001f,.2f)) { speech += read; quiet = 0;revision++ } else quiet += read
                 val bytes = ByteBuffer.allocate(read * 2).order(ByteOrder.LITTLE_ENDIAN)
                 repeat(read) { bytes.putShort(block[it]) }; data.write(bytes.array()); count += read
-                if(recognize!=null && speech>=3360 && quiet>=16*normal && tried!=revision && pending?.isActive!=true) {
-                    val snapshot=Wav.encode(data.toByteArray());tried=revision;pendingRevision=revision
+                if(recognize!=null && speech>=3360 && (quiet>=16*normal || incremental!=null && data.size()-incremental.end>=256000) && tried!=revision && pending?.isActive!=true) {
+                    val snapshot=data.toByteArray();tried=revision;pendingRevision=revision
                     pending=CoroutineScope(coroutineContext).async(Dispatchers.IO) {
-                        try {recognize(snapshot)}catch(cancel:CancellationException){throw cancel}catch(_:Exception){null}
+                        try {if(incremental!=null)incremental.request(snapshot,recognize) else recognize(Wav.encode(snapshot))}catch(cancel:CancellationException){throw cancel}catch(_:Exception){null}
                     }
                 }
                 if(pending?.isCompleted==true && pendingRevision==revision && quiet>=16*normal) {
@@ -129,7 +131,9 @@ open class AudioClient(private val context: Context) {
             // Close the microphone before waiting for the final speculative result.
             try {input.stop()}catch(_:IllegalStateException){}
             val partial=pending?.await()
-            if(pendingRevision==revision)lastTranscript=partial
+            if(incremental!=null && speech>=3360 && recognize!=null) {
+                lastTranscript=try {incremental.request(data.toByteArray(),recognize)}catch(cancel:CancellationException){throw cancel}catch(_:Exception){null}
+            } else if(pendingRevision==revision)lastTranscript=partial
             if (speech < 3360) byteArrayOf() else Wav.encode(data.toByteArray())
         } finally {
             recording.set(false); recorder = null

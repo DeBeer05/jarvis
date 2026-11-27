@@ -473,7 +473,8 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
                     mutable.update {it.copy(conversation=lease.conversation,voiceStatus="Ik luister…")}
                 }
                 audio.normalSilenceMs=listening?.optInt("normal_silence_ms",900) ?: 900
-                audio.turnRecognizer=if(listening?.optBoolean("adaptive")==true) {wav -> api.transcribe(wav)} else null
+                audio.turnRecognizer=if(listening?.optBoolean("adaptive")==true) {wav -> api.transcribe(wav,speculative=true)} else null
+                audio.incrementalStt=listening?.optBoolean("incremental_stt",false)==true
                 val wav=audio.record(mutable.value.preferences.inputDevice,threshold=listening?.optDouble("vad_threshold")?.toFloat() ?: .015f,
                     silenceMs=if(listening?.optBoolean("adaptive")==true)listening.optInt("thinking_pause_ms",2500) else listening?.optInt("normal_silence_ms",1200) ?: 1200,
                     maximumSeconds=listening?.optInt("maximum_listen_seconds",60) ?: 60,echo=listening?.optBoolean("echo_suppression")==true,noise=listening?.optBoolean("noise_suppression")==true) {level -> if(epoch==generation)mutable.update {it.copy(level=level,voiceStatus=if(level>.12f)"Ik hoor je…" else "Ik luister…")}}

@@ -4,6 +4,14 @@
 
 ### Acht productfases persoonlijke butler — 27 november 2026
 
+Fase 4 technisch gereed: opt-in incrementele STT op beide clients met 500 ms
+overlap, één request tegelijk, laatste audiodeel en uitsluitend finale uitvoering.
+Voorlopige requests verlopen na acht seconden; late/cancelled tekst blijft weg.
+Bestaande ElevenLabs/zinsstreaming/echo/leases hergebruikt, geen modeldownload.
+140 clienttests, 28 gerichte server/ElevenLabs-tests, Android-tests/lint/beide builds,
+Ruff/mypy, contract en dependency-/repositorychecks geslaagd. Nog niet live;
+menselijke luisteracceptatie apart. Volgende fase: Windows-/Android-integratie.
+
 Fase 3: brongebonden briefings, begrensd openbaar weer/nieuws, lokale lijsten,
 gelegenheden/routines en sollicitatie-opvolging via bestaande engine; SQLite v11.
 Brede regressie 629 passed/1 skip; laatste gerichte automation/briefingtests

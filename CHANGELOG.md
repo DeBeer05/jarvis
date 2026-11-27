@@ -4,6 +4,10 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Opt-in incrementele Nederlandse STT op Windows en Android met korte overlap,
+  sequentiële inference, verwerking van het laatste audiodeel en begrensde
+  voorlopige herkenning. Alleen afgeronde uitspraken gaan naar chat/tools.
+
 - Brongebonden dagelijkse/terugkomstbriefings, weer-/nieuwscache en lokale lijsten,
   abonnementen, gelegenheden, routines en sollicitatie-opvolging. Hergebruik van
   scheduler/reminders/reply-watches met bronrevisies, annulering en idempotentie.

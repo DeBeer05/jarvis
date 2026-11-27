@@ -202,6 +202,7 @@ class VoiceConversationManager(QObject):
                 if self.options and self.options["listening"]["adaptive"] and not wake_gate:
                     turns=AdaptiveTurn(lambda audio,valid:self.worker.transcribe(audio,settings,valid),lambda:self.interruptions.valid(generation) and not self.closed,
                         normal=self.options["listening"]["normal_silence_ms"]/1000,thinking=self.options["listening"]["thinking_pause_ms"]/1000,
+                        incremental=self.options['listening'].get('incremental_stt',False),
                         partial=lambda result,revision,controller:self.delivered.emit((generation,"partial",(result,revision,controller))))
                 audio = capture_input.capture(settings, consent=True, timeout=timeout, activity=activity,turns=turns)
                 if not self.interruptions.valid(generation):

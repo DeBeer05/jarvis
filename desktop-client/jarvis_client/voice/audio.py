@@ -90,7 +90,7 @@ class AudioInputManager:
                 output.setsampwidth(2)
                 output.setframerate(16000)
                 output.writeframes(audio)
-            if turns:self.transcription=turns.finish()
+            if turns:self.transcription=turns.finish(audio)
             return result.getvalue()
         except AudioError:
             raise

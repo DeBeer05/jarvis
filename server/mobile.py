@@ -115,7 +115,9 @@ async def transcribe(request: Request):
     except (ValueError, EOFError, wave.Error):
         raise AuthError("invalid_audio", "Gebruik mono PCM16 WAV op 16 kHz, maximaal 60 seconden.", 422) from None
     principal = request.state.principal
-    await asyncio.to_thread(request.app.state.security.store.rate, "mobile-stt:" + principal.device_id, 12)
+    # Incremental capture reuses this route. Bound requests as well as audio;
+    # the existing single inference slot still prevents parallel model loads.
+    await asyncio.to_thread(request.app.state.security.store.rate, "mobile-stt:" + principal.device_id, 30)
     result = await inference_call(request,"stt", {**await audio_preferences(request), "audio": base64.b64encode(raw).decode()})
     # Reject results if authorization was revoked during inference.
     await asyncio.to_thread(request.app.state.security.store.own_device, principal)

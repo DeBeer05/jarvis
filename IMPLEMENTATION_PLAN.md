@@ -28,7 +28,7 @@ Qwen2.5:3B en bestaande Windows-/Android-/upstreamcode blijven behouden.
 | 1 Persoonlijkheid/geheugen | Butler, instellingen, contact-/voorkeurgeheugen, historie, bronvergeten | Gerichte episodische retrieval tussen gesprekken; toon op context, correctie zonder extra classifier; restart/apparaat/privacytests | Technisch afgerond; menselijke acceptatie open |
 | 2 Aanwezigheid/modi | Gespreksstatus, clientstatus, meldingsbeleid | Acht modi, handmatig/automatisch, begrensde OS-signalen met opt-in, persistente transitions en eenmalige terugkomst | Technisch afgerond; echte apparaatacceptatie open |
 | 3 Persoonlijke assistentie | Calendar/Gmail, conflictcontrole, follow-up, scheduler, quiet hours | Brongebonden briefings/routines/lijsten, connectorstatus, prioritering; actuele weer/nieuws/verkeer alleen echte bron | Kern technisch afgerond; verkeer/telefonie/bankkoppeling ontbreken extern |
-| 4 Spraak | ElevenLabs, tekst-/zinsstreaming, lokale Whisper/Piper, echo/barge-in, foreground vervolg | Meetbare streaminggrenzen, hervatten en fallback audit; echte audioacceptatie apart | Nog niet gestart; gebruikt bestaande helper |
+| 4 Spraak | ElevenLabs, tekst-/zinsstreaming, lokale Whisper/Piper, echo/barge-in, foreground vervolg | Meetbare streaminggrenzen, hervatten en fallback audit; echte audioacceptatie apart | Technisch afgerond; menselijke audioacceptatie open |
 | 5 Windows/Android | Native clients, apparaatpairing, Windows gesloten acties | Toegestane OS-acties/status, Android ondersteunde intents/toestemmingen en achtergrondsync; geen WhatsApp/Signal-API verzinnen | Nog niet gestart; grants/telefoon nodig voor echte tests |
 | 6 Externe omgeving | Bestaande scherm-/apparaatrechtstructuur | Opt-in schermcontext, ondersteunde HA/Creality/navigatieadapters en capabilities | Nog niet gestart; endpoints/apparaatconfig extern |
 | 7 Betrouwbare autonomie | Jobs, scheduler, approvals, audit, dedup, revoke, secretstore | Centrale events integreren, begrensde retries/prioriteit/deadlines, noodstop en expliciete undo-capabilities | Nog niet gestart; hergebruik engine |
@@ -92,3 +92,19 @@ geheimcontrole geslaagd. Geen echte accounts, TTS of modeldownloads gebruikt.
   echte mail-/agenda- of telefoonactie. De eigenaar kiest voorlopig appbriefings;
   geen ondersteund oproepkanaal, live verkeer, bank- of locatiegrant beschikbaar.
 - Nieuwe backendcode nog niet live geactiveerd; clientformulieren volgen fase 8.
+
+### Fase 4 — incrementele STT
+
+- Bestaande tekst-/zins-TTS-streaming, ElevenLabs, lokale fallback, echo, barge-in
+  en apparaatleases hergebruikt. Geen nieuwe spraakdienst, model of download.
+- Opt-in incrementele STT op Windows/Android: tijdens spreken maximaal één
+  request tegelijk, nieuwe PCM-delen met 500 ms overlap, tekstsamenvoeging en
+  laatste restaudio bij beurt-einde. Voorlopige tekst activeert nooit chat/tools.
+  Opnamen/transcripten blijven capture-lokaal; bestaande geauthenticeerde route.
+- Standaard uit voor compatibiliteit; geen belofte van woord-voor-woord vendor-
+  streaming. De CPU verwerkt segmenten, geen groeiende hele opname per pauze.
+- Voorlopige herkenning begrensd op acht seconden; geen late publicatie na
+  annuleren/verlopen. Normale herkenning blijft beschikbaar bij mislukte proef.
+- 140 Windows-clienttests, 28 gerichte server/ElevenLabs-tests, lint/types groen.
+  Android unit/lint/debug/release ook na laatste timeoutaanpassing geslaagd.
+  Menselijke microfoon-/luisteracceptatie nog afzonderlijk.

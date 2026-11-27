@@ -1,7 +1,7 @@
 import threading
 import time
 
-from jarvis_client.voice.turns import AdaptiveTurn,completed_utterance
+from jarvis_client.voice.turns import AdaptiveTurn,completed_utterance,IncrementalTranscript
 
 
 def wait(future):
@@ -45,3 +45,47 @@ def test_cancellation_does_not_wait_for_or_publish_late_transcript():
     turn.voiced();turn.probe(b"\0\0"*480,.9);active[0]=False
     start=time.monotonic();assert turn.finish() is None and time.monotonic()-start<.2
     release.set();wait(turn.pending);assert not partials
+
+
+def test_incremental_audio_is_not_retranscribed_and_overlap_is_merged():
+    import io
+    import wave
+    frames=[];texts=iter(['Zet een afspraak met','afspraak met Noah morgen','Noah morgen om twee uur.'])
+    def recognize(audio,valid):
+        with wave.open(io.BytesIO(audio),'rb') as wav:frames.append(wav.getnframes())
+        return {'text':next(texts),'seconds':.1}
+    stream=IncrementalTranscript(recognize)
+    assert stream.request(bytes(256000),lambda:True)['text']=='Zet een afspraak met'
+    assert stream.request(bytes(512000),lambda:True)['text']=='Zet een afspraak met Noah morgen'
+    result=stream.request(bytes(576000),lambda:True)
+    assert result['text']=='Zet een afspraak met Noah morgen om twee uur.'
+    assert frames==[128000,136000,40000]
+    assert stream.request(bytes(576000),lambda:True)==result and len(frames)==3
+
+
+def test_incremental_snapshot_does_not_end_turn_while_user_is_speaking():
+    seen=[]
+    turn=AdaptiveTurn(lambda *_:{'text':'Maak een afspraak met','seconds':.1},lambda:True,normal=.9,thinking=2.5,incremental=True,partial=lambda *args:seen.append(args))
+    turn.voiced();turn.probe(bytes(256000),0);wait(turn.pending)
+    assert seen and not turn.finished(0) and not turn.finished(.9)
+    turn.voiced()
+    assert turn.ready() is None
+    assert turn.finish(bytes(288000))['text']=='Maak een afspraak met'
+
+
+def test_incremental_cancelled_chunk_cannot_be_committed():
+    active=[True]
+    def recognize(*_):active[0]=False;return {'text':'ja','seconds':1}
+    stream=IncrementalTranscript(recognize)
+    assert stream.request(bytes(256000),lambda:active[0]) is None
+    assert stream.end==0 and not stream.text
+
+
+def test_expired_speculation_cannot_publish_or_block_finish():
+    release=threading.Event();now=[0.];partials=[]
+    def recognize(*_):release.wait(2);return {'text':'ja'}
+    turn=AdaptiveTurn(recognize,lambda:True,normal=.9,thinking=2.5,clock=lambda:now[0],partial=lambda *args:partials.append(args))
+    turn.voiced();turn.probe(bytes(960),.9);now[0]=9
+    assert turn.finish() is None
+    release.set();wait(turn.pending)
+    assert not partials and turn.ready() is None

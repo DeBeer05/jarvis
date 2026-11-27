@@ -891,6 +891,12 @@
               "title": "Adaptieve spreekbeurten",
               "type": "boolean"
             },
+            "incremental_stt": {
+              "default": false,
+              "description": "Verwerkt lange uitspraken in delen met overlap; voorlopig resultaat voert nooit een opdracht uit. Vereist adaptieve spreekbeurten.",
+              "title": "Spraakherkenning tijdens het spreken",
+              "type": "boolean"
+            },
             "maximum_listen_seconds": {
               "default": 60,
               "maximum": 60,
@@ -1994,6 +2000,7 @@
         "normal_silence_ms": 900,
         "thinking_pause_ms": 2500,
         "adaptive": true,
+        "incremental_stt": false,
         "maximum_listen_seconds": 60,
         "barge_in": false,
         "barge_in_sensitivity": 0.7,
