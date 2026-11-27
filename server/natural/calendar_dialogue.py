@@ -98,7 +98,7 @@ class CalendarDialogue:
         if re.search(r'\b(?:uitnodig\w*|herhaal\w*|wekelijks|dagelijks)\b',run.message,re.I):return None
         config=run.natural_context['settings'] if run.natural_context else {}
         config={**config,'general':{**config.get('general',{}),'timezone':'Europe/Amsterdam'},
-            'calendar':{**config.get('calendar',{}),'duration_minutes':60,'use_defaults':True}}
+            'calendar':{**config.get('calendar',{}),'duration_minutes':60}}
         anchor=pending.get('anchor') or datetime.fromtimestamp(c.engine.store.clock(),UTC).isoformat()
         now=datetime.fromisoformat(anchor)
         instruction=pending.get('instruction','')
@@ -115,7 +115,7 @@ class CalendarDialogue:
             timing=timing_text(instruction,summary)
             conflict=bool(re.search(r'\b(?:vanmorgen|vanochtend)\b',timing,re.I) and re.search(r'\b(?:middag|middags|avond|avonds)\b',timing,re.I))
             if conflict:raise AmbiguousTime("U noemt vanmorgen en 's middags. Bedoelt u vandaag of morgen?")
-            payload=create_parameters({'summary':summary},timing,config,now=now)
+            payload=create_parameters({'summary':summary},timing,config,now=now,default_duration=60)
             if not summary:raise AmbiguousTime('Welke titel mag ik de afspraak geven?')
         except AmbiguousTime as error:
             self.save(run,instruction=instruction,summary=summary,anchor=anchor,missing='date_choice' if conflict else 'title' if not summary and 'titel' in str(error) else 'time')

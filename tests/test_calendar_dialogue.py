@@ -178,3 +178,14 @@ def test_named_calendar_keeps_existing_verified_lookup_instead_of_default(tools_
     import json
     jobs=app.state.automation.store.items()
     assert len(jobs)==1 and json.loads(jobs[0]['payload'])['calendar_id']=='selected',response
+
+
+def test_default_hour_does_not_reenable_disabled_reminder_defaults(calendar):
+    app,c,router,events,writes=calendar
+    document=c.get('/api/v1/natural/settings').json()
+    assert c.patch('/api/v1/natural/settings/calendar',json={'revision':document['revision'],'changes':{'use_defaults':False}}).status_code==200
+    response=call(c,'Maak morgen om 14:00 een afspraak genaamd Controle.').json()
+    assert len(writes)==1,response
+    payload=writes[0][1]
+    assert datetime.fromisoformat(payload['end'])-datetime.fromisoformat(payload['start'])==timedelta(hours=1)
+    assert payload['reminder_minutes'] is None

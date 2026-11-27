@@ -27,7 +27,7 @@ def outing_title(instruction):
     return title if len(title)<=180 else None
 
 
-def create_parameters(payload,instruction,config=None,*,now=None):
+def create_parameters(payload,instruction,config=None,*,now=None,default_duration=None):
     config=config or {};calendar=config.get("calendar",{})
     timezone=config.get("general",{}).get("timezone","Europe/Amsterdam");zone=ZoneInfo(timezone)
     def hour(value):
@@ -89,8 +89,9 @@ def create_parameters(payload,instruction,config=None,*,now=None):
             raise AmbiguousTime("Je eindtijd en duur verschillen. Welke eindtijd of duur wil je gebruiken?")
     else:
         if duration is None:
-            if not calendar.get("use_defaults",True):raise AmbiguousTime("Hoe lang duurt de afspraak?")
-            duration=calendar.get("duration_minutes",60)
+            if default_duration is not None:duration=default_duration
+            elif not calendar.get("use_defaults",True):raise AmbiguousTime("Hoe lang duurt de afspraak?")
+            else:duration=calendar.get("duration_minutes",60)
         if not 1<=duration<=1440:raise AmbiguousTime("Hoe lang duurt de afspraak, maximaal één dag?")
         end=(start.astimezone(UTC)+timedelta(minutes=duration)).astimezone(zone)
     result={**payload,"start":start.isoformat(),"end":end.isoformat(),"timezone":timezone}
