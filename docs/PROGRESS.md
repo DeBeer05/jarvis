@@ -44,3 +44,6 @@
   dubbele push-run vond daarna een timingaanname in de annuleringsmock: reservering
   is nog geen geopende HTTP-stream. Test wacht nu op een echt stream-start-event;
   sluiting en kostenasserties blijven behouden. Geen productiecode gewijzigd.
+- Nieuwe Windows CI vond een native offscreen-tray-crash in test_window. Die
+  unit-test gebruikt nu een traymodel voor sluit-/herstelbeleid; geen fictieve
+  native shelltray meer maken. Productiecode/builds blijven ongewijzigd.
