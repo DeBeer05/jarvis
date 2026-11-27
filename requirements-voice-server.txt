@@ -1,0 +1,4 @@
+# ARM64/Linux inference helper only; no GUI or executable packager.
+-c constraints-voice.txt
+faster-whisper==1.2.1
+piper-tts==1.8.0

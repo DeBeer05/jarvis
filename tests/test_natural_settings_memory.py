@@ -116,7 +116,7 @@ def test_settings_offer_only_supported_voice_providers_and_installed_choices(nat
     monkeypatch.setattr("server.natural.capabilities.voice_capabilities",lambda:capabilities)
     schema=c.get("/api/v1/natural/settings/schema").json()
     voice=schema["user"]["$defs"]["Voice"]["properties"]
-    assert voice["tts_provider"]["enum"]==["auto","piper","supertonic"]
+    assert voice["tts_provider"]["enum"]==["auto","piper","supertonic","elevenlabs"]
     assert voice["tts_provider"]["x-unavailable"]==["supertonic"]
     assert voice["whisper_model"]["x-unavailable"]==["whisper-base","whisper-tiny"]
     assert c.patch("/api/v1/natural/settings/voice",json={"revision":0,"changes":{"tts_provider":"xtts"}}).status_code==422

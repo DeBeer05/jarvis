@@ -3,7 +3,6 @@ import asyncio
 import base64
 import hashlib
 import json
-import os
 from contextvars import ContextVar
 from email.message import EmailMessage
 from pathlib import Path
@@ -28,7 +27,7 @@ REQUEST_GUARD=ContextVar("automation_request_guard",default=None)
 class IntegrationManager:
     def __init__(self, store, security, port=8765, *, vault=None, transport=None, client_config=None):
         self.store, self.security, self.port = store, security, port
-        self.vault = vault or SecretVault(store)
+        self.vault = vault or SecretVault(store,key_file=security.settings.vault_key_file)
         self.http = httpx.AsyncClient(timeout=20, follow_redirects=False, trust_env=False, transport=transport)
         self.lock = asyncio.Lock()
         self.client_config = client_config
@@ -38,16 +37,18 @@ class IntegrationManager:
         path = self.security.settings.google_client_file
         if not path: raise ValueError("Stel JARVIS_GOOGLE_CLIENT_FILE in met je Desktop OAuth-clientbestand")
         try:
-            data = json.loads(Path(path).read_text(encoding="utf-8"))["installed"]
+            document=json.loads(Path(path).read_text(encoding='utf-8'))
+            kind='web' if 'web' in document else 'installed';data=document[kind]
             if not data["client_id"].endswith(".apps.googleusercontent.com"): raise ValueError()
-            return {"client_id": data["client_id"], "client_secret": data.get("client_secret", "")}
+            return {"client_id": data["client_id"], "client_secret": data.get("client_secret", ""),'kind':kind,'redirect_uris':data.get('redirect_uris',[])}
         except (OSError, KeyError, ValueError): raise ValueError("Ongeldig Desktop OAuth-clientbestand") from None
 
     @property
-    def redirect(self): return f"http://127.0.0.1:{self.port}/oauth/google/callback"
+    def redirect(self): return (self.security.settings.public_origin or f"http://127.0.0.1:{self.port}")+"/oauth/google/callback"
 
     def begin(self, principal, features):
         config = self.config()
+        if self.security.settings.public_origin and (config.get('kind')!='web' or self.redirect not in config.get('redirect_uris',[])):raise ValueError('Een nieuwe cloudkoppeling vereist een Web OAuth-client met de exacte HTTPS-callback')
         if not features or not set(features) <= SCOPES.keys(): raise ValueError("Invalid OAuth features")
         verifier, state = token(), token()
         payload = self.vault.crypt(encode({"verifier": verifier, "features": features}).encode())

@@ -4,6 +4,17 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Opt-in Oracle HTTPS-profiel met strikt vertrouwde lokale reverse proxy,
+  behoud van authenticatie/rechten en versleutelde Linux OAuth-vault.
+- ARM64 CI en runtimeconstraints, systemd/Caddy-templates en consistente
+  versleutelde SQLite-backup/herstel met expliciete DPAPI-migratie in een kopie.
+  Remote installatie en productiecutover blijven afzonderlijk goed te keuren.
+
+- ElevenLabs als premium TTS via bestaande Voice Engine en native Voice Studio,
+  met ondersteunde modelinstellingen, ontworpen/eigen accountstem en lokale fallback.
+- Backend-only DPAPI-sleutel, atomair verbruiksbudget, lokale/offline-privacy,
+  cache en annuleerbare providerrequests. Schema 8 bewaart numeriek stemverbruik.
+
 - Gespreksgestuurde uitjesconcepten met gedeelde bron-gelabelde planning,
   meerdere gegevens per beurt, natuurlijke correcties en gecombineerde activiteiten.
 - Windows-/Android-overzicht en centrale planningsvoorkeuren; beknopte spraak,

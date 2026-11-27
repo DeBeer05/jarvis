@@ -66,8 +66,18 @@ class Listening(StrictModel):
 class Voice(StrictModel):
     stt_provider: Literal["whisper"] = "whisper"
     whisper_model: Literal["whisper-small","whisper-base","whisper-tiny"] = "whisper-small"
-    tts_provider: Literal["auto","piper","supertonic"] = "auto"
-    mode: Literal["automatic","quality","fast","offline","manual"] = "automatic"
+    tts_provider: Literal["auto","piper","supertonic","elevenlabs"] = "auto"
+    mode: Literal["automatic","quality","fast","offline","manual","premium","budget","local"] = "automatic"
+    elevenlabs_voice_id:str=Field(default='',pattern=r'^[A-Za-z0-9_-]{0,64}$')
+    elevenlabs_model:Literal['eleven_flash_v2_5','eleven_multilingual_v2','eleven_v3','eleven_v4','eleven_v4_turbo','eleven_v3_conversational']='eleven_flash_v2_5'
+    elevenlabs_stability:float=Field(default=.5,ge=0,le=1)
+    elevenlabs_similarity:float=Field(default=.75,ge=0,le=1)
+    elevenlabs_style:float=Field(default=0,ge=0,le=1)
+    elevenlabs_speaker_boost:bool=True
+    elevenlabs_daily_limit:int=Field(default=2000,ge=0,le=1000000)
+    elevenlabs_monthly_limit:int=Field(default=10000,ge=0,le=10000000)
+    elevenlabs_warning_percent:int=Field(default=80,ge=1,le=100)
+    elevenlabs_sensitive_local:bool=True
     profile: Literal["classic_butler","modern_butler","deep_butler","cinematic","professional","friendly","fast","custom"] = "classic_butler"
     supertonic_voice: Literal["M1","M2","M3","M4","M5"] = "M1"
     steps:int=Field(default=8,ge=2,le=12,title="Supertonic kwaliteitsstappen")

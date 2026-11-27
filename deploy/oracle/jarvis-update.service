@@ -1,0 +1,9 @@
+[Unit]
+Description=Consume an explicit JARVIS release approval
+ConditionPathExists=/etc/jarvis/approved-release.json
+
+[Service]
+Type=oneshot
+TimeoutStartSec=300
+UMask=0077
+ExecStart=/opt/jarvis/current/.venv/bin/python /opt/jarvis/current/scripts/deploy_release.py

@@ -273,7 +273,20 @@ class VoicePreview(StrictModel):
 
 
 @router.get("/voice-studio")
-def voice_studio(request:Request):return service(request).tts.catalogue()
+async def voice_studio(request:Request):
+    import asyncio
+    from server.security.types import AuthError
+    natural=service(request);config=(await asyncio.to_thread(natural.settings.get,request.state.principal))['settings']
+    data=natural.tts.catalogue();data['usage']=await asyncio.to_thread(natural.tts.usage.usage,request.state.principal,config)
+    if config['ai']['offline'] or config['voice']['mode']=='offline':data['online_disabled']=True;return data
+    if natural.chat.settings.elevenlabs_api_key:
+        await asyncio.to_thread(natural.security.store.rate,'elevenlabs-metadata:'+request.state.principal.device_id,10)
+        try:
+            metadata=await natural.tts.providers['elevenlabs'].inspect()
+            data['account']=metadata
+            data['providers'][0]['voices']=[{**voice,'available':True} for voice in metadata['voices']]
+        except AuthError as error:data['account_error']=error.code
+    return data
 
 
 @router.post("/voice-studio/preview")
@@ -282,10 +295,15 @@ async def voice_preview(request:Request,body:VoicePreview):
     from copy import deepcopy
     from providers.speech_format import format_speech
     natural=service(request);principal=request.state.principal
+    natural.tts.validate_text(body.text)
     await asyncio.to_thread(natural.security.store.rate,"voice-preview:"+principal.device_id,20)
     voice=body.voice
     config=deepcopy((await asyncio.to_thread(natural.settings.get,principal))["settings"])
-    config["voice"]=voice.model_dump(mode="json")
+    requested=voice.model_dump(mode='json');stored=config['voice']
+    for name in ('elevenlabs_daily_limit','elevenlabs_monthly_limit'):requested[name]=min(stored[name],requested[name])
+    requested['elevenlabs_sensitive_local']=stored['elevenlabs_sensitive_local'] or requested['elevenlabs_sensitive_local']
+    if stored['mode']=='offline':config['ai']['offline']=True
+    config["voice"]=requested
     config["voice"]["cache"]=False
     text=natural.store.safe_content(body.text);started=time.perf_counter()
     audio=await natural.tts.synthesize(request,format_speech(text,config["general"]["timezone"]),config)

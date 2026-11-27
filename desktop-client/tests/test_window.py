@@ -116,6 +116,14 @@ def test_plaintext_rendering_settings_and_permission_control(qt, tmp_path, vault
 
 
 def test_tray_close_vs_full_shutdown(qt, tmp_path, vault, monkeypatch):
+    # Offscreen CI has no native system tray; test window policy without asking
+    # the Windows platform plugin to create an unavailable shell icon.
+    class Tray:
+        visible=True
+        def hide(self):self.visible=False
+        def isVisible(self):return self.visible
+        def setToolTip(self,text):pass
+    monkeypatch.setattr(MainWindow,'setup_tray',lambda self:setattr(self,'tray',Tray()))
     monkeypatch.setattr(QSystemTrayIcon, "isSystemTrayAvailable", lambda: True)
     app = window(tmp_path, vault)
     app.show()

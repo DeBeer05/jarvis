@@ -45,7 +45,7 @@ def create_app(
 ) -> FastAPI:
     settings = settings or load_settings()
     database = Database(settings.database_path)
-    store = ChatStore(database, secret=settings.gemini_api_key, secrets=(settings.groq_api_key,), max_conversations=settings.max_conversations, max_turns=settings.max_turns)
+    store = ChatStore(database, secret=settings.gemini_api_key, secrets=(settings.groq_api_key,settings.elevenlabs_api_key), max_conversations=settings.max_conversations, max_turns=settings.max_turns)
     chat = ChatService(settings, store, ai_router or AIRouter(settings))
     security = SecurityService(database, settings)
     runtime = {
@@ -118,6 +118,9 @@ def create_app(
         return JSONResponse({"error":{"code":"invalid_action","message":"Controleer actie, tijdzone, accountkoppeling en actuele afspraakgegevens."}},status_code=400)
 
     app.add_middleware(SecurityHeaders)
+    if settings.profile=='oracle-production':
+        from server.trusted_proxy import TrustedHTTPSProxy
+        app.add_middleware(TrustedHTTPSProxy,origin=settings.public_origin)
 
     @app.exception_handler(AuthError)
     async def auth_error(request: Request, error: AuthError):

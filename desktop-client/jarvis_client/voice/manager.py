@@ -86,7 +86,9 @@ class VoiceConversationManager(QObject):
         settings=replace(self.settings)
         if not self.options or not self.options["conversations"]["enabled"]:return settings
         voice=self.options["voice"];listening=self.options["listening"]
-        return replace(settings,model=voice["whisper_model"],device=voice["processing"],provider=voice["tts_provider"],
+        provider=voice['tts_provider']
+        if not getattr(self.worker,'centralized',False) and provider in ('auto','elevenlabs'):provider='piper'
+        return replace(settings,model=voice["whisper_model"],device=voice["processing"],provider=provider,
                        voice=voice["voice"],speaker=voice.get("speaker",0),speed=voice["speed"],output_gain=voice["volume"],cache=voice["cache"],
                        max_seconds=listening["maximum_listen_seconds"],silence_seconds=(listening["thinking_pause_ms"] if listening["adaptive"] else listening["normal_silence_ms"])/1000,
                        sensitivity=max(0,min(1,(.028-listening["vad_threshold"])/.023)))

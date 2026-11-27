@@ -1,0 +1,16 @@
+# JARVIS_HOSTNAME is the approved hostname, e.g. an IP-derived sslip.io name.
+# Caddy opens ONLY public 80/443; the backend stays on loopback.
+{$JARVIS_HOSTNAME} {
+    encode zstd gzip
+    header Strict-Transport-Security "max-age=31536000"
+    @internal path /internal /internal/*
+    respond @internal 404
+    reverse_proxy 127.0.0.1:8765 {
+        header_up Host {host}
+        header_up X-Forwarded-Proto https
+        header_up X-Forwarded-For {remote_host}
+        header_up -Forwarded
+        flush_interval -1
+    }
+    # No access log: URLs may contain short-lived OAuth codes.
+}

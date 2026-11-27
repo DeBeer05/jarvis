@@ -3,12 +3,23 @@ from copy import deepcopy
 import json
 import base64
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt,QTimer
 from PySide6.QtWidgets import (QCheckBox,QComboBox,QDialog,QDialogButtonBox,QDoubleSpinBox,
     QFileDialog,QFormLayout,QHBoxLayout,QLabel,QLineEdit,QListWidget,QMessageBox,
     QPlainTextEdit,QPushButton,QScrollArea,QSpinBox,QTabWidget,QVBoxLayout,QWidget)
 
 BASE="/api/v1/natural"
+
+
+def voice_field_visible(field,voice):
+    rule=field.get('x-voice-visible',{})
+    premium=voice.get('mode') not in ('local','offline') and (voice.get('tts_provider')=='elevenlabs' or voice.get('mode') in ('premium','budget'))
+    model='eleven_flash_v2_5' if voice.get('mode')=='budget' else voice.get('elevenlabs_model')
+    if voice.get('mode') in rule.get('exclude_modes',[]):return False
+    if 'premium' in rule and rule['premium']!=premium:return False
+    if premium and 'models' in rule and model not in rule['models']:return False
+    if premium and 'speed_models' in rule and model not in rule['speed_models']:return False
+    return True
 LABELS={"general":"Algemeen","conversations":"Gesprekken","listening":"Luisteren",
     "personality":"Persoonlijkheid","ai":"AI en prestaties","memory":"Geheugen","calendar":"Agenda",
     "tasks":"Taken en automatiseringen","autonomy":"Zelfstandigheid en machtigingen","notifications":"Meldingen",
@@ -134,12 +145,15 @@ class NaturalSettingsPanel(QWidget):
         definition=self.schema["user"]["$defs"][definition["$ref"].split("/")[-1]]
         previous=self.loading;self.loading=True
         for key,field in definition["properties"].items():
+            if self.category=='voice' and not voice_field_visible(field,self.draft['voice']):continue
             title=field.get("title") or LABELS.get(key,key.replace("_"," "))
             if key in LABELS:title=LABELS[key]
-            if self.category=='planning':title=self.schema.get('labels',{}).get(key,title)
+            if self.category in ('planning','voice'):title=self.schema.get('labels',{}).get(key,title)
             widget,read=self.field(field,self.draft[self.category][key]);self.controls[key]=read
             widget.setAccessibleName(title);widget.setToolTip(field.get("description",title))
             form.addRow(label(title),widget)
+            if self.category=='voice' and key in ('mode','tts_provider','elevenlabs_model'):
+                widget.currentIndexChanged.connect(lambda _,row=index:QTimer.singleShot(0,lambda:self.select_category(row)))
         self.loading=previous;self.scroll.setWidget(container)
         if self.category=="personality":
             preview=QPushButton("Voorbeeldgesprek testen");preview.clicked.connect(self.preview_personality)
@@ -413,7 +427,7 @@ class NaturalSettingsPanel(QWidget):
 
     def make_studio(self):
         page=QWidget();self.tabs.addTab(page,"Voice Studio");body=QVBoxLayout(page)
-        body.addWidget(label("Vergelijk vaste stemmen met dezelfde tekst. Profielen zijn instellingen, geen afzonderlijk getrainde stemmen. Dit opent de microfoon niet. Alle ondersteunde stemmen werken lokaal; pitch en expressiviteit zijn niet beschikbaar."))
+        body.addWidget(label("Vergelijk stemmen met uw eigen tekst, zonder microfoon. ElevenLabs verstuurt de uitgesproken tekst naar de provider en kan credits kosten, ook bij onderbreken. Vergelijken achter elkaar gebruikt alleen lokale stemmen."))
         self.studio_voice=QComboBox();body.addWidget(self.studio_voice)
         self.studio_text=QPlainTextEdit("Goedemorgen, meneer. Uw agenda is bijgewerkt en u heeft twee belangrijke berichten ontvangen.");self.studio_text.setMaximumHeight(100);body.addWidget(self.studio_text)
         self.studio_speed=QDoubleSpinBox();self.studio_speed.setRange(.7,1.5);self.studio_speed.setSingleStep(.05);self.studio_speed.setValue(.95)
@@ -434,13 +448,15 @@ class NaturalSettingsPanel(QWidget):
             for provider in data["providers"]:
                 for voice in provider["voices"]:
                     if voice["available"]:self.studio_voice.addItem(provider["name"]+" · "+voice["name"],(provider["id"],voice["id"]))
-            self.status.setText("Voice Studio: beschikbare lokale stemmen opgehaald.")
+            usage=data.get('usage',{});account=data.get('account',{})
+            self.studio_metrics.setText(f"Gereserveerd deze maand: {usage.get('monthly_reserved_credits',0)} credits (schatting). Laatst gecontroleerd tegoed: {account.get('remaining_credits','onbekend')}.")
+            self.status.setText("Voice Studio: beschikbare stemmen opgehaald."+(' Accountcontrole niet beschikbaar.' if data.get('account_error') else ''))
         self.call("GET","/voice-studio",None,loaded)
 
     def studio_options(self,selection):
         voice=deepcopy(self.document["settings"]["voice"]);provider,name=selection
         voice.update(profile="custom",mode="manual",tts_provider=provider,speed=self.studio_speed.value(),volume=self.studio_volume.value())
-        voice["supertonic_voice" if provider=="supertonic" else "voice"]=name
+        voice['elevenlabs_voice_id' if provider=='elevenlabs' else 'supertonic_voice' if provider=='supertonic' else 'voice']=name
         return voice
 
     def favorite_studio(self):
@@ -456,7 +472,7 @@ class NaturalSettingsPanel(QWidget):
     def preview_studio(self,compare):
         if not self.document or not hasattr(self.window,"voice") or self.window.running:return
         self.stop_studio()
-        self.studio_queue=[self.studio_voice.itemData(i) for i in range(self.studio_voice.count())] if compare else [self.studio_voice.currentData()]
+        self.studio_queue=[self.studio_voice.itemData(i) for i in range(self.studio_voice.count()) if self.studio_voice.itemData(i)[0]!='elevenlabs'] if compare else [self.studio_voice.currentData()]
         self.next_studio()
 
     def next_studio(self):

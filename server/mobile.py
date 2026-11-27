@@ -15,11 +15,11 @@ from fastapi.responses import Response
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 from providers.voice_pipe import OwnedVoicePipe
-from server.api.routes import require_loopback
+from server.api.routes import require_client_access
 from server.security.gate import require_permission
 from server.security.types import AuthError, digest
 
-router = APIRouter(prefix="/api/v1/mobile", dependencies=[Depends(require_loopback)])
+router = APIRouter(prefix="/api/v1/mobile", dependencies=[Depends(require_client_access)])
 logger = logging.getLogger("jarvis.server")
 MAX_AUDIO = 2_000_000  # <60 s of 16 kHz PCM16 mono plus WAV header
 
@@ -39,9 +39,10 @@ class SpeechBridge:
         return [str(executable),str(root/"desktop-client/voice_worker.py")]
 
     def run(self,operation,payload,valid=lambda:True):
-        models=Path(os.environ.get("LOCALAPPDATA",str(Path.home()/".local/share")))/"JARVIS/Desktop/models"
+        models=Path(os.environ.get('JARVIS_MODELS_DIR') or str(Path(os.environ.get("LOCALAPPDATA",str(Path.home()/".local/share")))/"JARVIS/Desktop/models"))
         request={"operation":operation,"models":str(models),"model":"whisper-small","device":"auto",
                  "provider":"piper","voice":"ronnie","profile":"desktop",**payload}
+        if os.environ.get('JARVIS_FORCE_CPU')=='true':request['device']='cpu'
         response=self.worker.exchange(request,valid=valid,timeout=100)
         if response.get("ok") and isinstance(response.get("result"),dict):return response["result"]
         raise AuthError("speech_unavailable","Controleer de ingestelde Whisper- en Piper-modellen op de server.",503)
@@ -133,6 +134,7 @@ class Speak(BaseModel):
 @router.post("/speech/synthesize", dependencies=[Depends(require_permission("chat:read"))])
 async def synthesize(request: Request, body: Speak):
     started=time.perf_counter()
+    request.app.state.natural.tts.validate_text(body.text)
     principal = request.state.principal
     await asyncio.to_thread(request.app.state.security.store.rate, "mobile-tts:" + principal.device_id, 60)
     preferences=await audio_preferences(request)

@@ -2,6 +2,50 @@
 
 ## Huidige opdracht
 
+### ElevenLabs premium stem en Oracle-voorbereiding
+
+Vervolgopdracht 25 november: `feature/elevenlabs-voice`, gestapeld op de actuele
+planningbranch c320d7a/PR 30 omdat develop de fase-7.5-basis nog niet bevat.
+Origin gecontroleerd; eigenaarmaildiffs blijven buiten de wijziging, zonder
+stash/reset. Nieuwe opdracht autoriseert ElevenLabs en read-only Oracle-inspectie/
+ARM64-voorbereiding; §15/§16 vereisen goedkeuring vóór remote installatie en
+productiemigratie. Die specifieke grens staat ook in AGENTS.md.
+
+TTS-router, instellingen, zinsstreaming en native clients hergebruikt. Sleutel
+via DPAPI buiten het project. De gekozen ontworpen stem is via de echte beveiligde
+backendroute getest en door de eigenaar beluisterd/bevestigd: 73 tekens, 3,854 s
+audio, 4,247 s tot volledige ontvangst, fallback uit. 33 gerichte/63 bredere
+serverregressies, 128 clienttests en native builds geslaagd. De volledige
+ElevenLabs-reeks telde 559 geslaagde tests. Premiumstem via de bestaande
+geauthenticeerde app-API ingesteld; nieuwe Windows-build verbonden en de
+bureaubladsnelkoppeling bijgewerkt. Zie ELEVENLABS_VOICE.md en
+ELEVENLABS_TEST_REPORT.md. Telefoon is op 27 november niet via adb verbonden.
+
+SSH-inspectie zonder hostwijzigingen: 2 OCPU, 12 GB RAM volgens IMDSv2, ARM64
+Ubuntu 24.04.5, Python 3.12.3, circa 49 GB vrij, geen swap/Ollama/reverse proxy.
+SSH-sleutel niet gekopieerd of rechten aangepast. Cloudconfiguratie, backups en
+cutover worden afzonderlijk voorbereid. Geen productie, betaalde dienst, extra
+cloudresource of telefonie geactiveerd.
+
+Op 27 november read-only hercontrole: zelfde machine, circa 48 GB vrij.
+Opt-in oracle-production toegevoegd: één lokale HTTPS-proxy met exacte Host/
+doorgestuurd client-IP; authenticatie, CSRF, apparaatrechten en interne loopback-
+grens behouden. Beschermde Fernet-vault op Linux; Windows-DPAPI blijft standaard.
+Nieuwe OAuth-cloudkoppeling vereist expliciete Web-client/callbackconfiguratie.
+CPU/modelpad kan voor de bestaande inferencehelper worden ingesteld. Server en
+spraakhelper hebben volledig resolveerbare ARM64-wheels (geen modellen geladen).
+13 gerichte tests voor beveiliging, vault, CPU, WAL-backup, herstel en DPAPI-export
+geslaagd. Windows-bestandsvergrendeling in het nieuwe backupprogramma is met
+expliciet sluiten van SQLite-verbindingen opgelost en opnieuw getest.
+ARM64 CI-matrix, systemd/Caddy-templates, afgeschermde configuratie en concreet
+backup/cutover/rollbackplan staan in deploy/oracle. Geen automatische productie-
+updates geactiveerd. Volledige regressie: 572 passed in 257,13 s; aanvullende
+deploymentscripts: 3 passed/1 POSIX-skip op Windows. Zie
+docs/ORACLE_PREPARATION_TEST_REPORT.md. Laatste volledige reeks: 577 passed /
+1 POSIX-skip in 252,44 s. Functioneel checkpoint afd9586 heeft groene PR-CI
+voor Windows/Linux/ARM64-server, Windows-client, Android en repositorystructuur.
+Draft PR 31 blijft gestapeld op planning-PR 30; geen merge of cloudinstallatie.
+
 ### Natuurlijke activiteitenplanning — 25 november 2026
 
 Actieve branch `feature/natural-activity-planning`, gestapeld op

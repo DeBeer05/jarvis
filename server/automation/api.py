@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, Request, Query
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from pydantic import Field, SecretStr
 
-from server.api.routes import require_loopback
+from server.api.routes import require_client_access
 from server.automation.models import Input, REGISTRY, CalendarRead, CalendarChange, Identifier
 from server.automation.engine import AUTOMATION_SCOPES, EmailPriorityClassifier, ManualMessagingProvider
 from server.automation.store import fingerprint, encode
@@ -30,7 +30,7 @@ async def ai_preferences(request:Request):
     with use_policy(RequestPolicy.from_document(document) if document else None):yield
 
 
-router=APIRouter(dependencies=[Depends(require_loopback),Depends(rate),Depends(ai_preferences)])
+router=APIRouter(dependencies=[Depends(require_client_access),Depends(rate),Depends(ai_preferences)])
 BASE="/api/v1/automation"
 STATIC=Path(__file__).resolve().parents[1]/"static"
 

@@ -2,6 +2,7 @@
 import re
 
 PATTERNS = (
+    re.compile(r'\bsk_[A-Za-z0-9]{20,}'),
     re.compile(r"\bgsk_[A-Za-z0-9]{32,}"),
     re.compile(r"AIza[0-9A-Za-z_-]{35}"),
     re.compile(r"(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,})"),

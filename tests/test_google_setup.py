@@ -7,6 +7,9 @@ import shutil
 
 import pytest
 
+# Hosted Windows runners can take tens of seconds to start Node/PowerShell.
+PROCESS_TIMEOUT=60 if os.name=='nt' else 10
+
 from scripts.configure_google import configure
 from tests.test_security import make_app, client_for
 
@@ -67,7 +70,7 @@ def test_every_automation_page_script_is_served_as_javascript(settings):
 def test_powershell_check_only_accepts_a_path_with_spaces(tmp_path):
     source=client_file(tmp_path,"download with spaces.json")
     script=Path(__file__).resolve().parents[1]/"scripts/Connect-Google.ps1"
-    result=subprocess.run(["powershell.exe","-NoProfile","-File",str(script),"-ClientFile",str(source),"-CheckOnly"],capture_output=True,text=True,timeout=15)
+    result=subprocess.run(["powershell.exe","-NoProfile","-File",str(script),"-ClientFile",str(source),"-CheckOnly"],capture_output=True,text=True,timeout=PROCESS_TIMEOUT)
     assert result.returncode==0
     assert "example-client-secret" not in result.stdout+result.stderr
 
@@ -88,26 +91,26 @@ const elements={},fields={};const context={URLSearchParams,Intl,location:{search
 vm.createContext(context);vm.runInContext(fs.readFileSync(scripts+'/automations.js','utf8'),context);
 assert(checks.every(item=>item.checked));
 '''
-    result=subprocess.run([shutil.which("node"),"-e",code,str(root/"server/static")],capture_output=True,text=True,timeout=10)
+    result=subprocess.run([shutil.which("node"),"-e",code,str(root/"server/static")],capture_output=True,text=True,timeout=PROCESS_TIMEOUT)
     assert result.returncode==0,result.stderr
 
 
 @pytest.mark.skipif(not shutil.which("node"),reason="Optional JavaScript runtime")
 def test_calendar_results_stay_in_calendar_panel():
     root=Path(__file__).resolve().parents[1]
-    result=subprocess.run([shutil.which("node"),str(root/"tests/js/calendar_view.cjs"),str(root/"server/static/automations.js")],capture_output=True,text=True,timeout=10)
+    result=subprocess.run([shutil.which("node"),str(root/"tests/js/calendar_view.cjs"),str(root/"server/static/automations.js")],capture_output=True,text=True,timeout=PROCESS_TIMEOUT)
     assert result.returncode==0,result.stderr
 
 
 @pytest.mark.skipif(not shutil.which("node"),reason="Optional JavaScript runtime")
 def test_mail_results_stay_in_mail_panel_and_body_is_opt_in():
     root=Path(__file__).resolve().parents[1]
-    result=subprocess.run([shutil.which("node"),str(root/"tests/js/mail_view.cjs"),str(root/"server/static/automations.js")],capture_output=True,text=True,timeout=10)
+    result=subprocess.run([shutil.which("node"),str(root/"tests/js/mail_view.cjs"),str(root/"server/static/automations.js")],capture_output=True,text=True,timeout=PROCESS_TIMEOUT)
     assert result.returncode==0,result.stderr
 
 
 @pytest.mark.skipif(not shutil.which("node"),reason="Optional JavaScript runtime")
 def test_owner_selects_windows_and_android_without_automatic_grants():
     root=Path(__file__).resolve().parents[1]
-    result=subprocess.run([shutil.which("node"),str(root/"tests/js/device_grants.cjs"),str(root/"server/static/automations.js")],capture_output=True,text=True,timeout=10)
+    result=subprocess.run([shutil.which("node"),str(root/"tests/js/device_grants.cjs"),str(root/"server/static/automations.js")],capture_output=True,text=True,timeout=PROCESS_TIMEOUT)
     assert result.returncode==0,result.stderr

@@ -143,6 +143,7 @@ internal object SettingsDraft {
     val settings=JSONObject(draft).getJSONObject(category)
     key(category) {definition.namesList().forEach {name ->
         val field=definition.getJSONObject(name)
+        if(category=="voice" && !voiceFieldVisible(field,settings))return@forEach
         NaturalField(name,labels.optString(name,field.optString("title",name)),field,settings.opt(name),schema,values) {value ->
             val changed=JSONObject(draft);changed.getJSONObject(category).put(name,value);draft=changed.toString();dirty=true
         }
@@ -317,11 +318,13 @@ internal object SettingsDraft {
     fun settings(choice:Pair<String,String>):JSONObject {
         val voice=JSONObject(JSONObject(state.naturalSettings).getJSONObject("settings").getJSONObject("voice").toString())
         voice.put("profile","custom").put("mode","manual").put("tts_provider",choice.first).put("speed",speed.toDouble()).put("volume",volume.toDouble())
-        voice.put(if(choice.first=="supertonic")"supertonic_voice" else "voice",choice.second)
+        voice.put(if(choice.first=="elevenlabs")"elevenlabs_voice_id" else if(choice.first=="supertonic")"supertonic_voice" else "voice",choice.second)
         return voice
     }
     Column(Modifier.heightIn(max=650.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(8.dp)) {
-        Text("Vaste lokale stemmen vergelijken. Dit opent de microfoon niet. Profielen zijn instellingen, geen getrainde stemmen. Pitch en expressiviteit zijn niet ondersteund.")
+        Text("ElevenLabs verstuurt de uitgesproken tekst naar de provider en kan credits kosten, ook bij onderbreken. Vergelijken achter elkaar gebruikt alleen lokale stemmen. De microfoon blijft uit.")
+        val usage=objectOrEmpty(state.voiceStudio).optJSONObject("usage");val account=objectOrEmpty(state.voiceStudio).optJSONObject("account")
+        Text("Gereserveerd deze maand: ${usage?.optInt("monthly_reserved_credits",0) ?: 0} credits (schatting). Accounttegoed: ${account?.optString("remaining_credits","onbekend") ?: "onbekend"}.")
         Button(onClick=model::voiceStudio){Text("Stemmen ophalen")}
         voices.forEachIndexed {index,choice->FilterChip(selected=selected==index,onClick={selected=index},label={Text(choice.first+" · "+choice.second)})}
         OutlinedTextField(text,{text=it},label={Text("Voorbeeldtekst, maximaal 350 tekens")},modifier=Modifier.fillMaxWidth())
@@ -329,7 +332,7 @@ internal object SettingsDraft {
         Text("Volume ${(volume*100).roundToInt()}%");Slider(volume,{volume=it},valueRange=0f..1f)
         val ready=voices.isNotEmpty() && selected in voices.indices && text.length in 1..350 && state.naturalSettings.isNotBlank() && !state.busy && !state.recording
         Button(enabled=ready,onClick={model.voiceStudioCompare(text,listOf(settings(voices[selected])))}){Text("Beluisteren")}
-        OutlinedButton(enabled=ready,onClick={model.voiceStudioCompare(text,voices.map{settings(it)})}){Text("Vergelijk achter elkaar")}
+        OutlinedButton(enabled=ready,onClick={model.voiceStudioCompare(text,voices.filter{it.first!="elevenlabs"}.map{settings(it)})}){Text("Vergelijk lokale stemmen")}
         OutlinedButton(enabled=ready,onClick={model.voiceStudioSave(settings(voices[selected]))}){Text("Als favoriete stem opslaan")}
         OutlinedButton(onClick=model::stop){Text("Stop stemvoorbeeld")}
         Text(state.naturalStatus)

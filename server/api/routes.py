@@ -12,6 +12,11 @@ api_router = APIRouter(prefix="/api/v1", tags=["status"])
 logger = logging.getLogger("jarvis.server")
 
 
+def require_client_access(request:Request)->None:
+    if request.app.state.settings.profile=='oracle-production' and request.scope.get('jarvis.trusted_https') is True:return
+    require_loopback(request)
+
+
 def require_loopback(request: Request) -> None:
     try:
         local = request.client is not None and ipaddress.ip_address(request.client.host).is_loopback
@@ -38,7 +43,7 @@ def ready(request: Request):
     )
 
 
-@api_router.get("/status", dependencies=[Depends(require_loopback)])
+@api_router.get("/status", dependencies=[Depends(require_client_access)])
 def status(request: Request):
     runtime = request.app.state.runtime
     settings = request.app.state.settings
