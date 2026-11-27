@@ -271,6 +271,13 @@ Oracle-resources of accountupgrade. De lokale installatie blijft behouden.
 
 ## Efficiënt hervatten
 
+Expliciete vervolgopdracht 27 november 2026: implementeer de acht productfases in
+IMPLEMENTATION_PLAN.md, voortbouwend op de bestaande fase-7.5-code. Dit vervangt
+voor die productuitbreiding de oude stopgrens; het verleent geen apparaatgrants,
+betaalde diensten, echte testberichten/oproepen of Oracle/productiemigratie.
+Hergebruik managers en behandel externe configuratie/acceptatie als aparte,
+zichtbare afhankelijkheid. Optimaliseer voor 8 GB zonder modelvervanging.
+
 Vervolgopdracht agenda 27 november 2026: expliciete persoonlijke CalendarCreate/
 CalendarUpdate-opdrachten mogen direct via bestaande Automation/ApprovalManager
 worden uitgevoerd na gevalideerde datum, begintijd en titel, actuele read/write/

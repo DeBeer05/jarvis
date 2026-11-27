@@ -91,6 +91,22 @@ class MemoryManager:
         dependents=db.execute("SELECT DISTINCT p.id FROM natural_pending p,json_each(p.payload) j WHERE p.user_id=? AND p.kind='memory_context' AND j.value=?",(user,row["id"])).fetchall()
         for item in dependents:
             db.execute("INSERT OR IGNORE INTO natural_forgotten VALUES (?,?,?,?)",(user,item["id"],hashlib.sha256(row["content"].encode()).hexdigest(),self.store.clock()))
+        # Forget every later turn that consumed an episode derived from this
+        # fact, including transitive retrieval across conversations.
+        db.execute("""INSERT OR IGNORE INTO natural_forgotten
+            WITH RECURSIVE affected(id) AS (
+                SELECT source_turn FROM natural_forgotten WHERE user_id=?
+                UNION SELECT e.turn_id FROM natural_episode_sources e JOIN affected a ON e.source_turn=a.id
+                JOIN chat_turns t ON t.id=e.turn_id
+                JOIN natural_conversation_owners o ON o.conversation_id=t.conversation_id AND o.user_id=?)
+            SELECT ?,id,?,? FROM affected a WHERE NOT EXISTS (
+                SELECT 1 FROM natural_forgotten f WHERE f.user_id=? AND f.source_turn=a.id)""",
+            (user,user,user,hashlib.sha256(row['content'].encode()).hexdigest(),self.store.clock(),user))
+        db.execute("""DELETE FROM natural_summaries WHERE user_id=? AND EXISTS (
+            SELECT 1 FROM chat_turns t JOIN natural_episode_sources e ON e.turn_id=t.id
+            JOIN natural_forgotten f ON f.source_turn=e.source_turn AND f.user_id=?
+            WHERE t.conversation_id=natural_summaries.conversation_id
+            AND t.sequence<=natural_summaries.through_sequence)""",(user,user))
 
     def list(self,principal,*,query="",category=None,status=None,limit=50,offset=0,include_sensitive=True):
         limit=max(1,min(100,int(limit)));offset=max(0,min(10000,int(offset)))

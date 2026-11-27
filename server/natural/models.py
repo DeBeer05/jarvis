@@ -134,6 +134,7 @@ class Memory(StrictModel):
     automatic: bool = False
     history: bool = True
     summaries: bool = True
+    episodes: bool = Field(default=False,title="Eerdere gesprekken gericht terugvinden",description="Lokale FTS5-zoekfunctie in opgeslagen gebruikersuitspraken; volgt geschiedenis-, synchronisatie-, cloud- en vergeetbeleid.")
     retention_days: int = Field(default=365, ge=1, le=3650)
     semantic_search: bool = Field(default=False,description="Breidt FTS5 uit met een kleine Nederlandse woordenlijst. Geen embeddings of algemeen semantisch model.")
     synchronize: bool = True

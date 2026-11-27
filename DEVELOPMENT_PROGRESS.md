@@ -2,6 +2,17 @@
 
 ## Huidige opdracht
 
+### Acht productfases persoonlijke butler — 27 november 2026
+
+Nieuwe vervolgopdracht implementeert de productfases uit IMPLEMENTATION_PLAN.md.
+AGENTS verduidelijkt scope zonder nieuwe grants of Oracle/productiemigratie.
+Branch feature/personal-butler bouwt op ea09cb6/PR 32 omdat develop deze basis
+mist; bestaande maildiffs blijven apart. Fase 1 gebruikt bestaande managers en
+voegt opt-in episodische retrieval toe: FTS5, privacy-/apparaatisolatie,
+bronvergeten en migratie v9 met automatische backup. Geen embeddings/modelcall.
+Gerichte regressies en Ruff/mypy geslaagd; volledige regressie wordt gevolgd.
+Fasevolgorde en externe afhankelijkheden blijven expliciet in het plan.
+
 ### Blijvende persoonlijke butlerstijl — 27 november 2026
 
 Classic Butler gebruikt vloeiend, kalm Nederlands met u/uw, tact, bescheiden

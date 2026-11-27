@@ -157,7 +157,8 @@
       "confidence": "Zelfverzekerde spreekstijl",
       "supertonic_voice": "Supertonic-mannenstem",
       "steps": "Supertonic kwaliteitsstappen",
-      "pause_ms": "Pauze tussen tekstblokken (ms)"
+      "pause_ms": "Pauze tussen tekstblokken (ms)",
+      "episodes": "Eerdere gesprekken gericht terugvinden"
     },
     "values": {
       "allow": "Automatisch toestaan",
@@ -889,6 +890,12 @@
             "summaries": {
               "default": true,
               "title": "Summaries",
+              "type": "boolean"
+            },
+            "episodes": {
+              "default": false,
+              "description": "Lokale FTS5-zoekfunctie in opgeslagen gebruikersuitspraken; volgt geschiedenis-, synchronisatie-, cloud- en vergeetbeleid.",
+              "title": "Eerdere gesprekken gericht terugvinden",
               "type": "boolean"
             },
             "retention_days": {
@@ -1890,6 +1897,7 @@
         "automatic": false,
         "history": true,
         "summaries": true,
+        "episodes": false,
         "retention_days": 365,
         "semantic_search": false,
         "synchronize": true,

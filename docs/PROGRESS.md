@@ -1,5 +1,25 @@
 # Hervatpunt — agenda en Nederlands STT, 27 november 2026
 
+## Actueel: acht productfases persoonlijke butler
+
+- Nieuwe expliciete opdracht staat acht productfases toe; plan in
+  IMPLEMENTATION_PLAN.md. Branch feature/personal-butler vanaf ea09cb6/PR 32;
+  develop mist nog deze basis. Nieuwe branch zonder stash/reset; eigenaarmail
+  blijft apart. Oracle/productie en echte externe proefacties niet geautoriseerd.
+- Fase 1 delta: opt-in episodische FTS5-retrieval in bestaande SQLite-database,
+  migratie v9 met backup, alleen gebruikersuitspraken, maximaal 3 x 480 tekens.
+  History/cloud/sensitive/sync/expiry en bronvergeten blijven leidend; afgeleide
+  episodecontext wordt transitief uitgesloten bij vergeten. Geen extra LLM-call.
+- 28 gerichte geheugen/spraak/instellingentests en 12 migratie/episodetests
+  geslaagd; eerdere brede 76 tests geslaagd na twee herstelde testfixturepaden.
+  Ruff/mypy (39 modules), dependency-, contract- en structuurcheck geslaagd.
+  Brede regressie: 608 passed/1 skip plus één oude backupbestandsnaamtest,
+  hersteld en afzonderlijk geslaagd; finale gerichte reeks 24 passed. Logs .local/butler-phase1-*.log.
+- Nieuwe handleiding docs/PERSONAL_BUTLER_TEST_GUIDE.md; echte menselijke
+  persoonlijkheids-/microfoonacceptatie blijft apart. Volgende fase: modi en
+  aanwezigheid; fase 1 technisch afgerond. Locatie/connectorinformatie gevraagd;
+  zonder antwoord blijft die specifieke externe configuratie geblokkeerd.
+
 ## Vervolg: blijvende butlerpersoonlijkheid
 
 - Opdracht: elegant Nederlands met u/uw en meneer in ieder antwoord; tact,

@@ -154,5 +154,6 @@ VALUES.update({"classic_butler":"Classic Butler","modern_butler":"Modern Butler"
 
 VALUES.update({"daily":"Dagelijks gesprek","technical":"Technische uitleg","briefing":"Korte briefing"})
 VALUES["always"]="Ieder antwoord"
+LABELS["episodes"]="Eerdere gesprekken gericht terugvinden"
 
 VALUES.update({"together":"Samen plannen","surprise":"Verrassingsmodus","budget":"Budgetmodus","relaxed":"Ontspannen planning","detailed":"Gedetailleerde planning","unknown":"Nog onbekend","car":"Auto","train":"Trein","bike":"Fiets","walk":"Lopen","any":"Geen voorkeur","inside":"Binnen","outside":"Buiten","suggest":"Voorstellen doen","choose":"Zelf een voorstel kiezen","essential":"Alleen noodzakelijke vragen","draft_only":"Alleen concept voorbereiden","propose_message":"Verzendvoorstel voorbereiden"})

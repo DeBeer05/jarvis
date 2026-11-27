@@ -4,6 +4,9 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Opt-in episodisch zoeken in eerdere gebruikersuitspraken met SQLite FTS5,
+  bronvergeten, apparaatscope, privacyfilters en migratiebackup; geen extra LLM.
+
 - Persoonlijke butlerstijl met u/uw, optioneel meneer in ieder antwoord,
   situationele terugkomst en initiatief zonder fictieve achtergrondbewaking.
 

@@ -5,7 +5,7 @@ import uuid
 from contextlib import contextmanager
 from pathlib import Path
 
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 9
 
 
 class Database:
@@ -92,6 +92,11 @@ class Database:
                 connection.execute('CREATE INDEX voice_usage_owner_time ON voice_usage(user_id,created)')
                 connection.execute('INSERT INTO schema_migrations(version) VALUES (8)')
                 connection.execute('PRAGMA user_version=8')
+            if version < 9:
+                from server.natural.episodes import migrate
+                migrate(connection)
+                connection.execute('INSERT INTO schema_migrations(version) VALUES (9)')
+                connection.execute('PRAGMA user_version=9')
             # A process restart must never present an unfinished answer as complete.
             connection.execute("UPDATE chat_turns SET status='interrupted', error_code='server_restarted' WHERE status='running'")
         self.initialized = True

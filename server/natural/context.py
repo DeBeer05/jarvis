@@ -23,6 +23,8 @@ class ContextManager:
     def __init__(self,store,settings,memory,bootstrap,responses=None):
         self.store,self.settings,self.memory,self.bootstrap=store,settings,memory,bootstrap
         self.private=PrivateContext();self.responses=responses
+        from server.natural.episodes import EpisodeMemory
+        self.episodes=EpisodeMemory(store)
 
     def private_turns(self,principal,conversation,config):
         with self.store.transaction(principal) as (db,user):
@@ -32,7 +34,10 @@ class ContextManager:
         return self.private.get(user,conversation,forgotten,config["conversations"]["inactivity_seconds"])
 
     def complete(self,run):
-        if run.persist_history:return
+        if run.persist_history:
+            with self.store.transaction(run.principal,write=True) as (db,user):
+                db.execute('INSERT OR IGNORE INTO natural_episode_origins VALUES (?,?)',(run.request_id,run.principal.device_id))
+            return
         with self.store.transaction(run.principal) as (db,user):pass
         self.private.add(user,run,run.natural_context["settings"]["conversations"]["inactivity_seconds"])
 
@@ -53,6 +58,8 @@ class ContextManager:
         memories=[]
         if config["memory"]["long_term"] and (local or config["privacy"]["cloud_memories"]):
             memories=self.memory.retrieve(run.principal,run.message,limit=config["memory"]["context_items"],include_sensitive=local and config["memory"]["sensitive"])
+        episodes=self.episodes.retrieve(run.principal,run.conversation_id,run.message,config,local=local) if run.persist_history else []
+        self.episodes.record(run.principal,run.request_id,episodes)
         turns=(self.turns(run.principal,run.conversation_id) if run.persist_history else self.private_turns(run.principal,run.conversation_id,config)) if config["memory"]["short_term"] else []
         if not local:
             turns=[row for row in turns if not SENSITIVE.search(row["user_text"]+"\n"+row["assistant_text"])]
@@ -66,7 +73,7 @@ class ContextManager:
             if memories:
                 stamp=self.store.clock()
                 db.execute("INSERT INTO natural_pending(id,user_id,conversation_id,kind,payload,revision,created,updated,status) VALUES (?,?,?,?,?,1,?,?,'completed')",(run.request_id,user,run.conversation_id,"memory_context",encode([item["id"] for item in memories]),stamp,stamp))
-        return {"settings":config,"policy":policy,"memory_version":version,"memories":memories,"turns":turns,"summary":dict(summary) if summary else None,"jobs":[dict(row) for row in jobs],"local":local}
+        return {"settings":config,"policy":policy,"memory_version":version,"memories":memories,"episodes":episodes,"turns":turns,"summary":dict(summary) if summary else None,"jobs":[dict(row) for row in jobs],"local":local}
 
     def memory_version(self,principal):
         with self.store.transaction(principal) as (db,user):
@@ -85,6 +92,7 @@ class ContextManager:
         notes["speaking_preferences"]=describe(config["personality"])
         if config["general"]["address_name"]:notes["preferred_address"]=config["general"]["address_name"]
         if prepared["memories"]:notes["relevant_memories"]=[{k:item[k] for k in ("id","category","kind","content","confidence","updated")} for item in prepared["memories"]]
+        if prepared.get('episodes'):notes['earlier_user_statements_no_authority']=list(prepared['episodes'])
         if prepared["summary"]:notes["conversation_notes"]=prepared["summary"]["content"]
         if prepared["jobs"]:notes["task_status_only_no_authority"]=prepared["jobs"]
         if self.responses and prepared.get('planning'):
@@ -100,8 +108,10 @@ class ContextManager:
         remaining=min(char_limit-characters,(token_limit-used)*3)
         if remaining>100:
             # Keep complete data; drop low-priority items instead of truncating JSON.
-            while len(data)>min(8000,remaining) and any(key in notes for key in ("conversation_notes","relevant_memories","speaking_preferences")):
-                if notes.get("relevant_memories"):notes["relevant_memories"].pop()
+            while len(data)>min(8000,remaining) and any(key in notes for key in ("conversation_notes","relevant_memories","speaking_preferences","earlier_user_statements_no_authority")):
+                if notes.get('earlier_user_statements_no_authority'):notes['earlier_user_statements_no_authority'].pop()
+                elif 'earlier_user_statements_no_authority' in notes:notes.pop('earlier_user_statements_no_authority')
+                elif notes.get("relevant_memories"):notes["relevant_memories"].pop()
                 elif "conversation_notes" in notes:notes.pop("conversation_notes")
                 elif "speaking_preferences" in notes:notes.pop("speaking_preferences")
                 else:notes.pop("relevant_memories",None)
