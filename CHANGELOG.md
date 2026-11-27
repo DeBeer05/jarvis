@@ -4,6 +4,11 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Gesloten HA/HTTPS- en ORS-adapters met bestaande vault/approvals, bronverificatie
+  en begrensde caches. Handmatige ritkosten; ontbrekende Hi-/verkeersbron zichtbaar.
+- Opt-in beeldcontext met previewrevision, PNG-limieten, dagquota en bestaande
+  AI-router. Geen beelden opslaan, geen tools uit beelden, geen modelvervanging.
+
 - Gesloten Windows-hostbediening met eigenaarallowlist, policyfingerprint en
   bestaande approvals; CPU/RAM, optionele NVML-sensoren en Downloads-events.
 - Android-apphandoffs en opt-in achtergrondsync. Meldingsaantallen zonder inhoud,

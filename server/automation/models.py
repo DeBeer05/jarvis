@@ -138,6 +138,31 @@ class DesktopRead(Input):
     query:str=Field(default='',max_length=80)
 
 
+class HomeRead(Input):
+    entity_id:str=Field(pattern=r'^(?:light|switch|climate|sensor|binary_sensor|scene|automation)\.[a-z0-9_]{1,100}$')
+
+
+class HomeControl(HomeRead):
+    action:Literal['on','off','temperature','scene','routine']
+    temperature:float|None=Field(default=None,ge=5,le=30,allow_inf_nan=False)
+    brightness:int|None=Field(default=None,ge=0,le=255)
+    policy_hash:str=Field(default='',pattern=r'^(?:[0-9a-f]{64})?$')
+    @model_validator(mode='after')
+    def fields(self):
+        if (self.action=='temperature')!=(self.temperature is not None):raise ValueError('Temperatuur hoort alleen bij een thermostaatopdracht')
+        if self.brightness is not None and self.action!='on':raise ValueError('Helderheid hoort alleen bij licht aan')
+        return self
+
+
+class RouteRead(Input):
+    coordinates:list[tuple[float,float]]=Field(min_length=2,max_length=10)
+    @model_validator(mode='after')
+    def points(self):
+        import math
+        if any(not math.isfinite(lon) or not math.isfinite(lat) or not -180<=lon<=180 or not -90<=lat<=90 for lon,lat in self.coordinates):raise ValueError('Ongeldige coördinaten')
+        return self
+
+
 class MobileHandoff(Input):
     target_device:str=Field(pattern=r'^[0-9a-f-]{36}$')
     action:Literal['dial','sms','email','whatsapp','signal','navigate']
@@ -195,6 +220,7 @@ class WorkflowCreate(Input):
 REGISTRY = {
     'DesktopRead':(DesktopRead,False),'DesktopControl':(DesktopControl,True),
     'MobileHandoff':(MobileHandoff,True),
+    'HomeRead':(HomeRead,False),'HomeControl':(HomeControl,True),'RouteRead':(RouteRead,False),
     "PersonalBriefing": (PersonalBriefing,False),
     "CalendarList": (Empty, False),
     "CalendarSummary": (CalendarSummary, False), "EmailCheck": (EmailSearch, False),
@@ -208,7 +234,7 @@ REGISTRY = {
     "WorkflowCreate": (WorkflowCreate, False), "WorkflowStatus": (Identifier, False),
 }
 
-SIDE_EFFECT_TOOLS=frozenset({'CalendarCreate','CalendarUpdate','CalendarDelete','EmailDraft','EmailSend','DesktopControl','MobileHandoff'})
+SIDE_EFFECT_TOOLS=frozenset({'CalendarCreate','CalendarUpdate','CalendarDelete','EmailDraft','EmailSend','DesktopControl','MobileHandoff','HomeControl'})
 
 
 def aware(value):

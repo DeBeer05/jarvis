@@ -82,7 +82,7 @@ class SecurityGate:
                 elif path.endswith("/rules"): required = "admin:account"
                 elif "/integrations" in path: required = "integrations:manage"
                 elif path.endswith(("/challenge", "/decision")): required = "automation:approve"
-                elif method in ("GET", "HEAD") or path.endswith(("/calendar/search", "/email/search", "/reschedule", "/summarize", "/email-priority")): required = "automation:read"
+                elif method in ("GET", "HEAD") or path.endswith(("/calendar/search", "/email/search", "/reschedule", "/summarize", "/email-priority",'/route-cities','/trip-cost')): required = "automation:read"
                 else: required = "automation:write"
             elif path == "/api/v1/mobile/speech/transcribe":
                 required = "chat:write"

@@ -2,6 +2,7 @@
   "schema": {
     "schema_version": 1,
     "categories": {
+      "vision": "Schermcontext en beeldanalyse",
       "planning": "Uitjes en planning",
       "responses": "Antwoordgedrag",
       "general": "Algemeen",
@@ -1471,6 +1472,46 @@
           "title": "Tasks",
           "type": "object"
         },
+        "Vision": {
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "default": false,
+              "title": "Beeldanalyse inschakelen",
+              "type": "boolean"
+            },
+            "provider": {
+              "default": "gemini",
+              "enum": [
+                "gemini",
+                "groq",
+                "ollama"
+              ],
+              "title": "Provider",
+              "type": "string"
+            },
+            "model": {
+              "default": "",
+              "maxLength": 128,
+              "title": "Bestaand beeldmodel (leeg gebruikt het ingestelde model)",
+              "type": "string"
+            },
+            "cloud_allowed": {
+              "default": false,
+              "title": "Geselecteerde beelden mogen naar de gekozen cloudprovider",
+              "type": "boolean"
+            },
+            "daily_requests": {
+              "default": 10,
+              "maximum": 50,
+              "minimum": 0,
+              "title": "Maximale beeldvragen per dag",
+              "type": "integer"
+            }
+          },
+          "title": "Vision",
+          "type": "object"
+        },
         "Voice": {
           "additionalProperties": false,
           "properties": {
@@ -1789,6 +1830,9 @@
       },
       "additionalProperties": false,
       "properties": {
+        "vision": {
+          "$ref": "#/$defs/Vision"
+        },
         "planning": {
           "$ref": "#/$defs/ActivityPlanning"
         },
@@ -1916,6 +1960,11 @@
           "default": false,
           "title": "Optionele laatst bekende locatie delen (maximaal 24 uur bewaard)",
           "type": "boolean"
+        },
+        "screen_allowed": {
+          "default": false,
+          "title": "Zelf geselecteerde schermafbeeldingen mogen worden geanalyseerd",
+          "type": "boolean"
         }
       },
       "title": "DeviceSettings",
@@ -1935,12 +1984,15 @@
       "EmailRead",
       "EmailSearch",
       "EmailSend",
+      "HomeControl",
+      "HomeRead",
       "MobileHandoff",
       "NotificationSend",
       "PersonalBriefing",
       "ReminderCancel",
       "ReminderCreate",
       "ReminderList",
+      "RouteRead",
       "WaitForReply",
       "WorkflowCreate",
       "WorkflowStatus",
@@ -1950,6 +2002,7 @@
     "mandatory_approval": [
       "DesktopControl",
       "MobileHandoff",
+      "HomeControl",
       "CalendarCreate",
       "CalendarUpdate",
       "CalendarDelete",
@@ -1959,6 +2012,13 @@
   "document": {
     "revision": 0,
     "settings": {
+      "vision": {
+        "enabled": false,
+        "provider": "gemini",
+        "model": "",
+        "cloud_allowed": false,
+        "daily_requests": 10
+      },
       "planning": {
         "enabled": true,
         "mode": "together",

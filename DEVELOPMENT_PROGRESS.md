@@ -4,6 +4,17 @@
 
 ### Acht productfases persoonlijke butler — 27 november 2026
 
+Fase 6 technisch gereed: HA REST/HTTPS met allowlist/aliassen en echte status-
+verificatie; ORS/geocodering/handmatige ritkosten via bestaande registry/vault.
+Geen geverifieerde publieke Creality Hi-status-API, live verkeer/pompprijzen of
+voertuigtelemetrie. Beeldcontext: expliciete opt-ins/previewrevision, gevalideerde
+PNG, dagbudget, geen beeldopslag/tools; SQLite v13. Bestaande AI-router en Qt/
+Android-componenten hergebruikt, geen modeldownload of nieuwe dependencies.
+654 servertests/1 skip; laatste gerichte reeks 33 passed. Windows 142 passed +
+3 finale previewtests; Android 11 tests/lint/debug/release groen. Niet live;
+credentials, menselijke beeld-/apparaatacceptatie en fase-8-wiring nog apart.
+Fase-5-head 1ce31cb alle 12 CI-checks groen. Volgende: betrouwbare autonomie.
+
 Fase 5 technisch gereed: gesloten Windows-hostacties en Downloads-events,
 CPU/RAM en optionele bestaande NVIDIA NVML-sensoren; Android getypeerde
 apphandoffs, opt-in WorkManager, meldingsaantallen en batterij/laatst bekende

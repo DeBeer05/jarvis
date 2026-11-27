@@ -7,6 +7,7 @@ from server.natural.store import Conflict, encode
 
 SCHEMA_VERSION=1
 CATEGORIES={
+    'vision':'Schermcontext en beeldanalyse',
     "planning":"Uitjes en planning",
     "responses":"Antwoordgedrag",
     "general":"Algemeen", "conversations":"Gesprekken", "listening":"Luisteren",

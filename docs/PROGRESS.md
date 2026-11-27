@@ -2,6 +2,18 @@
 
 ## Actueel: acht productfases persoonlijke butler
 
+- Fase 6 technisch afgerond: HA/HTTPS, ORS/geocodering/ritkosten, gesloten adapters
+  via bestaande registry/vault. Beeldanalyse opt-in, quota/revisie/PNG-validatie,
+  geen opslag/tools; SQLite v13. Windows-preview en Android-selectiecomponenten
+  gereed; daadwerkelijke UI-wiring volgt fase 8. Geen publieke Hi-API geverifieerd.
+- Testbewijs: 654 servertests passed/1 POSIX-skip; na laatste wijzigingen 33
+  gerichte tests passed. Windows 142 passed + 3 previewtests, synthetische Qt-PNG
+  werkelijk door serverparser gevalideerd. Android 11 tests/lint/beide builds groen.
+- Geen echte externe account-/schermafbeeldingtest; nog niet live. Externe config
+  in docs/EXTERNAL_INTEGRATIONS.md. Volgende fase 7: autonomie/reliability, daarna
+  fase 8 UI, finale builds/activatie en praktische acceptatie.
+- Laatst gecontroleerde CI: alle 12 checks op 1ce31cb groen. Eigenaarmaildiffs apart.
+
 - Fase 5 technisch afgerond: Windows-hostadapter (gesloten acties,
   specifieke programma-/documentrechten, policyfingerprint, workerthreads),
   Android-apphandoff met doelapparaatconsent/eenmalige approval en aparte

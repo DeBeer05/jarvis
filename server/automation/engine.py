@@ -26,7 +26,7 @@ class PermissionManager:
             row=db.execute("SELECT s.payload FROM natural_settings s JOIN auth_devices d ON d.user_id=s.user_id WHERE d.id=? AND s.scope='user' AND s.device_id=''",(device,)).fetchone()
         if not row:return
         autonomy=json.loads(row["payload"])["autonomy"]
-        reads={"CalendarList","CalendarRead","EmailSearch","EmailRead","ReminderList","WorkflowStatus","CalendarSummary","EmailCheck","WaitForReply","PersonalBriefing","DesktopRead"}
+        reads={"CalendarList","CalendarRead","EmailSearch","EmailRead","ReminderList","WorkflowStatus","CalendarSummary","EmailCheck","WaitForReply","PersonalBriefing","DesktopRead","HomeRead","RouteRead"}
         if autonomy["actions"].get(tool)=="block" or autonomy["profile"]=="read_propose" and tool not in reads:
             raise AuthError("permission_denied","Deze actie is geblokkeerd door je instellingen voor zelfstandigheid.",403)
 
@@ -297,6 +297,15 @@ class ActionExecutor:
         if tool=="EmailSend": return await e.integrations.send(p)
         if tool=="PersonalBriefing":return await e.briefings.execute(row,p)
         if tool=='MobileHandoff':return await asyncio.to_thread(e.handoffs.publish,row,p,WRITE_GUARD.get() or (lambda:None))
+        if tool in ('HomeRead','HomeControl','RouteRead'):
+            write_guard=WRITE_GUARD.get()
+            def guard():
+                if write_guard:write_guard()
+                e.permissions.check(row['device_id'],'automation:read')
+            guard()
+            if tool=='HomeRead':return await e.external.home_state(p['entity_id'],guard)
+            if tool=='HomeControl':return await e.external.home_control(p,guard)
+            return await e.external.route(p,guard)
         if tool in ('DesktopRead','DesktopControl'):
             write_guard=WRITE_GUARD.get();request_guard=REQUEST_GUARD.get()
             def guard():
@@ -354,6 +363,8 @@ class AutomationEngine:
         self.lock=asyncio.Lock()
         from server.automation.windows import WindowsHost
         self.windows=WindowsHost(self.store)
+        from server.automation.external import ExternalAdapters
+        self.external=ExternalAdapters(self)
 
     def submit(self, device, tool, payload, key, due=None, repeat="once", timezone="Europe/Amsterdam", parent=None, step=0):
         if repeat not in ('once','daily','weekly','monthly','yearly'):raise ValueError('Onbekende herhaling')
@@ -361,6 +372,7 @@ class AutomationEngine:
         self.permissions.check_tool(device,tool)
         if tool in self.store.preference("disabled_tools",[]): raise ValueError("Deze actie is uitgeschakeld door de eigenaar")
         if tool=='DesktopControl' and not payload.get('policy_hash'):payload={**payload,'policy_hash':self.windows.signature()}
+        if tool=='HomeControl' and not payload.get('policy_hash'):payload={**payload,'policy_hash':self.external.signature()}
         payload=validate(tool,payload)
         if repeat!="once" and REGISTRY[tool][1]: raise ValueError("Externe wijzigingen mogen niet terugkerend worden goedgekeurd")
         if tool=="ReminderCreate":
@@ -453,4 +465,5 @@ class AutomationEngine:
 
     async def close(self):
         await self.scheduler.stop()
+        await self.external.close()
         await self.integrations.http.aclose()

@@ -1,6 +1,7 @@
 """Authenticated UI/API. Reading third-party content never invokes a tool."""
 import asyncio
 import json
+import httpx
 from datetime import datetime, UTC
 from pathlib import Path
 from typing import Literal
@@ -102,6 +103,52 @@ async def windows_policy(request:Request,body:dict):
     e.store.set_preference('windows_watch_owner',request.state.principal.device_id)
     e.audit.record('windows_host_policy_updated',device=request.state.principal.device_id)
     return await asyncio.to_thread(e.windows.capabilities)
+
+
+@router.get(BASE+'/external')
+def external_capabilities(request:Request):return engine(request).external.capabilities()
+
+
+@router.get(BASE+'/external/home-assistant',dependencies=[Depends(require_permission('admin:account'))])
+def home_policy(request:Request):return engine(request).external.home_policy().model_dump(mode='json')
+
+
+@router.put(BASE+'/external/home-assistant',dependencies=[Depends(require_permission('admin:account'))])
+def save_home_policy(request:Request,body:dict):
+    from server.automation.external import HomePolicy
+    policy=HomePolicy.model_validate(body)
+    e=engine(request);e.store.set_preference('home_assistant',policy.model_dump(mode='json'))
+    e.audit.record('home_assistant_policy_updated',device=request.state.principal.device_id)
+    return e.external.capabilities()
+
+
+@router.post(BASE+'/trip-cost')
+def trip_cost(request:Request,body:dict):return engine(request).external.cost(body)
+
+
+class RouteCities(Input):
+    origin:str=Field(min_length=2,max_length=100)
+    destination:str=Field(min_length=2,max_length=100)
+
+
+@router.post(BASE+'/route-cities')
+async def city_route(request:Request,body:RouteCities):
+    from server.security.types import AuthError
+    e=engine(request);n=request.app.state.natural;principal=request.state.principal
+    def guard():
+        n.settings.get(principal);e.permissions.check(principal.device_id,'automation:read');e.permissions.check_tool(principal.device_id,'RouteRead')
+        if 'RouteRead' in e.store.preference('disabled_tools',[]):raise ValueError('Routelezen is uitgeschakeld')
+        if n.presence.snapshot(principal)['mode']=='private':raise AuthError('route_privacy','In privémodus worden geen plaatsen naar de routeprovider verstuurd.',403)
+    guard()
+    await asyncio.to_thread(request.app.state.security.store.rate,'route:'+principal.device_id,10)
+    configured=await asyncio.to_thread(e.external.capabilities)
+    if not configured['routes']['configured']:raise AuthError('route_not_configured','Stel eerst uw routeprovider in; er zijn geen plaatsnamen verstuurd.',409)
+    try:
+        origin,destination=await asyncio.gather(n.briefings.sources.location(body.origin),n.briefings.sources.location(body.destination))
+        guard()
+        result=await e.external.route({'coordinates':[[origin['longitude'],origin['latitude']],[destination['longitude'],destination['latitude']]]},guard)
+    except (ValueError,httpx.HTTPError):raise AuthError('route_unavailable','De plaatsen of route konden niet eenduidig worden opgehaald. Er is geen reistijd verzonnen.',503) from None
+    return {**result,'origin':origin['name'],'destination':destination['name'],'live_traffic':False}
 
 
 @router.get("/automations")

@@ -40,15 +40,21 @@ class PublicSources:
             while len(self.cache)>16:self.cache.popitem(last=False)
             return result
 
+    async def resolve_place(self,location):
+        places=json.loads(await self.read('https://geocoding-api.open-meteo.com/v1/search',
+            {'name':location,'count':5,'language':'nl','format':'json'})).get('results',[])
+        matches=[place for place in places if str(place.get('name','')).casefold()==location.casefold()]
+        if len(matches)!=1:raise ValueError('De plaatsnaam is niet eenduidig; kies een specifiekere plaats')
+        place=matches[0];latitude=float(place['latitude']);longitude=float(place['longitude'])
+        if not math.isfinite(latitude) or not math.isfinite(longitude) or not -90<=latitude<=90 or not -180<=longitude<=180:raise ValueError('Ongeldige plaatscoördinaten')
+        return {'name':str(place['name'])[:100],'latitude':latitude,'longitude':longitude}
+
+    async def location(self,name):return await self.cached(('location',name.casefold()),lambda:self.resolve_place(name),3600)
+
     async def weather(self,location,timezone):
         if not location.strip():raise ValueError('Kies eerst een plaats voor het weer')
         async def load():
-            places=json.loads(await self.read('https://geocoding-api.open-meteo.com/v1/search',
-                {'name':location,'count':5,'language':'nl','format':'json'})).get('results',[])
-            matches=[place for place in places if str(place.get('name','')).casefold()==location.casefold()]
-            if len(matches)!=1:raise ValueError('De plaatsnaam is niet eenduidig; kies een specifiekere plaats')
-            place=matches[0];latitude=float(place['latitude']);longitude=float(place['longitude'])
-            if not math.isfinite(latitude) or not math.isfinite(longitude) or not -90<=latitude<=90 or not -180<=longitude<=180:raise ValueError('Ongeldige plaatscoördinaten')
+            place=await self.resolve_place(location);latitude=place['latitude'];longitude=place['longitude']
             raw=json.loads(await self.read('https://api.open-meteo.com/v1/forecast',
                 {'latitude':latitude,'longitude':longitude,'current':'temperature_2m,precipitation,wind_speed_10m','timezone':timezone,'forecast_days':1}))
             current=raw['current'];units=raw['current_units']

@@ -27,6 +27,7 @@ class JarvisApi(val endpoint: Endpoint, private val vault: SecretVault) {
     @Volatile var generation = 0
         private set
     @Volatile private var streamCall: Call? = null
+    @Volatile private var imageCall:Call?=null
     @Volatile private var transcriptionCall: Call? = null
     @Volatile private var synthesisCall: Call? = null
     private fun make(path: String, method: String, body: RequestBody?, bearer: String? = null): Call {
@@ -129,7 +130,23 @@ class JarvisApi(val endpoint: Endpoint, private val vault: SecretVault) {
         try { call.execute().use { read(it, 8_000_000) } } finally { if(synthesisCall===call)synthesisCall = null }
     }
     fun cancelTranscription() {transcriptionCall?.cancel()}
-    fun stop() { streamCall?.cancel(); transcriptionCall?.cancel();synthesisCall?.cancel() }
+    suspend fun analyzeImage(body:JSONObject):JSONObject=withContext(Dispatchers.IO) {
+        val call=make("/api/v1/natural/vision","POST",body.toString().toRequestBody("application/json".toMediaType()),bearer())
+        imageCall=call
+        try {
+            kotlinx.coroutines.suspendCancellableCoroutine {continuation ->
+                continuation.invokeOnCancellation {call.cancel()}
+                call.enqueue(object:Callback {
+                    override fun onFailure(call:Call,error:java.io.IOException) {if(continuation.isActive)continuation.resumeWith(Result.failure(error))}
+                    override fun onResponse(call:Call,response:Response) {
+                        val result=runCatching {response.use {JSONObject(read(it).toString(Charsets.UTF_8))}}
+                        if(continuation.isActive)continuation.resumeWith(result)
+                    }
+                })
+            }
+        }finally{if(imageCall===call)imageCall=null}
+    }
+    fun stop() { streamCall?.cancel(); transcriptionCall?.cancel();synthesisCall?.cancel();imageCall?.cancel() }
     fun invalidatePendingAuth() = synchronized(credentialState) { generation++ }
     fun forget() {
         synchronized(credentialState) { generation++; access = ""; vault.drop(endpoint.origin) }

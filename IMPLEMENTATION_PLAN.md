@@ -30,7 +30,7 @@ Qwen2.5:3B en bestaande Windows-/Android-/upstreamcode blijven behouden.
 | 3 Persoonlijke assistentie | Calendar/Gmail, conflictcontrole, follow-up, scheduler, quiet hours | Brongebonden briefings/routines/lijsten, connectorstatus, prioritering; actuele weer/nieuws/verkeer alleen echte bron | Kern technisch afgerond; verkeer/telefonie/bankkoppeling ontbreken extern |
 | 4 Spraak | ElevenLabs, tekst-/zinsstreaming, lokale Whisper/Piper, echo/barge-in, foreground vervolg | Meetbare streaminggrenzen, hervatten en fallback audit; echte audioacceptatie apart | Technisch afgerond; menselijke audioacceptatie open |
 | 5 Windows/Android | Native clients, apparaatpairing, Windows gesloten acties | Toegestane OS-acties/status, Android ondersteunde intents/toestemmingen en achtergrondsync; geen WhatsApp/Signal-API verzinnen | Technisch afgerond; echte grants/apparaatacceptatie open |
-| 6 Externe omgeving | Bestaande scherm-/apparaatrechtstructuur | Opt-in schermcontext, ondersteunde HA/Creality/navigatieadapters en capabilities | Nog niet gestart; endpoints/apparaatconfig extern |
+| 6 Externe omgeving | Bestaande scherm-/apparaatrechtstructuur | Opt-in schermcontext, ondersteunde HA/Creality/navigatieadapters en capabilities | Technisch afgerond; externe credentials/Hi-API en beeldacceptatie open |
 | 7 Betrouwbare autonomie | Jobs, scheduler, approvals, audit, dedup, revoke, secretstore | Centrale events integreren, begrensde retries/prioriteit/deadlines, noodstop en expliciete undo-capabilities | Nog niet gestart; hergebruik engine |
 | 8 Interface/instellingen | Dynamische gedeelde instellingen, taken/logs, usage en diagnose | Nieuwe fases zichtbaar op beide clients, ontbrekende configuratie tonen, testhandleiding en builds | Nog niet gestart; na voorgaande deltas |
 
@@ -135,3 +135,22 @@ geheimcontrole geslaagd. Geen echte accounts, TTS of modeldownloads gebruikt.
   finale SDK/handoff/privacytests 13 passed. Android 11 unit tests, lint en beide
   builds groen. Ruff/mypy/contract/pip/structuur groen. Gegevensoverzicht en nieuwe
   grant-/hostformulieren volgen fase 8; echte apparaten niet als getest opgevoerd.
+
+### Fase 6 — ondersteunde integraties en beeldcontext
+
+- HA REST/HTTPS, eigenaarallowlist/aliassen, encrypted vault en credential-/policy-
+  binding. Status na mutaties verifiëren; triggers alleen als startverzoek melden.
+- ORS v2 + bestaande openbare geocoder, begrensde caches, handmatige Decimal-
+  ritkosten. Geen live verkeers-/pompprijs- of voertuigtelemetrieclaim. Onderhoud
+  op datum gebruikt bestaande routines. Creality Hi/Cloud: geen publieke API
+  geverifieerd, daarom zichtbaar geblokkeerd met officieel dashboard.
+- Bounded PNG-analyse via dezelfde AI-router, aparte apparaat-/cloudconsent,
+  instellingenrevisie, dagquota/idempotentie, getypeerde observaties zonder tools.
+  Alleen numerieke verbruiksstatus in SQLite v13; geen beeldopslag/modeldownload.
+  Qt-main-thread preview en Android-gebruikersselectie; aansluiting in fase 8.
+- Brede serverreeks 654 passed/1 POSIX-skip; daarna 33 gerichte externe/vision/
+  briefing/migratietests passed. Windows 142 passed en finale previewtests 3 passed;
+  echte Qt-PNG door serverparser gevalideerd, uitsluitend synthetische pixels.
+  Android 11 unit tests, lint en beide builds groen. Ruff/mypy/pip/contract groen.
+- Geen echte HA-/route-/AI-accounttest of nieuwe runtimegrant; geen productie-
+  migratie. Details/configuratie in docs/EXTERNAL_INTEGRATIONS.md. Volgende fase 7.

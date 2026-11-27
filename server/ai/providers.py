@@ -1,7 +1,8 @@
 import asyncio
 import json
 import time
-from collections.abc import Callable
+from collections.abc import Callable,AsyncGenerator
+from typing import cast
 from contextlib import aclosing
 
 import httpx
@@ -11,6 +12,7 @@ from server.config import Settings
 from server.ai.policy import current_policy,structured_schema
 
 MESSAGES = {
+    'vision_unsupported':'Het gekozen model kan dit beeld niet verwerken. Er is geen ander model gedownload of gekozen.',
     "authentication_expired": "Je sessie is verlopen of ingetrokken. Log opnieuw in.",
     "not_configured": "Gemini is nog niet ingesteld. Voeg lokaal een geldige GEMINI_API_KEY toe en herstart de server.",
     "groq_not_configured": "Groq is nog niet ingesteld. Voeg lokaal een GROQ_API_KEY toe en herstart de server.",
@@ -48,6 +50,24 @@ class TextProvider:
     def model(self):
         policy = current_policy.get()
         return (getattr(policy, self.name + "_model") if policy else "") or self._model
+
+    async def image_message(self,question,image):
+        if self.name!='ollama':
+            if not self.key:raise ProviderError('groq_not_configured' if self.name=='groq' else 'not_configured',retryable=False)
+            return {'role':'user','content':[{'type':'text','text':question},{'type':'image_url','image_url':{'url':'data:image/png;base64,'+image}}]}
+        # Actual local model metadata; no guessing from a name and no model pull.
+        try:
+            async with self.client_factory(timeout=3,trust_env=False,follow_redirects=False) as client:
+                async with client.stream('POST',self.settings.ollama_base_url+'/api/show',json={'model':self.model}) as response:
+                    response.raise_for_status();raw=bytearray()
+                    async for part in response.aiter_bytes():
+                        if len(raw)+len(part)>65536:raise ProviderError('invalid_response',retryable=False)
+                        raw.extend(part)
+            capabilities=json.loads(raw).get('capabilities',[])
+        except httpx.HTTPError:raise ProviderError('unavailable') from None
+        except (ValueError,AttributeError):raise ProviderError('invalid_response',retryable=False) from None
+        if not isinstance(capabilities,list) or 'vision' not in capabilities:raise ProviderError('vision_unsupported',retryable=False)
+        return {'role':'user','content':question,'images':[image]}
 
     async def availability(self, *, refresh: bool = False) -> dict:
         if self.name in ("gemini", "groq"):
@@ -111,7 +131,7 @@ class TextProvider:
         try:
             deadline = time.monotonic() + timeout
             temperature = policy.temperature if policy else (0.2 if self.name == "ollama" else None)
-            async with aclosing(transport.chat(messages, tools=None, stream=True, temperature=temperature)) as source:
+            async with aclosing(cast(AsyncGenerator[dict,None],transport.chat(messages, tools=None, stream=True, temperature=temperature))) as source:
                 while True:
                     remaining = deadline - time.monotonic()
                     if remaining <= 0:

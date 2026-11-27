@@ -9,6 +9,7 @@ from server.natural.models import StrictModel, MemoryInput, Personality, Voice
 from server.natural.store import Conflict
 from server.natural.presence import Signal as PresenceSignal
 from server.natural.life_items import ItemInput
+from server.natural.vision import AnalyzeImage
 
 router=APIRouter(prefix="/api/v1/natural")
 
@@ -29,6 +30,22 @@ class SettingPatch(StrictModel):
 
 class ModeChange(StrictModel):
     mode:Literal['normal','work','gaming','away','sleeping','travelling','private','emergency']
+
+
+@router.post('/vision')
+async def analyze_image(request:Request,body:AnalyzeImage):
+    from server.ai.providers import ProviderError
+    from server.security.types import AuthError
+    try:return await service(request).vision.analyze(request,body)
+    except ProviderError as error:raise AuthError(error.code,error.message,503) from None
+    except TimeoutError:raise AuthError('vision_timeout','De beeldvraag duurde te lang; zij wordt niet automatisch opnieuw verstuurd.',504) from None
+    except ValueError:raise AuthError('vision_invalid','Controleer de afbeelding, de gekozen provider en de actuele beeldinstellingen. Er is geen actie uitgevoerd.',400) from None
+
+
+@router.get('/vision/usage')
+def vision_usage(request:Request):
+    natural=service(request);document=natural.settings.get(request.state.principal)
+    return natural.vision.usage(request.state.principal,document['settings'])
 
 
 @router.get('/mobile-handoffs')

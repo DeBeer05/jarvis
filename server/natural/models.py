@@ -232,6 +232,14 @@ class Privacy(StrictModel):
     diagnostic_days: int = Field(default=7, ge=1, le=30)
 
 
+class Vision(StrictModel):
+    enabled:bool=Field(default=False,title='Beeldanalyse inschakelen')
+    provider:Literal['gemini','groq','ollama']='gemini'
+    model:str=Field(default='',max_length=128,title='Bestaand beeldmodel (leeg gebruikt het ingestelde model)')
+    cloud_allowed:bool=Field(default=False,title='Geselecteerde beelden mogen naar de gekozen cloudprovider')
+    daily_requests:int=Field(default=10,ge=0,le=50,title='Maximale beeldvragen per dag')
+
+
 class Diagnostics(StrictModel):
     enabled: bool = True
     latency: bool = True
@@ -285,6 +293,7 @@ class ActivityPlanning(StrictModel):
 
 
 class UserSettings(StrictModel):
+    vision:Vision=Field(default_factory=Vision)
     planning:ActivityPlanning=Field(default_factory=ActivityPlanning)
     responses: ResponseSettings=Field(default_factory=ResponseSettings)
     general: General = Field(default_factory=General)
@@ -318,6 +327,7 @@ class DeviceSettings(StrictModel):
     notification_allowed:bool=Field(default=False,title='Aantallen meldingen delen (geen inhoud)')
     notification_packages:list[str]=Field(default_factory=list,max_length=20,title='Toegestane apppakketnamen voor meldingsaantallen')
     location_allowed:bool=Field(default=False,title='Optionele laatst bekende locatie delen (maximaal 24 uur bewaard)')
+    screen_allowed:bool=Field(default=False,title='Zelf geselecteerde schermafbeeldingen mogen worden geanalyseerd')
     @model_validator(mode='after')
     def packages(self):
         import re

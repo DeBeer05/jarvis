@@ -145,3 +145,29 @@ Bronnen: [Windows geheugen](https://learn.microsoft.com/en-us/windows/win32/api/
 [NVML](https://docs.nvidia.com/deploy/nvml-api/latest/),
 [Android notification access](https://developer.android.com/reference/android/service/notification/NotificationListenerService),
 [WorkManager intervallen](https://developer.android.com/develop/background-work/background-tasks/persistent/getting-started/define-work).
+
+## Fase 6: omgeving en beelden
+
+Configuratie en bronbeperkingen staan in [EXTERNAL_INTEGRATIONS.md](EXTERNAL_INTEGRATIONS.md).
+De nieuwe formulieren/previewpanelen worden in fase 8 aangesloten.
+
+1. Controleer ontbrekende koppelingen: HA/route/Hi mogen elk afzonderlijk als
+   niet ingesteld/niet ondersteund verschijnen. Gewone chat moet blijven werken.
+2. Alleen als u HA bezit: configureer HTTPS, een kleine allowlist en eigen namen;
+   voer de sleutel verborgen in via de lokale configurator. Vraag een status en
+   bereid een wijziging voor. Controleer dat een gewijzigde configuratie een oud
+   voorstel ongeldig maakt. Echte licht-/thermostaattests zijn nog niet uitgevoerd.
+3. Zonder routekey mag een routevraag geen plaatsnamen naar een geocoder sturen.
+   Met uw key: kies twee eenduidige plaatsen. De duur heet uitdrukkelijk een
+   schatting zonder live verkeersinformatie. Ritkosten gebruiken uw opgegeven
+   verbruik/literprijs; onderhoud op datum gebruikt Routines.
+4. Beeldanalyse staat uit. Alleen na eigen globale/apparaattoestemming: maak
+   een voorbeeld, controleer de pixels en verstuur bewust. Voor cloud is een
+   aparte toestemming nodig. Wissel de provider na het voorbeeld: opnieuw
+   controleren is verplicht. Privé/offline mag geen cloudbeeld versturen.
+5. Gebruik een fictief beeld zonder persoonsgegevens, bijvoorbeeld een kleurvlak.
+   Herhalen met dezelfde request-ID mag geen tweede modelcall veroorzaken; de
+   daglimiet blijft na herstart gelden. Een fout rapport mag geen succes worden.
+6. Beeldinhoud kan nooit een tool, grant of goedkeuring worden. De analyse toont
+   waarnemingen/onzekerheden/suggesties en vermeldt geen uitgevoerde acties.
+   Android gebruikt een zelf gekozen afbeelding, geen permanente schermopname.

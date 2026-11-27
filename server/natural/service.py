@@ -52,6 +52,10 @@ class NaturalService:
         self.device_status=DeviceStatus(self)
         from server.natural.desktop_commands import DesktopCommands
         self.desktop_commands=DesktopCommands(self)
+        from server.natural.vision import VisionService
+        self.vision=VisionService(self)
+        from server.natural.environment import EnvironmentCommands
+        self.environment=EnvironmentCommands(self)
         automation.desktop_monitor=self.desktop_commands.monitor
         chat.natural=self
 
@@ -201,7 +205,12 @@ class NaturalService:
         import asyncio
         from server.natural.briefings import REQUEST as BRIEFING_REQUEST
         desktop=self.desktop_commands.parse(run.message)
-        if desktop:reply=await self.desktop_commands.answer(run,desktop)
+        environment=self.environment.parse(run.message)
+        if desktop and environment:
+            from server.natural.presence import address
+            reply=address('Bedoelt u het Windows-programma of de Home Assistant-koppeling?',run.natural_context['settings'])
+        elif desktop:reply=await self.desktop_commands.answer(run,desktop)
+        elif environment:reply=await self.environment.answer(run,environment)
         elif BRIEFING_REQUEST.fullmatch(run.message.strip()):reply=await self.briefings.answer(run)
         else:reply=await asyncio.to_thread(self.command,run)
         if reply is not None:
@@ -210,5 +219,5 @@ class NaturalService:
 
     def is_command(self,run):
         from server.natural.briefings import REQUEST as BRIEFING_REQUEST
-        if BRIEFING_REQUEST.fullmatch(run.message.strip()) or self.life.intent(run.message) or self.desktop_commands.parse(run.message):return True
+        if BRIEFING_REQUEST.fullmatch(run.message.strip()) or self.life.intent(run.message) or self.desktop_commands.parse(run.message) or self.environment.parse(run.message):return True
         return bool(self.presence.intent(run.message) or (run.natural_context and IntelligentResponseManager.preference(run.message,run.natural_context["settings"])) or CAPABILITIES.fullmatch(run.message.strip()) or OPEN_TASKS.fullmatch(run.message.strip()) or re.match(r"^(?:jarvis[, ]+)?(?:onthou(?:d)?\b|vergeet\b|wat (?:weet|onthoud) je (?:nog )?(?:over|van) mij[?.!]*$)",run.message.strip(),re.I))
