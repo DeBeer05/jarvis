@@ -2,6 +2,20 @@
 
 ## Huidige opdracht
 
+### Blijvende persoonlijke butlerstijl — 27 november 2026
+
+Classic Butler gebruikt vloeiend, kalm Nederlands met u/uw, tact, bescheiden
+Britse humor en contextueel initiatief binnen bestaande rechten. `always` maakt
+meneer per antwoord instelbaar; off/occasionally blijven compatibel. Gesloten
+voorkeurcommando kan deze keuze blijvend opslaan zonder modelcall/automatisering.
+Vertrek/terugkomst vereisen beschikbare context en bewezen ontwikkelingen,
+zonder verzonnen achtergrondbewaking of nieuwe bevoegdheden. Bestaande managers,
+schema en clients hergebruikt. Voorkeur via aangemelde Windows-interface opgeslagen
+en teruggelezen (revisie 8), stem-/privacy-/meldingsrechten ongemoeid gelaten.
+39 gerichte regressies, Ruff, pip check en repositorycheck geslaagd. Volledige
+tests/remote CI volgen; menselijke beoordeling van toon blijft afzonderlijk.
+Vorige agenda-HEAD 50cd7f0: 602 passed/1 skip en alle 12 CI-controles groen.
+
 ### Structureel agendagesprek en Nederlands STT — 27 november 2026
 
 `fix/calendar-dialogue` is gestapeld op e6bff7c/PR 31; develop mist nog deze basis.

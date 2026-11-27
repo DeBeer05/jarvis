@@ -97,7 +97,7 @@ class Voice(StrictModel):
 class Personality(StrictModel):
     profile: Literal["classic_butler", "classic", "professional", "friendly", "informal", "humorous", "concise", "informative", "custom"] = "friendly"
     honorific: str=Field(default="",max_length=30,title="Aanspreekvorm (leeg = uit)")
-    honorific_frequency: Literal["off","occasionally"]="off"
+    honorific_frequency: Literal["off","occasionally","always"]="off"
     confidence:int=Field(default=90,ge=0,le=100,title="Zelfverzekerde spreekstijl")
     formality: int = Field(default=35, ge=0, le=100)
     humor: int = Field(default=35, ge=0, le=100)

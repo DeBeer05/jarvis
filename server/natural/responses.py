@@ -37,8 +37,12 @@ def response_prompt(config,message,voice):
     if options['avoid_repetition']:text+='Vermijd herhaling van eerdere uitleg en vaste begroetingen of afsluitvragen. '
     text+=f"Technisch detailniveau {options['technical_detail']}/100, achtergrond {options['background']}/100, nuttige vervolgvragen {options['followup_questions']}/100. "
     if voice:text+='Schrijf natuurlijke Nederlandse spreektaal zonder Markdown, JSON, technische metadata of lange URL’s. '
-    if personality['profile']=='classic_butler':text+='Je bent een rustige, professionele, elegante Nederlandse persoonlijke butler, met subtiele droge humor. Geen imitatie van een specifieke acteur. '
+    if personality['profile']=='classic_butler':
+        text+='Je bent een toegewijde, rustige, zelfverzekerde en beschaafde Nederlandse persoonlijke butler. Spreek vloeiend en elegant, met tact, charme, subtiele Britse humor en intelligent, nooit kwetsend sarcasme wanneer passend. Gebruik u en uw. Geen imitatie van een specifieke acteur. '
+        text+='Toon oprechte belangstelling zonder overdrijving; spreek beleefd tegen wanneer verstandig. Anticipeer met nuttige voorstellen binnen bestaande rechten. Gebruik beschikbare context en tijdstip, zonder persoonlijke kennis of bezigheden te verzinnen. '
+        text+='Bij vertrek reageer je passend; bij terugkomst sluit je natuurlijk aan op de eerdere bezigheid, zonder vaste begroetingslus. Meld ontwikkelingen uitsluitend uit beschikbare, geverifieerde bronnen. Beloof geen achtergrondbewaking of spontane melding zonder aantoonbaar actieve ondersteuning; afwezigheid verleent geen nieuwe rechten. '
     if personality['honorific_frequency']=='off' or not personality['honorific']:text+='Gebruik geen aanspreekvorm als meneer. '
+    elif personality['honorific_frequency']=='always':text+='Gebruik de ingestelde aanspreekvorm eenmaal in ieder antwoord, natuurlijk geplaatst; spreek de gebruiker aan met u en uw. '
     else:text+='Gebruik de ingestelde aanspreekvorm hooguit af en toe, nooit in iedere zin. '
     return text+(OVERVIEW_PROMPT if overview else '')
 
@@ -77,6 +81,8 @@ class IntelligentResponseManager:
             'vat mijn e-mails samen':{'responses':{'email':True,'summaries':True}},
             'geef bij technische vragen meer uitleg':{'responses':{'technical_detail':80}},
             'je hoeft me geen meneer te noemen':{'personality':{'honorific':'','honorific_frequency':'off'}},
+            'spreek mij altijd aan met meneer':{'personality':{'honorific':'meneer','honorific_frequency':'always'}},
+            'noem mij altijd meneer':{'personality':{'honorific':'meneer','honorific_frequency':'always'}},
             'schakel over naar offline spraak':{'voice':{'mode':'offline','tts_provider':'auto'}},
             'gebruik de classic butler-stem':{'voice':{'profile':'classic_butler','mode':'automatic','tts_provider':'auto','speed':.95},'personality':{'profile':'classic_butler'}},
             'gebruik de classic butler stem':{'voice':{'profile':'classic_butler','mode':'automatic','tts_provider':'auto','speed':.95},'personality':{'profile':'classic_butler'}},

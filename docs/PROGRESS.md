@@ -1,5 +1,22 @@
 # Hervatpunt — agenda en Nederlands STT, 27 november 2026
 
+## Vervolg: blijvende butlerpersoonlijkheid
+
+- Opdracht: elegant Nederlands met u/uw en meneer in ieder antwoord; tact,
+  rustige zelfverzekerdheid, passende Britse humor en contextueel initiatief.
+- Bestaande Classic Butler uitgebreid; aanspreekfrequentie `always` toegevoegd
+  naast ongewijzigde off/occasionally. Native clients gebruiken dezelfde schema's.
+- Via de aangemelde Windows-app opgeslagen en teruggelezen: profiel Classic
+  Butler, meneer, Ieder antwoord en persoonlijke stijlinstructies, revisie 8.
+- Vertrek/terugkomst gebruiken beschikbare context; geen fictieve monitoring,
+  nieuwe rechten, microfoonactivatie, nieuwsservice of autonome accountacties.
+- 39 gerichte response/spraak/ervaring/instellingentests geslaagd; Ruff,
+  pip check en structuurcheck geslaagd. Volledige regressie/CI volgt op deze commit.
+- Vorige agendacontrole afgerond: 602 passed/1 POSIX-skip en alle 12 CI-checks
+  groen op 50cd7f0. Logs/verdere actuele resultaten in .local en PR 32.
+- Echte menselijke beoordeling van toon/humor/terugkomst blijft apart nodig.
+- Bestaande eigenaarmaildiffs hieronder blijven buiten commits; Oraclegrens gelijk.
+
 - Actuele opdracht: structurele agenda-/context-/STT-reparatie; geen training,
   echte Google-acties of betaalde ElevenLabs-tests. Backend blijft op 8765.
 - Branch fix/calendar-dialogue vanaf e6bff7c / feature/elevenlabs-voice (PR 31);

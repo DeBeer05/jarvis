@@ -4,6 +4,9 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Persoonlijke butlerstijl met u/uw, optioneel meneer in ieder antwoord,
+  situationele terugkomst en initiatief zonder fictieve achtergrondbewaking.
+
 - Persoonlijke agenda-opdrachten direct uit expliciete gebruikersgegevens, met
   datum/begintijd/titel, standaard één uur en standaardagenda. Ask/block-beleid,
   actuele rechten en previews voor uitnodigingen/series blijven behouden.
