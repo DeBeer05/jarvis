@@ -26,7 +26,7 @@ class PermissionManager:
             row=db.execute("SELECT s.payload FROM natural_settings s JOIN auth_devices d ON d.user_id=s.user_id WHERE d.id=? AND s.scope='user' AND s.device_id=''",(device,)).fetchone()
         if not row:return
         autonomy=json.loads(row["payload"])["autonomy"]
-        reads={"CalendarList","CalendarRead","EmailSearch","EmailRead","ReminderList","WorkflowStatus","CalendarSummary","EmailCheck","WaitForReply"}
+        reads={"CalendarList","CalendarRead","EmailSearch","EmailRead","ReminderList","WorkflowStatus","CalendarSummary","EmailCheck","WaitForReply","PersonalBriefing"}
         if autonomy["actions"].get(tool)=="block" or autonomy["profile"]=="read_propose" and tool not in reads:
             raise AuthError("permission_denied","Deze actie is geblokkeerd door je instellingen voor zelfstandigheid.",403)
 
@@ -189,13 +189,31 @@ class FollowUpManager:
             except Exception:
                 e.audit.record("followup_read_unavailable",device=row["device_id"])
                 continue
+            with e.store.db() as db:
+                live=db.execute("SELECT status FROM automation_followups WHERE id=?",(row['id'],)).fetchone()
+            if not live or live['status']!='waiting':continue
+            try:
+                source_job=e.store.get(row['id'])
+                source_payload=json.loads(source_job['payload'])
+            except ValueError:source_payload={}
+            try:
+                e.permissions.check(row['device_id'],'automation:read')
+                e.permissions.check(row['device_id'],'automation:write')
+                e.permissions.check_tool(row['device_id'],'WaitForReply')
+                e.permissions.check_tool(row['device_id'],'EmailRead')
+                if source_payload.get('source_id'):e.life.guard_reminder(row['device_id'],source_payload)
+            except (ValueError,AuthError):
+                with e.store.db(True) as db:db.execute("UPDATE automation_followups SET status='blocked' WHERE id=? AND status='waiting'",(row['id'],))
+                continue
             new=[m for m in data.get("messages",[]) if m["id"] not in json.loads(row["baseline"]) and "SENT" not in m.get("labelIds",[]) and "DRAFT" not in m.get("labelIds",[])]
+            if new and getattr(e,'life',None):e.life.reply_detected(row['device_id'],row['thread_id'])
             # Replies never imply permission to change an event. The owner reviews them.
-            e.notifications.send("important","Er is een antwoord om te beoordelen." if new else "Nog geen antwoord op je verzoek.","followup:"+row["id"],device=row["device_id"],proactive=True)
             interval=self.options(row["device_id"])["followup_hours"]*3600 if automatic else 86400
+            notice_key='followup:'+row['id']+(':reply' if new else ':reminder:'+str(int(e.store.clock()//interval)))
+            e.notifications.send("important","Er is een antwoord om te beoordelen." if new else "Nog geen antwoord op je verzoek.",notice_key,device=row["device_id"],proactive=True)
             with e.store.db(True) as db:
                 db.execute("UPDATE automation_followups SET status=?,due=? WHERE id=?",("reply_review" if new else "waiting",e.store.clock()+interval,row["id"]))
-                db.execute("UPDATE automation_jobs SET status=?,result=? WHERE id=? AND tool='WaitForReply' AND status='waiting'",("completed" if new else "blocked",encode({"reply_requires_review":bool(new),"accepted":False}),row["id"]))
+                db.execute("UPDATE automation_jobs SET status=?,result=? WHERE id=? AND tool='WaitForReply' AND status='waiting'",("completed" if new else "waiting",encode({"reply_requires_review":bool(new),"accepted":False}),row["id"]))
                 e.store.event(db,"followup_reply" if new else "followup_reminder",device=row["device_id"])
 
 
@@ -252,6 +270,7 @@ class ActionExecutor:
                 if priority["priority"] in ("urgent","important"):e.notifications.send("important","Er is een mogelijk belangrijk bericht. Controleer je inbox.","mail:"+message["id"],row["id"],proactive=True)
             return {"checked":len(data.get("messages",[])),"urgency_verified":False}
         if tool=="WaitForReply":
+            if p.get('source_id'):e.life.guard_reminder(row['device_id'],p)
             e.permissions.check(row["device_id"],"automation:read")
             e.permissions.check_tool(row["device_id"],"EmailRead")
             if "EmailRead" in e.store.preference("disabled_tools",[]):raise ValueError("Lezen is uitgeschakeld")
@@ -263,7 +282,7 @@ class ActionExecutor:
                 or "SENT" in m.get("labelIds",[]) or "DRAFT" in m.get("labelIds",[])
                 or not str(m.get("internalDate","")).isdigit() or int(m["internalDate"])<=since]
             with e.store.db(True) as db:
-                db.execute("INSERT OR IGNORE INTO automation_followups VALUES (?,?,?,?,?,?)",(row["id"],p["thread_id"],encode(baseline),datetime.fromisoformat(p["due"]).timestamp(),"waiting",row["device_id"]))
+                db.execute("INSERT INTO automation_followups VALUES (?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET status='waiting',due=excluded.due WHERE automation_followups.status='blocked'",(row["id"],p["thread_id"],encode(baseline),datetime.fromisoformat(p["due"]).timestamp(),"waiting",row["device_id"]))
             return {"waiting_for_reply":True}
         if tool=="CalendarRead": return await e.integrations.events(p)
         if tool=="CalendarList": return await e.integrations.calendar_list()
@@ -276,7 +295,10 @@ class ActionExecutor:
         if tool=="EmailRead": return await e.integrations.mail_read(p["message_id"],p["include_body"])
         if tool=="EmailDraft": return await e.integrations.draft(p)
         if tool=="EmailSend": return await e.integrations.send(p)
-        if tool=="ReminderCreate": return e.notifications.send("important",p["text"],row["key"]+":"+str(row["due"]),row["id"])
+        if tool=="PersonalBriefing":return await e.briefings.execute(row,p)
+        if tool=="ReminderCreate":
+            if p.get('source_id'):e.life.guard_reminder(row['device_id'],p)
+            return e.notifications.send("important",p["text"],row["key"]+":"+str(row["due"]),row["id"])
         if tool=="ReminderList": return {"items":[e.store.public(x) for x in e.store.items() if x["tool"]=="ReminderCreate"]}
         if tool=="ReminderCancel":
             if e.store.get(p["id"])["tool"]!="ReminderCreate":raise ValueError("Geen herinnering")
@@ -322,6 +344,7 @@ class AutomationEngine:
         self.lock=asyncio.Lock()
 
     def submit(self, device, tool, payload, key, due=None, repeat="once", timezone="Europe/Amsterdam", parent=None, step=0):
+        if repeat not in ('once','daily','weekly','monthly','yearly'):raise ValueError('Onbekende herhaling')
         self.permissions.check(device,"automation:write")
         self.permissions.check_tool(device,tool)
         if tool in self.store.preference("disabled_tools",[]): raise ValueError("Deze actie is uitgeschakeld door de eigenaar")
@@ -341,12 +364,15 @@ class AutomationEngine:
             if status=="queued" and row["status"]!="paused": raise ValueError("Alleen gepauzeerde taken hervatten")
             if row["status"]=="approval" and status!="cancelled": raise ValueError("Voorstel vereist goedkeuring")
             db.execute("UPDATE automation_jobs SET status=?,approval_hash=NULL WHERE id=?",(status,identifier))
+            if row['tool']=='WaitForReply':
+                db.execute('UPDATE automation_followups SET status=? WHERE id=?',('waiting' if status=='queued' else status,identifier))
             if status=="cancelled": db.execute("UPDATE automation_jobs SET status='cancelled',approval_hash=NULL WHERE parent_id=? AND status IN ('queued','approval','paused')",(identifier,))
             self.store.event(db,status,identifier,device)
 
     async def tick(self,*,job_id=None):
         async with self.lock:
             if job_id is None:
+                if getattr(self,'briefings',None):self.briefings.schedule_events()
                 self.followups.schedule_automatic()
                 self.workflows.advance()
                 due=self.triggers.due()

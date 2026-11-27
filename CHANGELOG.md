@@ -4,6 +4,11 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Brongebonden dagelijkse/terugkomstbriefings, weer-/nieuwscache en lokale lijsten,
+  abonnementen, gelegenheden, routines en sollicitatie-opvolging. Hergebruik van
+  scheduler/reminders/reply-watches met bronrevisies, annulering en idempotentie.
+  Geen fictief bel-, verkeers- of bankresultaat bij ontbrekende koppelingen.
+
 - Acht gedeelde modi, opt-in Windows-/Android-aanwezigheid, persistente eenmalige
   terugkomstevents en lokale/no-history privémodus. Geen impliciete telemetriegrant.
 

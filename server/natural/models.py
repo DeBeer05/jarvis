@@ -209,6 +209,20 @@ class Presence(StrictModel):
         return self
 
 
+class Briefings(StrictModel):
+    enabled:bool=Field(default=False,title='Geplande briefings inschakelen')
+    morning:str=Field(default='08:00',pattern=r'^(?:[01]\d|2[0-3]):[0-5]\d$',title='Ochtendbriefing')
+    evening:str=Field(default='22:00',pattern=r'^(?:[01]\d|2[0-3]):[0-5]\d$',title='Avondbriefing')
+    on_return:bool=Field(default=True,title='Briefing bij terugkomst voorbereiden')
+    calendar:bool=True
+    email:bool=True
+    weather:bool=Field(default=False,title='Open-Meteo weer gebruiken')
+    news:bool=Field(default=False,title='NOS-nieuwskoppen gebruiken')
+    location:str=Field(default='',max_length=100,title='Plaats voor weer (geen huisadres)')
+    morning_channel:Literal['inbox','call']='inbox'
+    evening_channel:Literal['inbox','call']='inbox'
+
+
 class Privacy(StrictModel):
     cloud_memories: bool = False
     cloud_sensitive: Literal[False] = False
@@ -284,6 +298,7 @@ class UserSettings(StrictModel):
     autonomy: Autonomy = Field(default_factory=Autonomy)
     notifications: Notifications = Field(default_factory=Notifications)
     presence: Presence = Field(default_factory=Presence)
+    briefings: Briefings = Field(default_factory=Briefings)
     privacy: Privacy = Field(default_factory=Privacy)
     diagnostics: Diagnostics = Field(default_factory=Diagnostics)
 

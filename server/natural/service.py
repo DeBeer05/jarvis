@@ -26,7 +26,7 @@ class NaturalService:
         self.settings=SettingsManager(self.store)
         from server.natural.events import EventInbox
         from server.natural.presence import PresenceManager
-        self.events=EventInbox(self.store)
+        self.events=EventInbox(self.store,automation.permissions)
         self.presence=PresenceManager(self)
         self.settings.presence=self.presence
         self.memory=MemoryManager(self.store)
@@ -42,6 +42,10 @@ class NaturalService:
         self.retention=RetentionManager(self)
         from server.natural.planning import ActivityPlanningManager
         self.planning=ActivityPlanningManager(self)
+        from server.natural.life_items import LifeItems
+        from server.natural.briefings import BriefingManager
+        self.life=LifeItems(self);automation.life=self.life
+        self.briefings=BriefingManager(self);automation.briefings=self.briefings
         chat.natural=self
 
     def authorize_conversation(self,principal,conversation):
@@ -87,6 +91,8 @@ class NaturalService:
         response=self.responses.command(run)
         if response is not None:return response
         response=self.presence.command(run)
+        if response is not None:return response
+        response=self.life.command(run)
         if response is not None:return response
         """Explicit memory commands are executed locally, never by generated code."""
         message=run.message.strip();config=run.natural_context["settings"]
@@ -186,10 +192,14 @@ class NaturalService:
 
     async def stream_command(self,run):
         import asyncio
-        reply=await asyncio.to_thread(self.command,run)
+        from server.natural.briefings import REQUEST as BRIEFING_REQUEST
+        if BRIEFING_REQUEST.fullmatch(run.message.strip()):reply=await self.briefings.answer(run)
+        else:reply=await asyncio.to_thread(self.command,run)
         if reply is not None:
             yield {"type":"provider","provider":"local","model":"memory"}
             yield {"type":"delta","text":reply}
 
     def is_command(self,run):
+        from server.natural.briefings import REQUEST as BRIEFING_REQUEST
+        if BRIEFING_REQUEST.fullmatch(run.message.strip()) or self.life.intent(run.message):return True
         return bool(self.presence.intent(run.message) or (run.natural_context and IntelligentResponseManager.preference(run.message,run.natural_context["settings"])) or CAPABILITIES.fullmatch(run.message.strip()) or OPEN_TASKS.fullmatch(run.message.strip()) or re.match(r"^(?:jarvis[, ]+)?(?:onthou(?:d)?\b|vergeet\b|wat (?:weet|onthoud) je (?:nog )?(?:over|van) mij[?.!]*$)",run.message.strip(),re.I))

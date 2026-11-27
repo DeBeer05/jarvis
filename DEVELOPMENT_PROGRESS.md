@@ -4,6 +4,14 @@
 
 ### Acht productfases persoonlijke butler — 27 november 2026
 
+Fase 3: brongebonden briefings, begrensd openbaar weer/nieuws, lokale lijsten,
+gelegenheden/routines en sollicitatie-opvolging via bestaande engine; SQLite v11.
+Brede regressie 629 passed/1 skip; laatste gerichte automation/briefingtests
+37 passed, kalender/briefingreeks 60 passed. Kwaliteit/contract/dependencies groen.
+Ochtend/avond voorlopig in JARVIS op verzoek; bellen/verkeer/bank niet beschikbaar.
+Persoonlijke configuratie blijft buiten Git. Backend nog niet herstart voor deze
+uitbreiding; apparaatacceptatie en fase-8-formulieren volgen. Volgende fase: spraak.
+
 Fase 1 checkpoint 25410ad. Fase 2 voegt gedeelde modi, opt-in aanwezigheid,
 persistente terugkomst en lokale/no-history privémodus toe. Windows WTS/idle/
 procesclassificatie en Android foreground lock/idle; achtergrond volgt fase 5.

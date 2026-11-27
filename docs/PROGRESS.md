@@ -2,6 +2,15 @@
 
 ## Actueel: acht productfases persoonlijke butler
 
+- Fase 3 technisch: brongebonden briefings, Open-Meteo/NOS-cache, lijsten/routines/
+  gelegenheden/sollicitaties, bestaande reminders en reply-watches; SQLite v11.
+  Brede reeks 629 passed/1 skip, finale 37 automation/briefingtests en 60 kalender-
+  briefingtests geslaagd. Kwaliteit/contract/dependencies groen. Nog niet live.
+- Eigenaar kiest ochtendbriefing voorlopig in app; geen oproepkanaal. Live verkeer,
+  bankkoppeling en locatiegrant ontbreken. Geen fictieve ETA of externe mutatie.
+- Fase-2-head 98fcc29 had alle 12 echte CI-checks groen. Fase 4 volgt; eigenaars-
+  maildiffs nog steeds apart, geen reset/stash/ongewenste stage.
+
 - Fase 1 checkpoint 25410ad. Fase 2 technisch gereed: acht modi, opt-in Windows
   WTS/idle/lokale procesclassificatie en Android foreground lock/idle. SQLite v10
   bevat persistente status en een begrensde, apparaatgebonden event-inbox.

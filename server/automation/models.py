@@ -83,10 +83,13 @@ class ReminderCreate(Input):
     text: str = Field(min_length=1, max_length=500)
     at: datetime
     timezone: str = Field(default="Europe/Amsterdam", max_length=80)
-    repeat: Literal["once", "daily", "weekly"] = "once"
+    repeat: Literal["once", "daily", "weekly", "monthly", "yearly"] = "once"
+    source_id:str|None=Field(default=None,pattern=r'^[0-9a-f-]{36}$')
+    source_revision:int|None=Field(default=None,ge=1)
     @model_validator(mode="after")
     def dates(self):
         aware(self.at); valid_zone(self.timezone)
+        if (self.source_id is None)!=(self.source_revision is None):raise ValueError('Bron en revisie horen bij elkaar')
         return self
 
 
@@ -108,9 +111,12 @@ class WaitForReply(Input):
     thread_id: str = Field(pattern=r"^[a-zA-Z0-9_-]{1,256}$")
     due: datetime
     since: datetime | None = None
+    source_id:str|None=Field(default=None,pattern=r'^[0-9a-f-]{36}$')
+    source_revision:int|None=Field(default=None,ge=1)
     @model_validator(mode="after")
     def dates(self):
         aware(self.due)
+        if (self.source_id is None)!=(self.source_revision is None):raise ValueError('Bron en revisie horen bij elkaar')
         if self.since is not None:
             aware(self.since)
             if self.since>self.due:raise ValueError("Opvolging moet na het oorspronkelijke bericht vallen")
@@ -119,6 +125,12 @@ class WaitForReply(Input):
 
 class Empty(Input):
     pass
+
+
+class PersonalBriefing(Input):
+    kind:Literal['morning','evening','return','prepare']='morning'
+    config_hash:str=Field(pattern=r'^[0-9a-f]{64}$')
+    source_event:str|None=Field(default=None,pattern=r'^[0-9a-f-]{36}$')
 
 
 class NotificationSend(Input):
@@ -143,6 +155,7 @@ class WorkflowCreate(Input):
 
 
 REGISTRY = {
+    "PersonalBriefing": (PersonalBriefing,False),
     "CalendarList": (Empty, False),
     "CalendarSummary": (CalendarSummary, False), "EmailCheck": (EmailSearch, False),
     "WaitForReply": (WaitForReply, False),
@@ -171,16 +184,33 @@ def validate(tool, payload):
         for step in result.steps:
             if set(step) != {"tool", "input"} or step["tool"] == "WorkflowCreate": raise ValueError("Invalid step")
             validate(step["tool"], step["input"])
-    return result.model_dump(mode="json")
+    data=result.model_dump(mode="json")
+    if tool in ('ReminderCreate','WaitForReply') and data.get('source_id') is None:
+        data.pop('source_id',None);data.pop('source_revision',None)
+    return data
 
 
 def next_occurrence(at, repeat, timezone, now):
     """Wall-clock recurrence. Skip nonexistent DST times; use first fold once."""
     zone = ZoneInfo(timezone)
     local = datetime.fromtimestamp(at, UTC).astimezone(zone).replace(tzinfo=None)
-    step = timedelta(days=7 if repeat == "weekly" else 1)
-    while True:
-        local += step
-        candidate = local.replace(tzinfo=zone, fold=0)
-        if candidate.astimezone(UTC).astimezone(zone).replace(tzinfo=None) != local: continue
+    current=datetime.fromtimestamp(now,UTC).astimezone(zone).replace(tzinfo=None)
+    if repeat in ('daily','weekly'):
+        days=7 if repeat=='weekly' else 1
+        jump=max(1,(current.date()-local.date()).days//days)
+    elif repeat=='monthly':jump=max(1,(current.year-local.year)*12+current.month-local.month)
+    elif repeat=='yearly':jump=max(1,current.year-local.year)
+    else:raise ValueError('Onbekende herhaling')
+    for _ in range(400):
+        try:
+            if repeat in ('daily','weekly'):following=local+timedelta(days=jump*days)
+            elif repeat=='monthly':
+                year,month=divmod(local.year*12+local.month-1+jump,12)
+                following=local.replace(year=year,month=month+1)
+            else:following=local.replace(year=local.year+jump)
+        except ValueError:jump+=1;continue
+        jump+=1
+        candidate = following.replace(tzinfo=zone, fold=0)
+        if candidate.astimezone(UTC).astimezone(zone).replace(tzinfo=None) != following: continue
         if candidate.timestamp() > now: return candidate.timestamp()
+    raise ValueError('Geen geldige volgende herhaling gevonden')

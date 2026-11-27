@@ -16,6 +16,7 @@ class SmartRescheduleEngine:
         if not p.get("event_id") or not p.get("start") or not p.get("end"): raise ValueError("Kies één concrete afspraak en nieuwe tijden")
         path="/calendar/v3/calendars/"+quote(p["calendar_id"],safe="")+"/events/"+quote(p["event_id"],safe="")
         event=await self.integrations.api("calendar_read",path)
+        if event.get('id')!=p['event_id']:raise ValueError('De opgehaalde afspraak hoort niet bij het voorstel')
         if event.get("locked") or event.get("status")=="cancelled" or event.get("organizer",{}).get("self") is False: raise ValueError("Deze afspraak kan niet veilig worden gewijzigd")
         zone=ZoneInfo(p["timezone"])
         start=datetime.fromisoformat(p["start"]).astimezone(zone); end=datetime.fromisoformat(p["end"]).astimezone(zone)

@@ -8,7 +8,7 @@ from server.natural.models import MemoryInput
 from server.natural.store import Conflict
 from server.natural.search_terms import expand
 
-SENSITIVE=re.compile(r"\b(?:wachtwoord|password|api.?key|token|bankrekening|iban|bsn|diagnose|medisch|medicatie|seksueel|huisadres|adres is|ik woon op|creditcard)\b",re.I)
+SENSITIVE=re.compile(r"\b(?:wachtwoord|password|api.?key|token|bankrekening|iban|bsn|diagnose|medisch|medicatie|seksueel|huisadres|adres is|ik woon op|creditcard|financieel overzicht)\b",re.I)
 SECRET=re.compile(r"(?:-----BEGIN .*PRIVATE KEY|\b(?:sk-|gsk_)[A-Za-z0-9]{16,}|\bAIza[A-Za-z0-9_-]{20,})")
 
 

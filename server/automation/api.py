@@ -40,7 +40,7 @@ class Submit(Input):
     input: dict
     idempotency_key: UUID
     due: datetime | None = None
-    repeat: Literal["once","daily","weekly"] = "once"
+    repeat: Literal["once","daily","weekly","monthly","yearly"] = "once"
     timezone: str = Field(default="Europe/Amsterdam",max_length=80)
 
 

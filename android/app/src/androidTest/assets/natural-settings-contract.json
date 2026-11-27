@@ -17,7 +17,8 @@
       "notifications": "Meldingen",
       "privacy": "Privacy",
       "diagnostics": "Diagnostiek",
-      "presence": "Aanwezigheid en modi"
+      "presence": "Aanwezigheid en modi",
+      "briefings": "Briefings en informatiebronnen"
     },
     "labels": {
       "actions": "Regels per actie",
@@ -552,6 +553,79 @@
             }
           },
           "title": "Autonomy",
+          "type": "object"
+        },
+        "Briefings": {
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "default": false,
+              "title": "Geplande briefings inschakelen",
+              "type": "boolean"
+            },
+            "morning": {
+              "default": "08:00",
+              "pattern": "^(?:[01]\\d|2[0-3]):[0-5]\\d$",
+              "title": "Ochtendbriefing",
+              "type": "string"
+            },
+            "evening": {
+              "default": "22:00",
+              "pattern": "^(?:[01]\\d|2[0-3]):[0-5]\\d$",
+              "title": "Avondbriefing",
+              "type": "string"
+            },
+            "on_return": {
+              "default": true,
+              "title": "Briefing bij terugkomst voorbereiden",
+              "type": "boolean"
+            },
+            "calendar": {
+              "default": true,
+              "title": "Calendar",
+              "type": "boolean"
+            },
+            "email": {
+              "default": true,
+              "title": "Email",
+              "type": "boolean"
+            },
+            "weather": {
+              "default": false,
+              "title": "Open-Meteo weer gebruiken",
+              "type": "boolean"
+            },
+            "news": {
+              "default": false,
+              "title": "NOS-nieuwskoppen gebruiken",
+              "type": "boolean"
+            },
+            "location": {
+              "default": "",
+              "maxLength": 100,
+              "title": "Plaats voor weer (geen huisadres)",
+              "type": "string"
+            },
+            "morning_channel": {
+              "default": "inbox",
+              "enum": [
+                "inbox",
+                "call"
+              ],
+              "title": "Morning Channel",
+              "type": "string"
+            },
+            "evening_channel": {
+              "default": "inbox",
+              "enum": [
+                "inbox",
+                "call"
+              ],
+              "title": "Evening Channel",
+              "type": "string"
+            }
+          },
+          "title": "Briefings",
           "type": "object"
         },
         "Calendar": {
@@ -1751,6 +1825,9 @@
         "presence": {
           "$ref": "#/$defs/Presence"
         },
+        "briefings": {
+          "$ref": "#/$defs/Briefings"
+        },
         "privacy": {
           "$ref": "#/$defs/Privacy"
         },
@@ -1823,6 +1900,7 @@
       "EmailSearch",
       "EmailSend",
       "NotificationSend",
+      "PersonalBriefing",
       "ReminderCancel",
       "ReminderCreate",
       "ReminderList",
@@ -2051,6 +2129,19 @@
         "sleep_end": 7,
         "work_apps": [],
         "gaming_apps": []
+      },
+      "briefings": {
+        "enabled": false,
+        "morning": "08:00",
+        "evening": "22:00",
+        "on_return": true,
+        "calendar": true,
+        "email": true,
+        "weather": false,
+        "news": false,
+        "location": "",
+        "morning_channel": "inbox",
+        "evening_channel": "inbox"
       },
       "privacy": {
         "cloud_memories": false,

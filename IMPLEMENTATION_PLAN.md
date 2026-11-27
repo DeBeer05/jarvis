@@ -27,7 +27,7 @@ Qwen2.5:3B en bestaande Windows-/Android-/upstreamcode blijven behouden.
 |---|---|---|---|
 | 1 Persoonlijkheid/geheugen | Butler, instellingen, contact-/voorkeurgeheugen, historie, bronvergeten | Gerichte episodische retrieval tussen gesprekken; toon op context, correctie zonder extra classifier; restart/apparaat/privacytests | Technisch afgerond; menselijke acceptatie open |
 | 2 Aanwezigheid/modi | Gespreksstatus, clientstatus, meldingsbeleid | Acht modi, handmatig/automatisch, begrensde OS-signalen met opt-in, persistente transitions en eenmalige terugkomst | Technisch afgerond; echte apparaatacceptatie open |
-| 3 Persoonlijke assistentie | Calendar/Gmail, conflictcontrole, follow-up, scheduler, quiet hours | Brongebonden briefings/routines/lijsten, connectorstatus, prioritering; actuele weer/nieuws/verkeer alleen echte bron | Nog niet gestart; locatie/connectorconfig deels extern |
+| 3 Persoonlijke assistentie | Calendar/Gmail, conflictcontrole, follow-up, scheduler, quiet hours | Brongebonden briefings/routines/lijsten, connectorstatus, prioritering; actuele weer/nieuws/verkeer alleen echte bron | Kern technisch afgerond; verkeer/telefonie/bankkoppeling ontbreken extern |
 | 4 Spraak | ElevenLabs, tekst-/zinsstreaming, lokale Whisper/Piper, echo/barge-in, foreground vervolg | Meetbare streaminggrenzen, hervatten en fallback audit; echte audioacceptatie apart | Nog niet gestart; gebruikt bestaande helper |
 | 5 Windows/Android | Native clients, apparaatpairing, Windows gesloten acties | Toegestane OS-acties/status, Android ondersteunde intents/toestemmingen en achtergrondsync; geen WhatsApp/Signal-API verzinnen | Nog niet gestart; grants/telefoon nodig voor echte tests |
 | 6 Externe omgeving | Bestaande scherm-/apparaatrechtstructuur | Opt-in schermcontext, ondersteunde HA/Creality/navigatieadapters en capabilities | Nog niet gestart; endpoints/apparaatconfig extern |
@@ -76,3 +76,19 @@ geheimcontrole geslaagd. Geen echte accounts, TTS of modeldownloads gebruikt.
   configuratie blijft buiten Git. Ondersteunde mogelijkheden van Phone Link en
   Creality Cloud worden vóór connectorimplementatie geverifieerd. Een geplande
   melding is geen echt ochtendtelefoontje; daarvoor moet een oproeproute bestaan.
+
+### Fase 3 — testbewijs en externe grenzen
+
+- Brongebonden ochtend-/avond-/terugkomstbriefings, voorbereiding tijdens afwezigheid,
+  bestaande agenda-/Gmailrechten, conflictvoorstellen, Open-Meteo en NOS. Geen LLM
+  voor periodieke verwerking; begrensde caches en bronfouten zichtbaar.
+- SQLite v11: lokale boodschappen, abonnementen, gelegenheden, routines en
+  sollicitaties. Revisions/idempotentie, maand-/jaarherhaling en gekoppelde
+  bestaande reminders/reply-watches; bewerken/verwijderen annuleert oude jobs.
+- Brede serverreeks 629 passed/1 skip; daaropvolgende kalender/briefingregressies
+  60 passed en finale briefing/automationreeks 37 passed na follow-upcorrecties.
+  Ruff/mypy (44 modules), pip check, structuur en Android-contract groen.
+- Echte openbare weerproef geslaagd; Google/ElevenLabs uitsluitend mocks. Geen
+  echte mail-/agenda- of telefoonactie. De eigenaar kiest voorlopig appbriefings;
+  geen ondersteund oproepkanaal, live verkeer, bank- of locatiegrant beschikbaar.
+- Nieuwe backendcode nog niet live geactiveerd; clientformulieren volgen fase 8.

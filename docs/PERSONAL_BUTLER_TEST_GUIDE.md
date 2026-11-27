@@ -62,3 +62,28 @@ Primaire API-bronnen: [Windows sessie-events](https://learn.microsoft.com/en-us/
 [initiële WTS-status](https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/ns-wtsapi32-wtsinfoex_level1_w),
 [idle in eigen sessie](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getlastinputinfo),
 [Android systeemintents](https://developer.android.com/reference/android/content/Intent).
+
+## Fase 3: briefings en persoonlijke assistentie
+
+1. Vraag ‘Geef mijn ochtendbriefing’. Alleen bronnen waarvoor het apparaat
+   rechten heeft worden gelezen. Ontbrekende bronnen worden herkenbaar gemeld;
+   een conflictoplossing wordt voorgesteld en nooit als uitgevoerd gepresenteerd.
+2. Stel Briefings in met de gewenste plaats, bronnen en tijden. Activeren van
+   de planning vereist bestaande automationrechten. Appmeldingen werken zonder
+   telefonie; bij kanaal bellen wordt de ontbrekende koppeling expliciet gemeld.
+3. Ga afwezig en kom terug: één briefing met recente bronnen. Herhaald terugkomen
+   levert geen dubbele verwerking; ingetrokken bronrechten verhinderen aflevering.
+4. Zeg ‘Zet melk op mijn boodschappenlijst’ en vraag de lijst. Herhalen maakt
+   geen tweede open regel. ‘Haal melk van mijn boodschappenlijst’ verwijdert die.
+5. Lokale abonnementen leveren een overzicht per valuta, zonder wisselkoers of
+   bankclaim. Gebruik fictieve bedragen voor een test. Financiële inhoud blijft
+   onder bestaande gevoelige-inhoudregels vallen.
+6. Verjaardagen/routines en sollicitaties gebruiken de bestaande taakengine.
+   Wijzig/verwijder een gekoppelde regel: de oude reminder/watch wordt geannuleerd.
+   Alleen geverifieerde Gmail-IDs kunnen aan antwoordopvolging worden gekoppeld.
+   Een ontvangen reactie autoriseert nooit zelf verzending of een statusbeslissing.
+
+De typed formulieren volgen fase 8; de beveiligde API is reeds beschikbaar.
+Primaire bronnen: [Open-Meteo](https://open-meteo.com/en/docs),
+[geocodering](https://open-meteo.com/en/docs/geocoding-api) en
+[Phone Link notificatie-integratie](https://learn.microsoft.com/en-us/windows/apps/develop/windows-integration/phone-link-notification-integration).

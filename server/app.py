@@ -77,6 +77,7 @@ def create_app(
             await app.state.natural.retention.close()
             await app.state.automation.close()
             await chat.shutdown()
+            await app.state.natural.briefings.close()
             app.state.natural.context.private.clear()
             if hasattr(app.state.speech,"close"):await app.state.speech.close()
             database.close()

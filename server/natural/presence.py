@@ -86,14 +86,19 @@ class PresenceManager:
             db.execute('INSERT INTO natural_presence VALUES (?,?,?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET mode=excluded.mode,reason=excluded.reason,revision=excluded.revision,updated=excluded.updated,away_since=excluded.away_since',
                        (user,mode,reason,revision,now,away))
             self.store.audit(db,user,device,'presence_transition',mode)
-            if returned and settings['presence']['greetings']:
-                greeting=address('Welkom terug',settings)
-                if old['reason']=='meal':greeting+=' Ik hoop dat het u gesmaakt heeft.'
+            if mode in ABSENT and settings.get('briefings',{}).get('enabled') and settings['briefings']['on_return']:
+                self.natural.events.publish(db,user,device,'presence.away',{'source':'presence_transition'},'away:'+str(revision),priority=0,lifetime=3600)
+            if returned:
+                if settings['presence']['greetings']:
+                    greeting=address('Welkom terug',settings)
+                    if old['reason']=='meal':greeting+=' Ik hoop dat het u gesmaakt heeft.'
                 notification=settings['notifications']
-                recent=db.execute('SELECT count(*) FROM natural_events WHERE user_id=? AND created>? AND priority<2',(user,now-3600)).fetchone()[0]
-                if notify and notification['enabled'] and notification['proactivity']!='off' and recent<notification['suggestions_per_hour']:
+                recent=db.execute("SELECT count(*) FROM natural_events WHERE user_id=? AND created>? AND priority<2 AND kind IN ('presence.return','briefing.ready','integration.alert') AND json_extract(payload,'$.text')!=''",(user,now-3600)).fetchone()[0]
+                show=bool(notify and greeting and notification['enabled'] and notification['proactivity']!='off' and recent<notification['suggestions_per_hour'])
+                prepare=settings.get('briefings',{}).get('enabled') and settings['briefings']['on_return']
+                if show or prepare:
                     self.natural.events.publish(db,user,device,'presence.return',
-                        {'text':greeting,'away_since':old['away_since'],'source':'presence_transition'},
+                        {'text':greeting if show else '', 'away_since':old['away_since'],'source':'presence_transition'},
                         'return:'+str(revision),lifetime=300)
         return {'mode':mode,'label':MODES[mode],'reason':reason,'revision':revision,
                 'changed':changed,'greeting':greeting,'private':mode=='private'}

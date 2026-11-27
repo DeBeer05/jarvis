@@ -13,7 +13,7 @@ CATEGORIES={
     "voice":"Spraak en stem", "personality":"Persoonlijkheid", "ai":"AI en prestaties",
     "memory":"Geheugen", "calendar":"Agenda", "tasks":"Taken en automatiseringen",
     "autonomy":"Zelfstandigheid en machtigingen", "notifications":"Meldingen",
-    "privacy":"Privacy", "diagnostics":"Diagnostiek", "presence":"Aanwezigheid en modi",
+    "privacy":"Privacy", "diagnostics":"Diagnostiek", "presence":"Aanwezigheid en modi", "briefings":"Briefings en informatiebronnen",
 }
 
 
