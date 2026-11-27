@@ -97,13 +97,15 @@ internal object SettingsDraft {
     Text(state.naturalStatus.ifBlank {"Globale voorkeuren synchroniseren met Windows. Microfoon en luidspreker blijven lokaal."})
     if(!state.connection.authenticated) { Text("Log in en koppel deze telefoon om je persoonlijke instellingen te openen.");return }
     var page by remember {mutableStateOf("Instellingen")}
-    Row(Modifier.horizontalScroll(rememberScrollState())) {listOf("Instellingen","Geheugen","Adresboek","Voice Studio","Diagnostiek","Aanwezigheid").forEach {name ->FilterChip(selected=page==name,onClick={page=name;if(name=="Geheugen")model.naturalMemory();if(name=="Adresboek")model.naturalContacts();if(name=="Voice Studio")model.voiceStudio();if(name=="Diagnostiek")model.naturalDiagnostics();if(name=="Aanwezigheid")model.presenceRefresh()},label={Text(name)})}}
+    Row(Modifier.horizontalScroll(rememberScrollState())) {listOf("Instellingen","Butler","Beeldcontext","Geheugen","Adresboek","Voice Studio","Diagnostiek","Aanwezigheid").forEach {name ->FilterChip(selected=page==name,onClick={page=name;if(name=="Geheugen")model.naturalMemory();if(name=="Adresboek")model.naturalContacts();if(name=="Voice Studio")model.voiceStudio();if(name=="Diagnostiek")model.naturalDiagnostics();if(name=="Aanwezigheid")model.presenceRefresh()},label={Text(name)})}}
     val context=LocalContext.current;val scope=rememberCoroutineScope();var exportText by remember {mutableStateOf("")}
     val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) {uri -> if(uri!=null) scope.launch {
         try { withContext(Dispatchers.IO) { context.contentResolver.openOutputStream(uri)?.use {it.write(exportText.toByteArray(Charsets.UTF_8))} ?: error("Geen uitvoerbestand") };model.message("Export opgeslagen") }
         catch(_:Exception) {model.message("Export kon niet worden opgeslagen")};exportText=""
     } }
     fun exportData(path: String,name: String) {model.exportNatural(path) {text -> exportText=text;export.launch(name)}}
+    if(page=="Butler") {ButlerScreen(state,model);return}
+    if(page=="Beeldcontext") {ImageContextScreen(state,model);return}
     if(page=="Voice Studio") {VoiceStudio(state,model);return}
     if(page=="Adresboek") {NaturalContacts(state,model);return}
     if(page=="Geheugen") {NaturalMemory(state,model) {exportData("/memory/export","jarvis-geheugen.json")};return}
@@ -197,7 +199,7 @@ internal object SettingsDraft {
         field.has("const") -> Text("$title: ${if(value==false)"uitgeschakeld" else value}",modifier)
         field.has("enum") -> Choice(title,value.toString(),field.getJSONArray("enum").strings().map {it to labels.optString(it,it)},disabled=field.optJSONArray("x-unavailable")?.strings()?.toSet() ?: emptySet(),change=change)
         field.optString("type")=="boolean" -> Row(verticalAlignment=Alignment.CenterVertically) {Switch(value==true,{change(it)},modifier=Modifier.testTag("natural-$name"));Text(title,Modifier.padding(start=10.dp))}
-        field.optString("type")=="object" && field.optJSONObject("additionalProperties")?.optString("type")=="string" -> {
+        field.optString("type")=="object" && field.optJSONObject("additionalProperties")?.optString("type")=="string" && field.optJSONObject("additionalProperties")?.optJSONArray("enum")==null -> {
             fun parsed(text:String):JSONObject {
                 val result=JSONObject()
                 text.lines().filter {it.isNotBlank()}.forEach {line->
@@ -216,7 +218,7 @@ internal object SettingsDraft {
             Text(title,style=MaterialTheme.typography.titleMedium)
             val current=value as? JSONObject ?: JSONObject();val mandatory=schema.optJSONArray("mandatory_approval")?.strings() ?: emptyList()
             schema.optJSONArray("actions")?.strings()?.forEach {tool ->
-                Choice(tool,current.optString(tool,"ask"),listOf("ask","allow","block").filter {it!="allow"||tool !in mandatory}.map {it to labels.optString(it,it)}) {selected -> val result=JSONObject(current.toString());result.put(tool,selected);change(result)}
+                Choice(schema.optJSONObject("labels")?.optString(tool,tool) ?: tool,current.optString(tool,"inherit"),listOf("inherit" to "Volgens profiel en vaste veiligheidsregels")+listOf("ask","advise","allow","block").filter {it!="allow"||tool !in mandatory}.map {it to labels.optString(it,it)}) {selected -> val result=JSONObject(current.toString());if(selected=="inherit")result.remove(tool) else result.put(tool,selected);change(result)}
             }
         }
         field.optString("type")=="array" && field.getJSONObject("items").optString("type")=="integer" -> {

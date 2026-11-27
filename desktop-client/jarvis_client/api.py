@@ -110,7 +110,8 @@ class ApiClient:
 
     def request(self, method, path, body=None):
         mail_body = re.fullmatch(r"/api/v1/automation/email/[A-Za-z0-9_-]+\?include_body=true", path)
-        if not path.startswith("/api/v1/") or "?" in path and not (path.startswith("/api/v1/chat/conversations?") or mail_body):
+        personal_query=re.fullmatch(r'/api/v1/natural/(?:events\?history=true|life-items\?kind=(?:shopping|subscription|occasion|routine|application)|life-items/[0-9a-f-]{36}\?revision=[0-9]{1,10})',path)
+        if not path.startswith("/api/v1/") or "?" in path and not (path.startswith("/api/v1/chat/conversations?") or mail_body or personal_query):
             raise ValueError("Invalid API path")
         try:
             return self._network(method, path, headers=self.headers(), **({"json": body} if body is not None else {}))

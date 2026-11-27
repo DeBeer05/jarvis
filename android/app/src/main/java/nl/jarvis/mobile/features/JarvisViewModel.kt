@@ -39,6 +39,25 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
     private var currentApi: nl.jarvis.mobile.data.JarvisApi? = null
     private var initialized = false; private var foreground = false
     private var generation = 0
+
+    suspend fun butlerRequest(path:String,method:String="GET",body:JSONObject?=null):JSONObject {
+        require(path.startsWith("/api/v1/natural/") || path.startsWith("/api/v1/automation/"))
+        val api=currentApi ?: error("Log eerst in");val epoch=generation
+        check(mutable.value.connection.authenticated){"Log eerst in"}
+        val result=api.json(path,method,body)
+        currentCoroutineContext().ensureActive()
+        check(api===currentApi && epoch==generation && mutable.value.connection.authenticated){"De verbinding is gewijzigd"}
+        return result
+    }
+
+    suspend fun butlerImage(body:JSONObject):JSONObject {
+        val api=currentApi ?: error("Log eerst in");val epoch=generation
+        check(mutable.value.connection.authenticated){"Log eerst in"}
+        val result=api.analyzeImage(body)
+        currentCoroutineContext().ensureActive()
+        check(api===currentApi && epoch==generation && mutable.value.connection.authenticated){"De verbinding is gewijzigd"}
+        return result
+    }
     private var sendJob: Job? = null; private var audioJob: Job? = null; private var pairJob: Job? = null
     private var requestId: String? = null
     private val connection = ConnectionManager(application, viewModelScope) { currentApi }
@@ -303,8 +322,9 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
             graph.settings.notificationSeen(origin,latest)
         }
     } }
-    fun automationSubmit(tool: String, text: String) {
+    fun automationSubmit(tool: String, text: String,priority:Int=1,deadline:String?=null) {
         try { val body=JSONObject().put("tool",tool).put("input",JSONObject(text)).put("idempotency_key",UUID.randomUUID().toString())
+            body.put("priority",priority);if(deadline!=null)body.put("deadline",deadline)
             automationRequest("/jobs","POST",body) { automationRefresh() }
         } catch (_: Exception) { message("Controleer de JSON-actiegegevens") }
     }
@@ -314,6 +334,7 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
         }
     }
     fun automationControl(id: String,status: String) { automationRequest("/jobs/$id/control","POST",JSONObject().put("status",status)) { automationRefresh() } }
+    fun automationUndo(id:String) {automationRequest("/jobs/$id/undo","POST",JSONObject()){automationRefresh()}}
     fun active(value: Boolean) { foreground = value; if (value) {
         presence.start(viewModelScope)
         connection.start(mutable.value.preferences.automatic)

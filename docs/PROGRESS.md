@@ -2,6 +2,15 @@
 
 ## Actueel: acht productfases persoonlijke butler
 
+- Fase 8 geïmplementeerd/getest: Butler/lijsten/beeldpreview/apparaatinstellingen
+  Windows/Android, eigenaarformulieren, echte autonomiekeuzes en taakcontrole.
+  Windows 148 passed + laatste core/query/window 41 passed; Android 11/lint/builds
+  groen. Server 665 passed/1 skip/4 inmiddels herstelde browserregressies; finale
+  web/interface 12 passed. Eind-CI en lokale activatie nog te verifiëren.
+- Lokale exe-packager PermissionError; geen security-aanpassing. Gebruik bestaande
+  Python-client als ontwikkelstart. APK gereed; op dit moment geen adb-apparaat.
+- Uitvoerbare acceptatie en echte integratiegrenzen in PERSONAL_BUTLER_TEST_GUIDE.md.
+
 - Fase 7 gereed: v14, persistente noodstop, epochs, prioriteiten/deadlines,
   adviesregels en aparte lokale hostgrants. Geen ongecontroleerde externe acties.
   Herstel is een nieuw exact voorstel; onzekere writes nooit blind herhalen.

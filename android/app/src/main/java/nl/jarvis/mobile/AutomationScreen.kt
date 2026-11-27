@@ -22,12 +22,17 @@ import java.time.ZoneId
     Text("Zelfstandig binnen regels",style=MaterialTheme.typography.titleLarge)
     Text("Rechten worden door de eigenaar verleend. Externe wijzigingen vragen aparte goedkeuring.")
     Button(onClick=model::automationRefresh) { Text("Vernieuwen") }
+    var priority by remember {mutableIntStateOf(1)};var deadline by remember {mutableStateOf<String?>(null)}
+    if(section in listOf("Herinneringen","Automatiseringen","Workflows")) {
+        SelectValue("Prioriteit",priority.toString(),mapOf("0" to "Laag","1" to "Normaal","2" to "Belangrijk","3" to "Urgent")){priority=it.toInt()}
+        DateField("Optionele deadline",deadline,true){deadline=it}
+    }
     if(section=="Herinneringen") {
         var text by remember { mutableStateOf("") };var at by remember { mutableStateOf(ZonedDateTime.now().plusHours(1).toOffsetDateTime().toString()) };var repeat by remember { mutableStateOf("once") }
         OutlinedTextField(text,{text=it},label={Text("Waarvoor?")},modifier=Modifier.fillMaxWidth())
-        OutlinedTextField(at,{at=it},label={Text("Tijd met offset, bijvoorbeeld 2026-11-24T18:00+01:00")},modifier=Modifier.fillMaxWidth())
+        DateField("Herinnering op",at,false){if(it!=null)at=it}
         Row { listOf("once","daily","weekly").forEach { value -> TextButton(onClick={repeat=value}) {Text(if(value==repeat) "✓ $value" else value)} } }
-        Button(onClick={model.automationSubmit("ReminderCreate",JSONObject().put("text",text).put("at",at).put("repeat",repeat).put("timezone",ZoneId.systemDefault().id).toString())}) {Text("Herinnering instellen")}
+        Button(onClick={model.automationSubmit("ReminderCreate",JSONObject().put("text",text).put("at",at).put("repeat",repeat).put("timezone",ZoneId.systemDefault().id).toString(),priority,deadline)}) {Text("Herinnering instellen")}
     }
     if(section=="Agenda") {
         var start by remember {mutableStateOf(ZonedDateTime.now().toOffsetDateTime().toString())};var end by remember {mutableStateOf(ZonedDateTime.now().plusDays(7).toOffsetDateTime().toString())}
@@ -49,6 +54,7 @@ import java.time.ZoneId
             Row {if(status=="approval") {TextButton(onClick={decision=id to true}){Text("Goedkeuren")};TextButton(onClick={decision=id to false}){Text("Weigeren")}}
                 if(status=="queued") TextButton(onClick={model.automationControl(id,"paused")}){Text("Pauzeren")}
                 if(status=="paused") TextButton(onClick={model.automationControl(id,"queued")}){Text("Hervatten")}
+                if(status=="completed")TextButton(onClick={model.automationUndo(id)}){Text("Herstelvoorstel")}
                 if(status in listOf("queued","paused","approval","waiting","blocked")) TextButton(onClick={model.automationControl(id,"cancelled")}){Text("Annuleren")}
             }
         }}
@@ -58,7 +64,7 @@ import java.time.ZoneId
         var tool by remember {mutableStateOf("WorkflowCreate")};var input by remember {mutableStateOf("{}")};var submit by remember {mutableStateOf(false)}
         OutlinedTextField(tool,{tool=it},label={Text("Geregistreerde actie")});OutlinedTextField(input,{input=it},label={Text("Actiegegevens (JSON)")},minLines=3)
         Button(onClick={submit=true}){Text("Voorstel indienen")}
-        if(submit) AlertDialog(onDismissRequest={submit=false},title={Text(tool)},text={Text(input)},confirmButton={TextButton(onClick={submit=false;model.automationSubmit(tool,input)}){Text("Indienen")}},dismissButton={TextButton(onClick={submit=false}){Text("Annuleren")}})
+        if(submit) AlertDialog(onDismissRequest={submit=false},title={Text(tool)},text={Text(input)},confirmButton={TextButton(onClick={submit=false;model.automationSubmit(tool,input,priority,deadline)}){Text("Indienen")}},dismissButton={TextButton(onClick={submit=false}){Text("Annuleren")}})
     }
     if(section=="Meldingen") {Text("Meldingsrechten en categorieën vind je ook in Meldingen. Externe pushbezorging is nog niet geconfigureerd.");Text(state.automations)}
     if(state.automationResult.isNotBlank()) Text(state.automationResult)

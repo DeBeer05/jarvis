@@ -43,6 +43,8 @@ class ScreenPanel(QWidget):
         self.serial+=1;self.device=None;self.image=None;self.config=None;self.config_revision=None;self.preview_label.clear();self.report.clear()
         self.capture.setEnabled(False);self.send.setEnabled(False);self.allowed.setEnabled(False)
         self.allowed.blockSignals(True);self.allowed.setChecked(False);self.allowed.blockSignals(False)
+        self.question.setText('Wat valt u op en kunt u mij hierbij helpen?')
+        self.info.setText('Beeldanalyse staat standaard uit. Controleer uw eigen voorbeeld voordat u het verzendt.')
 
     def refresh(self):
         serial=self.serial

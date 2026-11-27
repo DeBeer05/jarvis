@@ -4,6 +4,22 @@
 
 ### Acht productfases persoonlijke butler — 27 november 2026
 
+Fase 8 geïmplementeerd: native ButlerPanel + getypeerde formulieren, Android Butler/
+Beeldcontext/Apparaat, echte previewwiring, aparte OS-/apparaatconsents, schema-
+gedreven autonomie met advies/profielregels en expliciete vraagplicht, prioriteit/
+deadline/undo, taak-health/inboxgeschiedenis en eigenaarformulieren HA/Windows.
+Native-queryallowlist uitgebreid met uitsluitend de benodigde begrensde routes.
+Geen keys in clients of automatische grants. De bestaande topnavigatie blijft.
+Windows 148 passed + finale query/core/windowreeks 41 passed. Android 11 unit/lint/
+debug/release groen. Brede serverreeks 665 passed/1 POSIX-skip/4 JS-harnessfouten;
+veroorzaakt door overbodige DOMContentLoaded-afhankelijkheid in reeds deferred
+script, hersteld. Alle 12 web-/interfacechecks daarna groen; 20 eerdere API/
+presence/stopchecks groen. Definitieve CI wordt na push gecontroleerd.
+Lokale exe-verpakking tweemaal PermissionError bij PyInstaller append; geen
+beveiligingsinstelling aangepast. Bestaande Python-client blijft beschikbaar.
+APK gebouwd; adb ziet op dit moment geen aangesloten apparaat. Niet geïnstalleerd.
+Lokale activatie/briefingconfiguratie en uiteindelijke CI-status volgen hieronder.
+
 Fase 7 technisch gereed: SQLite v14, persistente eigenaarnoodstop/epochs,
 taakprioriteiten/deadlines, advies/vragen/toestaan/blokkeren per functie,
 begrensde leesretries en aparte hostgrants voor media/programmas. Geen nieuwe

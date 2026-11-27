@@ -167,10 +167,10 @@ def presence_mode(request:Request,body:ModeChange):
 
 
 @router.get('/events')
-def personal_events(request:Request):
+def personal_events(request:Request,history:bool=False):
     natural=service(request);state=natural.presence.snapshot(request.state.principal)
     notifications=natural.settings.get(request.state.principal)['settings']['notifications']
-    return natural.events.list(request.state.principal,control_only=not notifications['enabled'],urgent_only=notifications['proactivity']=='off' or state['mode'] in ('away','sleeping','private','gaming','emergency'))
+    return natural.events.list(request.state.principal,history=history,control_only=not notifications['enabled'] and not history,urgent_only=not history and (notifications['proactivity']=='off' or state['mode'] in ('away','sleeping','private','gaming','emergency')))
 
 
 @router.post('/events/{identifier}/ack')

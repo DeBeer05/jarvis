@@ -1,5 +1,54 @@
 # Persoonlijke butler — praktische acceptatie
 
+## Eerst proberen na de update
+
+1. Windows: Instellingen → Gesprekken en geheugen → Persoonlijke butler.
+   Android: Gesprekken en geheugen → Butler. Open uw ochtend-/avondbriefing en
+   de meldingengeschiedenis. Ontbrekende bronnen moeten eerlijk ontbreken.
+2. Kies Persoonlijke lijsten/Lijsten. Maak een herkenbaar testboodschapje, wijzig
+   het, vink het af en verwijder het zelf. Kies daarna een routine/gelegenheid;
+   stel datum en tijd met de kiezer in en maak bewust een herinnering.
+3. Voer een synthetisch abonnement in. Kostenoverzicht toont uitsluitend uw
+   eigen bedragen per valuta; geen bankgegevens of geschatte wisselkoers.
+4. Instellingen → Zelfstandigheid: kies expliciet Alleen adviseren voor een
+   onschuldige functie. Een voorstel mag dan niet worden uitgevoerd. Profielregels
+   erven en expliciet Eerst vragen zijn verschillende keuzes.
+5. Bij Taken/Automatiseringen: controleer prioriteit, optionele deadline, approval,
+   pauzeren en herstelvoorstel. Gebruik de noodstop met een onschuldige taak;
+   hef hem zelf op in eigenaarbeheer en hervat taken afzonderlijk.
+6. Windows: Beeldcontext. Android: Beeldcontext. Schakel globale beeldanalyse en
+   de afzonderlijke apparaattoestemming zelf in. Selecteer uitsluitend een eigen
+   onschuldig testbeeld, controleer preview/provider en verzend bewust. Cloud heeft
+   een aparte toestemming nodig. Geen beeld wordt automatisch verzameld/opgeslagen.
+7. Android → Butler → Apparaat: bepaal zelf welke status gedeeld mag worden.
+   Meldingen zijn aantallen van geselecteerde apps, geen berichteninhoud. Android-
+   toegang en locatie zijn aparte OS-toestemmingen. Achtergrondophalen is optioneel
+   en Android mag het uitstellen; zonder push wordt geen exact tijdstip beloofd.
+8. Eigenaarkoppelingen: open vanuit Taken/Accounts het bestaande eigenaarbeheer.
+   Haal eerst de huidige vrijgave op. Wijzig uitsluitend uw bedoelde programma’s,
+   documentmappen of HA-entiteiten. Sleutels voert u lokaal beveiligd in, nooit in
+   clientvelden, Git of deze chat. Zie EXTERNAL_INTEGRATIONS.md.
+
+## Praktische grenzen
+
+- Telefonie ontbreekt; briefings blijven in JARVIS. Phone Link is geen openbare
+  oproep-/berichten-API. Telefoonapps ontvangen gecontroleerde handoffs; werkelijk
+  bellen/verzenden bevestigt u in de betreffende app. Geen WhatsApp-/Signal-inhoud
+  via ongedocumenteerde interfaces of toegankelijkheidsautomatisering.
+- Creality Hi/Cloud: geen publieke status-API geverifieerd; officieel dashboard.
+  Geen live verkeer, pompprijzen, bank-/voertuigkoppeling of geofence-triggers.
+  Routes gebruiken een echte geconfigureerde bron zonder verkeersdrukte; ritkosten
+  zijn handmatig. Tijdgebonden routines blijven bruikbaar zonder die koppelingen.
+- HA, route- en beeldprovider vereisen werkende credentials/configuratie. Het
+  gekozen tekstmodel wordt niet vervangen of als beeldmodel voorgesteld.
+- Windows-bediening geldt voor de backendhost, niet voor een verzonnen remote
+  Windows-agent na Oracle-migratie. Sensordekking hangt van aanwezige drivers af.
+- Streaming STT is opt-in incrementele herkenning; bestaande LLM-/zins-TTS-stream
+  blijft behouden. Echte Nederlandse herkenning, stemkwaliteit en barge-in moet u
+  beluisteren; technische mocks gelden niet als menselijke acceptatie.
+- Geen Oracle-/mini-pc-migratie, publieke poort, telefonieabonnement of training.
+  Poort 8765 blijft gelijk. Geheugen/aanwezigheid/beeld/status hebben eigen opt-ins.
+
 ## Fase 7: veiligheid en herstel
 
 1. Plan een onschuldige toekomstige herinnering. Activeer Noodstop: de taak blijft

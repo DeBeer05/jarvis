@@ -4,6 +4,14 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Windows/Android: Butler-bediening voor briefings, recente meldingen, getypeerde
+  lijsten/routines/sollicitaties, kosten, apparaten, routes en beeldpreview.
+- Zichtbare afzonderlijke Android-consents en opt-in achtergrondophalen;
+  eigenaarformulieren voor HA/Windows-hostvrijgave. Geen grants bij openen.
+- Autonomiekeuzes herkennen enum-maps correct, onderscheiden profielregels van
+  een expliciete vraagplicht, en bieden Alleen adviseren. Taakprioriteit,
+  optionele deadline en herstelvoorstel vanuit de bestaande interfaces.
+
 - Persistente eigenaarnoodstop, uitvoeringsversies, pauzeren en intrekken van
   approvals. Hervatten uitsluitend door eigenaar, nooit automatisch.
 - Prioriteiten/deadlines, begrensde leesretries, adviesniveau per functie en

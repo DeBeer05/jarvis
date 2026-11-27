@@ -28,10 +28,10 @@ class EventInbox:
         db.execute('DELETE FROM natural_events WHERE user_id=? AND id IN (SELECT id FROM natural_events WHERE user_id=? ORDER BY created DESC LIMIT -1 OFFSET 1000)',(user,user))
         return db.execute('SELECT id FROM natural_events WHERE user_id=? AND dedupe=?',(user,key)).fetchone()[0]
 
-    def list(self,principal,*,urgent_only=False,control_only=False):
+    def list(self,principal,*,urgent_only=False,control_only=False,history=False):
         with self.store.transaction(principal) as (db,user):
-            rows=db.execute("SELECT id,kind,payload,created,priority FROM natural_events WHERE user_id=? AND device_id=? AND kind NOT IN ('presence.away','briefing.prepared','device.handoff') AND acked IS NULL AND expires>? AND priority>=? AND (?=0 OR kind='control.stop') ORDER BY priority DESC,created LIMIT 5",
-                            (user,principal.device_id,self.store.clock(),2 if urgent_only else 0,int(control_only))).fetchall()
+            rows=db.execute("SELECT id,kind,payload,created,priority FROM natural_events WHERE user_id=? AND device_id=? AND kind NOT IN ('presence.away','briefing.prepared','device.handoff') AND (?=1 OR acked IS NULL) AND expires>? AND priority>=? AND (?=0 OR kind='control.stop') ORDER BY "+('created DESC LIMIT 20' if history else 'priority DESC,created LIMIT 5'),
+                            (user,principal.device_id,int(history),self.store.clock(),2 if urgent_only else 0,int(control_only))).fetchall()
         result=[]
         for row in rows:
             payload=json.loads(row['payload'])

@@ -1,4 +1,32 @@
 "use strict";
+// Owner-operated controls. Never asks a model to authorize a grant.
+(()=>{
+ const root="/api/v1/automation",status=document.getElementById("butler-status");
+ const request=(path,method="GET",body)=>JarvisAuth.api(root+path,{method,...(body===undefined?{}:{headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})});
+ const operation=async fn=>{try{await fn();}catch(error){status.textContent=error.message||"Niet bevestigd; controleer uw eigenaarrechten en invoer.";}};
+ document.getElementById("butler-stop").onclick=()=>operation(async()=>{await request("/safety","POST",{active:true});status.textContent="Noodstop actief. Taken blijven gepauzeerd.";});
+ document.getElementById("butler-resume").onclick=()=>operation(async()=>{await request("/safety","POST",{active:false});status.textContent="Stop opgeheven. Taken hervatten niet automatisch; controleer iedere taak.";});
+ document.getElementById("butler-health").onclick=()=>operation(async()=>{const data=await request("/health");status.textContent=`Noodstop ${data.stopped?"actief":"uit"}. Scheduler ${data.scheduler_enabled?"actief":"uit"}. Te late taken: ${data.overdue}. Onzekere uitkomsten: ${data.counts.uncertain||0}.`;});
+ const lines=value=>value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+ const mapping=value=>Object.fromEntries(lines(value).map(line=>{const at=line.indexOf("=");if(at<1)throw Error("Gebruik naam = waarde, één per regel.");return [line.slice(0,at).trim(),line.slice(at+1).trim()];}));
+ for(const name of ["host","home"]){
+  const form=document.getElementById(name+"-policy"),fields=form.elements,path=name==="host"?"/windows/policy":"/external/home-assistant";let current=null;
+  document.getElementById(name+"-load").onclick=()=>operation(async()=>{
+   current=await request(path);
+   for(const key of ["enabled","media_allowed","programs_allowed","watch_downloads"])if(fields.namedItem(key))fields.namedItem(key).checked=!!current[key];
+   if(name==="host") {fields.namedItem("programs").value=Object.entries(current.programs).map(([key,value])=>key+" = "+value).join("\n");fields.namedItem("roots").value=current.roots.join("\n");}
+   else {fields.namedItem("endpoint").value=current.endpoint;fields.namedItem("entities").value=current.entities.join("\n");fields.namedItem("aliases").value=Object.entries(current.aliases).map(([key,value])=>key+" = "+value).join("\n");}
+   form.querySelector("fieldset").disabled=false;status.textContent="Huidige vrijgave opgehaald; er is niets gewijzigd.";
+  });
+  form.onsubmit=event=>{event.preventDefault();operation(async()=>{
+   if(!current)throw Error("Haal eerst de huidige vrijgave op.");
+   const data={...current,enabled:fields.namedItem("enabled").checked};
+   if(name==="host") {data.programs=mapping(fields.namedItem("programs").value);data.roots=lines(fields.namedItem("roots").value);for(const key of ["media_allowed","programs_allowed","watch_downloads"])data[key]=fields.namedItem(key).checked;}
+   else {data.endpoint=fields.namedItem("endpoint").value;data.entities=lines(fields.namedItem("entities").value);data.aliases=mapping(fields.namedItem("aliases").value);}
+   await request(name==="host"?"/windows":path,"PUT",data);current=data;status.textContent="Uw vrijgave is opgeslagen. Gewijzigde voorstellen vragen opnieuw controle.";
+  });};
+ }
+})();
 const base="/api/v1/automation";
 const el=id=>document.getElementById(id);
 const api=(path="",method="GET",body)=>JarvisAuth.api(base+path,{method,...(body===undefined?{}:{headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})});
@@ -125,6 +153,7 @@ async function refresh(){
   if(["queued","waiting","approval","paused","blocked"].includes(job.status))action("Annuleren",()=>api(`/jobs/${job.id}/control`,"POST",{status:"cancelled"}));
   if(job.status==="queued")action("Pauzeren",()=>api(`/jobs/${job.id}/control`,"POST",{status:"paused"}));
   if(job.status==="paused")action("Hervatten",()=>api(`/jobs/${job.id}/control`,"POST",{status:"queued"}));
+  if(job.status==="completed" && ["CalendarCreate","DesktopControl"].includes(job.tool))action("Herstelvoorstel",()=>api(`/jobs/${job.id}/undo`,"POST",{}));
   el("jobs").append(section);
  }
  el("history").textContent=JSON.stringify(data.history,null,2);

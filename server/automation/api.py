@@ -124,6 +124,10 @@ def task_health(request:Request):
 def windows_capabilities(request:Request):return engine(request).windows.capabilities()
 
 
+@router.get(BASE+'/windows/policy',dependencies=[Depends(require_permission('admin:account'))])
+def windows_current_policy(request:Request):return engine(request).windows.policy().model_dump(mode='json')
+
+
 @router.put(BASE+'/windows',dependencies=[Depends(require_permission('admin:account'))])
 async def windows_policy(request:Request,body:dict):
     from server.automation.windows import HostPolicy
