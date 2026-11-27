@@ -47,3 +47,6 @@
 - Nieuwe Windows CI vond een native offscreen-tray-crash in test_window. Die
   unit-test gebruikt nu een traymodel voor sluit-/herstelbeleid; geen fictieve
   native shelltray meer maken. Productiecode/builds blijven ongewijzigd.
+- Dubbele Windows-run abortte nog steeds bij processEvents; oorzaak dus nog
+  niet bewezen opgelost. CI gebruikt nu sys-capture zodat Qt's native fatale
+  foutmelding bij een abort niet in pytest's verloren fd-buffer verdwijnt.

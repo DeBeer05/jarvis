@@ -23,7 +23,8 @@ jobs:
       - name: Client tests
         env:
           QT_QPA_PLATFORM: offscreen
-        run: ./.local/client-venv/Scripts/python.exe -m pytest -c pytest-client.ini -q
+        # Keep native Qt diagnostics visible even if the interpreter aborts.
+        run: ./.local/client-venv/Scripts/python.exe -m pytest -c pytest-client.ini -q --capture=sys
       - name: Install isolated voice runtime without model downloads
         shell: powershell
         run: ./scripts/Install-VoiceRuntime.ps1
