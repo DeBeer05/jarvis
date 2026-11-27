@@ -41,7 +41,10 @@ ARM64 CI-matrix, systemd/Caddy-templates, afgeschermde configuratie en concreet
 backup/cutover/rollbackplan staan in deploy/oracle. Geen automatische productie-
 updates geactiveerd. Volledige regressie: 572 passed in 257,13 s; aanvullende
 deploymentscripts: 3 passed/1 POSIX-skip op Windows. Zie
-docs/ORACLE_PREPARATION_TEST_REPORT.md. Remote CI wordt apart gecontroleerd.
+docs/ORACLE_PREPARATION_TEST_REPORT.md. Laatste volledige reeks: 577 passed /
+1 POSIX-skip in 252,44 s. Functioneel checkpoint afd9586 heeft groene PR-CI
+voor Windows/Linux/ARM64-server, Windows-client, Android en repositorystructuur.
+Draft PR 31 blijft gestapeld op planning-PR 30; geen merge of cloudinstallatie.
 
 ### Natuurlijke activiteitenplanning — 25 november 2026
 

@@ -18,9 +18,10 @@
   scripts/cloud_backup.py: consistent WAL-snapshot, versleuteld archief, expliciete
   DPAPI-export alleen in kopie; deploy_release.py: exact root-goedgekeurd commit,
   onderhoudsfence, healthcheck en database/release-rollback.
-- Laatste ronde: 572 volledige servertests; aanvullend 16 Oracle-tests geslaagd/
-  1 POSIX-test overgeslagen op Windows; Android opnieuw unit/lint/debug/release OK.
-  Ruff/mypy, pip/repository/contractchecks OK. CI nog controleren.
+- Laatste volledige ronde: 577 passed/1 POSIX-skip in 252,44 s; 128 clienttests;
+  Android unit/lint/debug/release en Windows build OK. Ruff/mypy, pip/repository/
+  contractchecks OK. Functioneel commit afd9586: PR-CI groen voor Windows/Linux/
+  ARM64-server, native Windows, Android en structuur. Eindcommit wijzigt alleen docs.
 - Telefoon niet aangesloten; APK klaar onder .local/android-build.
 - Oracle read-only gemeten: ARM64 Ubuntu 24.04.5, 2 OCPU/12 GB (IMDSv2),
   circa 49 GB vrij, geen swap/Ollama/reverse proxy. Niets remote geïnstalleerd.
@@ -32,11 +33,12 @@
 - Bestanden: server/natural/{elevenlabs,voice_usage,tts,models,settings,api}.py,
   server/{voice_secrets,config,database,mobile,redaction}.py, native instellingen,
   scripts/configure_elevenlabs.py, tests en ELEVENLABS_*.md. Zie git diff.
-- Eerstvolgend: cloud-checkpoint/push/PR/CI afronden. Daarna afzonderlijk akkoord
-  vragen op concrete Oracle-installatie (deploy/oracle/README.md); persoonlijke
+- Eerstvolgend: afzonderlijk akkoord vragen op concrete Oracle-installatie
+  (deploy/oracle/README.md); persoonlijke
   gegevensmigratie/cutover vereist apart akkoord. Windows blijft lokaal draaien.
 - Cloud-checkpoint 2ecfe39 gepusht; draft PR 31. Bij CI-review YAML-quoting en
   onderhoudsfence gecorrigeerd naar de echte JARVIS_ENABLE_AUTOMATIONS-instelling;
   twee contracttests voorkomen dat alleen een gelijknamige mock wordt getest.
   Gerichte CI-fixronde 14 passed/1 POSIX-skip. Windows process-start-timeouts
-  verruimd na echte runner-timeouts; assertions behouden. Nieuwe CI controleren.
+  verruimd na echte runner-timeouts; assertions behouden. PR-CI nu geslaagd;
+  dubbele push-run had nog een Windows-job lopen bij de laatste snapshot.

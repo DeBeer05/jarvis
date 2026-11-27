@@ -30,4 +30,12 @@ de afzonderlijke installatietoestemming vereist. Plan: deploy/oracle/README.md.
 CI-review: workflow-YAML gecorrigeerd; onderhoudsfence expliciet tegen echte
 backendconfiguratie en het deploymenttemplate getest. 14 gerichte tests passed,
 1 POSIX-skip. Windows-runner had eerder vijf subprocess-start-timeouts;
-opstartdeadline verruimd zonder assertions te veranderen. Nieuwe CI afwachten.
+opstartdeadline verruimd zonder assertions te veranderen.
+
+Laatste volledige lokale reeks: **577 passed, 1 POSIX-skip**, 252,44 s.
+Functioneel checkpoint **afd9586** heeft geslaagde PR-controles voor Windows-,
+Linux- en ARM64-server, Windows-client, Android en repositorystructuur:
+[PR 31](https://github.com/DeBeer05/jarvis/pull/31),
+[server-CI](https://github.com/DeBeer05/jarvis/actions/runs/46016459643).
+Een dubbele push-run had nog een Windows-job lopen bij de laatste snapshot.
+De afsluitende wijziging betreft uitsluitend voortgangsdocumentatie.
