@@ -5,7 +5,7 @@ import uuid
 from contextlib import contextmanager
 from pathlib import Path
 
-SCHEMA_VERSION = 13
+SCHEMA_VERSION = 14
 
 
 class Database:
@@ -119,6 +119,11 @@ class Database:
                 migrate(connection)
                 connection.execute('INSERT INTO schema_migrations(version) VALUES (13)')
                 connection.execute('PRAGMA user_version=13')
+            if version < 14:
+                from server.automation.control import migrate
+                migrate(connection)
+                connection.execute('INSERT INTO schema_migrations(version) VALUES (14)')
+                connection.execute('PRAGMA user_version=14')
             # A process restart must never present an unfinished answer as complete.
             connection.execute("UPDATE chat_turns SET status='interrupted', error_code='server_restarted' WHERE status='running'")
         self.initialized = True

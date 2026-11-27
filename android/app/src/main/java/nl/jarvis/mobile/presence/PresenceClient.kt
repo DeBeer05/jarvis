@@ -23,7 +23,8 @@ class PresenceClient(
     private val privateMode:()->Boolean,
     private val state:(JSONObject?,String)->Unit,
     private val event:(String)->Unit,
-    private val handoff:(JSONObject?)->Unit={}
+    private val handoff:(JSONObject?)->Unit={},
+    private val stop:()->Unit={}
 ) {
     private val mutex=Mutex()
     private var job:Job?=null
@@ -103,6 +104,7 @@ class PresenceClient(
                         store.markPersonalEventSeen(current.endpoint.origin,id)
                         if(!foreground || current!==api())return
                         val text=item.optJSONObject("payload")?.optString("text") ?: ""
+                        if(item.optString("kind")=="control.stop")stop()
                         if(text.isNotBlank())event(text)
                     }
                     current.json("/api/v1/natural/events/$id/ack","POST",JSONObject())

@@ -1,5 +1,28 @@
 # Persoonlijke butler — praktische acceptatie
 
+## Fase 7: veiligheid en herstel
+
+1. Plan een onschuldige toekomstige herinnering. Activeer Noodstop: de taak blijft
+   gepauzeerd, ook na een serverherstart. Een eerder gegeven approval is ongeldig.
+2. Hef de stop op als eigenaar. Taken hervatten nooit vanzelf; kies een taak
+   afzonderlijk en controleer een eventueel nieuw voorstel.
+3. Zet een functie op Alleen adviseren. Een verzoek krijgt adviesstatus zonder
+   uitvoering. Verander een reeds ingeplande functie naar adviseren: ook die stopt.
+4. Laat een taakdeadline verlopen: de status wordt verlopen, geen late uitvoering.
+   Een onzekere externe mutatie wordt nooit blind herhaald.
+5. Maak uitsluitend op uw eigen expliciete verzoek een synthetische afspraak.
+   Herstel stelt verwijdering voor met hetzelfde event-ID/etag; controleer en
+   keur afzonderlijk goed. Wijzig de afspraak intussen: herstel moet weigeren.
+6. Stop tijdens een lang antwoord. De eigen client stopt meteen; verbonden andere
+   clients verwerken het stop-event bij hun eerstvolgende foregroundsync. Reeds
+   verzonden provider-/OS-opdrachten kunnen niet worden teruggehaald.
+
+Media-/programma-autonomie vereist zowel eigenaarvrijgave voor de host als de
+functieregel. De standaard blijft uit/vragen. Afsluiten, mail, agenda-uitnodigingen
+en externe apparaatmutaties behouden eenmalige goedkeuring. Verzonden mail kent
+geen veilige undo; bestaande agenda-updates worden niet zonder oude snapshot
+teruggedraaid. Geen test voert deze echte acties namens u uit.
+
 Test op een ontwikkelinstallatie. Externe acties alleen met een eigen expliciet
 testvoorstel en actuele rechten; technische transportmocks zijn geen accounttest.
 

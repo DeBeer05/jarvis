@@ -4,6 +4,14 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Persistente eigenaarnoodstop, uitvoeringsversies, pauzeren en intrekken van
+  approvals. Hervatten uitsluitend door eigenaar, nooit automatisch.
+- Prioriteiten/deadlines, begrensde leesretries, adviesniveau per functie en
+  afzonderlijk vrijgegeven media-/programma-autonomie. Hoogrisicoacties behouden
+  exacte goedkeuring. Gecontroleerde herstelvoorstellen en taak-health.
+- Bestaande audit-events publiceren atomair naar de persoonlijke inbox;
+  stopcommando's blijven bij uitgeschakelde gewone meldingen beschikbaar.
+
 - Gesloten HA/HTTPS- en ORS-adapters met bestaande vault/approvals, bronverificatie
   en begrensde caches. Handmatige ritkosten; ontbrekende Hi-/verkeersbron zichtbaar.
 - Opt-in beeldcontext met previewrevision, PNG-limieten, dagquota en bestaande

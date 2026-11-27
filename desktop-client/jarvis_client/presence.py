@@ -179,6 +179,7 @@ class PresenceController(QObject):
                     self.window.preferences.presence_seen=seen
                     self.changed.emit('Melding nog niet getoond: ontvangstbewijs kon niet worden opgeslagen.');return
                 text=item.get('payload',{}).get('text','')
+                if item.get('kind')=='control.stop':self.window.stop_answer()
                 if text:self.window.show_notice(text)  # quiet, visible app only; no TTS or OS toast
             self.request('POST','/events/'+identifier+'/ack',None,lambda _:None)
 

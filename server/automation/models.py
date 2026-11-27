@@ -196,6 +196,15 @@ class DesktopControl(Input):
         return self
 
 
+class DesktopMedia(Input):
+    action:Literal['volume_up','volume_down','mute','play','pause','play_pause','next','previous']
+    policy_hash:str=Field(default='',pattern=r'^(?:[0-9a-f]{64})?$')
+
+
+class DesktopPrograms(DesktopControl):
+    action:Literal['open_program','close_program']
+
+
 class NotificationSend(Input):
     category: Literal["urgent", "appointments", "important", "news"] = "important"
     text: str = Field(min_length=1, max_length=500)
@@ -219,6 +228,7 @@ class WorkflowCreate(Input):
 
 REGISTRY = {
     'DesktopRead':(DesktopRead,False),'DesktopControl':(DesktopControl,True),
+    'DesktopMedia':(DesktopMedia,False),'DesktopPrograms':(DesktopPrograms,False),
     'MobileHandoff':(MobileHandoff,True),
     'HomeRead':(HomeRead,False),'HomeControl':(HomeControl,True),'RouteRead':(RouteRead,False),
     "PersonalBriefing": (PersonalBriefing,False),
@@ -234,7 +244,7 @@ REGISTRY = {
     "WorkflowCreate": (WorkflowCreate, False), "WorkflowStatus": (Identifier, False),
 }
 
-SIDE_EFFECT_TOOLS=frozenset({'CalendarCreate','CalendarUpdate','CalendarDelete','EmailDraft','EmailSend','DesktopControl','MobileHandoff','HomeControl'})
+SIDE_EFFECT_TOOLS=frozenset({'CalendarCreate','CalendarUpdate','CalendarDelete','EmailDraft','EmailSend','DesktopControl','DesktopMedia','DesktopPrograms','MobileHandoff','HomeControl'})
 
 
 def aware(value):

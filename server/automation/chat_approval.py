@@ -27,7 +27,9 @@ class ChatApprovals:
 
     def show(self, run, row):
         c = self.chat; c.guard(run, "automation:read")
-        if row["status"] != "approval": return self.status(row)
+        if row["status"] != "approval":
+            c.remember(run,'pending',[])
+            return self.status(row)
         payload = json.loads(row["payload"]); tool = row["tool"]
         if tool not in ("CalendarCreate", "CalendarUpdate", "CalendarDelete", "EmailSend"):
             return "Controleer dit uitgebreide voorstel bij Automatiseringen → Goedkeuringen."
@@ -61,7 +63,12 @@ class ChatApprovals:
     @staticmethod
     def status(row):
         state = row["status"]
+        if state=='advisory':return 'Dit is een adviesvoorstel; er is niets uitgevoerd.'
+        if state=='expired':return 'De taakdeadline is verstreken; er is geen nieuwe uitvoering gestart.'
         if state == "completed":
+            if row['tool'] in ('DesktopControl','DesktopMedia','DesktopPrograms','HomeControl'):
+                result=json.loads(row.get('result') or '{}')
+                return 'De nieuwe toestand is bevestigd.' if result.get('verified') is True else 'Het verzoek is doorgegeven; de uiteindelijke toestand is niet bevestigd.'
             return {"CalendarCreate":"De afspraak is aangemaakt.", "CalendarUpdate":"De afspraak is gewijzigd.", "CalendarDelete":"De afspraak is verwijderd.", "EmailSend":"De e-mail is verzonden."}.get(row["tool"], "De taak is uitgevoerd.")
         if state == "denied": return "Het voorstel is geweigerd. Er is niets uitgevoerd."
         if state in ("queued", "running"): return "Het voorstel is goedgekeurd en staat klaar of wordt uitgevoerd. Vraag ‘Is het voorstel klaar?’ voor de actuele status."

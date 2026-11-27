@@ -174,7 +174,7 @@ class Tasks(StrictModel):
 
 class Autonomy(StrictModel):
     profile: Literal["ask", "within_rules", "read_propose"] = "ask"
-    actions: dict[str, Literal["allow", "ask", "block"]] = Field(default_factory=dict, max_length=30)
+    actions: dict[str, Literal["allow", "ask", "block",'advise']] = Field(default_factory=dict, max_length=30)
     @model_validator(mode="after")
     def known(self):
         from server.automation.models import REGISTRY

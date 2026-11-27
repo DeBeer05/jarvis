@@ -71,6 +71,7 @@ class VisionService:
 
     def guard(self,principal):
         n=self.natural;document=n.settings.runtime(principal)
+        n.automation.safety.check(principal.device_id)
         config=document['settings'];vision=config['vision']
         if not vision['enabled'] or not n.settings.get(principal,'device')['settings']['screen_allowed']:raise AuthError('vision_permission','Beeldanalyse is op dit apparaat niet toegestaan.',403)
         if vision['provider']!='ollama' and (not vision['cloud_allowed'] or config['ai']['offline'] or config['voice']['mode']=='offline'):raise AuthError('vision_privacy','Deze afbeelding mag niet naar een cloudprovider.',403)
@@ -85,6 +86,7 @@ class VisionService:
 
     async def analyze(self,request,body):
         principal=request.state.principal;n=self.natural;document=self.guard(principal);config=document['settings'];vision=config['vision']
+        epoch=n.automation.safety.state(principal.device_id)['epoch']
         if body.settings_revision!=document['revision']:raise ValueError('Instellingen zijn gewijzigd; controleer de gekozen provider voordat u het beeld opnieuw verstuurt')
         n.security.store.rate('vision:'+principal.device_id,6)
         if self.slot.locked():raise AuthError('vision_busy','Een beeldvraag wordt al verwerkt.',429)
@@ -109,6 +111,7 @@ class VisionService:
                 db.execute('INSERT INTO natural_vision_requests VALUES (?,?,?,?)',(user,str(body.request_id),now,'attempted'))
                 db.execute('DELETE FROM natural_vision_requests WHERE created<?',(now-90*86400,))
             async def describe():
+                n.automation.safety.check(principal.device_id,epoch)
                 if self.guard(principal)['revision']!=body.settings_revision:raise ValueError('Beeldinstellingen zijn gewijzigd')
                 with use_policy(policy):
                     schema_token=structured_schema.set(ImageReport.model_json_schema())
@@ -119,6 +122,7 @@ class VisionService:
                 while True:
                     if await request.is_disconnected():raise ValueError('Beeldvraag afgebroken')
                     current=await asyncio.to_thread(self.guard,principal)
+                    n.automation.safety.check(principal.device_id,epoch)
                     if current['revision']!=body.settings_revision or current['settings']['vision']!=vision:raise ValueError('Beeldinstellingen gewijzigd')
                     await asyncio.sleep(.25)
             watch=asyncio.create_task(monitor())

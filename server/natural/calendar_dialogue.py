@@ -166,8 +166,8 @@ class CalendarDialogue:
         config=run.natural_context['settings'] if run.natural_context else {}
         policy=config.get('autonomy',{}).get('actions',{}).get(tool)
         # Invitations, series and explicitly ask-only policies keep exact previews.
-        direct=not payload['attendees'] and not payload['recurrence'] and policy!='ask'
-        c.guard(run,'automation:approve')
+        direct=not payload['attendees'] and not payload['recurrence'] and policy not in ('ask','advise')
+        if direct:c.guard(run,'automation:approve')
         row=c.engine.submit(run.principal.device_id,tool,payload,'chat-calendar:'+run.principal.device_id+':'+run.request_id+run.tool_operation)
         c.remember(run,'write_question',[]);c.remember(run,'calendar_action',[])
         c.remember(run,'jobs',[{'id':row['id'],'tool':tool,'status':row['status']}])

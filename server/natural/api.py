@@ -170,8 +170,7 @@ def presence_mode(request:Request,body:ModeChange):
 def personal_events(request:Request):
     natural=service(request);state=natural.presence.snapshot(request.state.principal)
     notifications=natural.settings.get(request.state.principal)['settings']['notifications']
-    if not notifications['enabled']:return {'items':[]}
-    return natural.events.list(request.state.principal,urgent_only=notifications['proactivity']=='off' or state['mode'] in ('away','sleeping','private','gaming','emergency'))
+    return natural.events.list(request.state.principal,control_only=not notifications['enabled'],urgent_only=notifications['proactivity']=='off' or state['mode'] in ('away','sleeping','private','gaming','emergency'))
 
 
 @router.post('/events/{identifier}/ack')

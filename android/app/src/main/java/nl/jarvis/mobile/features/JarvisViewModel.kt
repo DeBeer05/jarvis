@@ -47,7 +47,8 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
         {naturalConfig()?.optJSONObject("presence")?.optString("mode")=="private"},
         {document,status -> mutable.update {it.copy(presenceDevice=document?.toString() ?: it.presenceDevice,presenceStatus=status)}},
         {text -> mutable.update {it.copy(butlerMessage=text)}},
-        {item -> mutable.update {it.copy(phoneHandoff=item?.toString() ?: "")}})
+        {item -> mutable.update {it.copy(phoneHandoff=item?.toString() ?: "")}},
+        {stop()})
     private var voiceConversationActive=false;private var voiceStarted=0L;private var lastVoice=0L
     private var interruptionJob:Job?=null;private var failedBargeGeneration:Int?=null
     private var responseClock=0L;private var firstAudioReported=false

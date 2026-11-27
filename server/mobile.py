@@ -82,10 +82,13 @@ async def audio_preferences(request):
 
 async def inference_call(request,operation,payload):
     """Disconnect/revocation cancels only the inference owned by this request."""
+    safety=request.app.state.automation.safety
+    epoch=safety.state(request.state.principal.device_id)['epoch']
     work=asyncio.create_task(request.app.state.speech.request(operation,payload))
     async def watch():
         while True:
             if await request.is_disconnected():return "disconnected"
+            if safety.state(request.state.principal.device_id)['epoch']!=epoch:return 'stopped'
             if not await asyncio.to_thread(request.app.state.security.store.live,request.state.principal):return "revoked"
             await asyncio.sleep(.2)
     monitor=asyncio.create_task(watch())

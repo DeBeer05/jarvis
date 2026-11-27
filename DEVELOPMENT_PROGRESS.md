@@ -4,6 +4,18 @@
 
 ### Acht productfases persoonlijke butler — 27 november 2026
 
+Fase 7 technisch gereed: SQLite v14, persistente eigenaarnoodstop/epochs,
+taakprioriteiten/deadlines, advies/vragen/toestaan/blokkeren per functie,
+begrensde leesretries en aparte hostgrants voor media/programmas. Geen nieuwe
+runtimegrants. Herstel maakt verse CalendarDelete-/afsluitannuleringvoorstellen,
+met event-ID/etagcontrole; geen blinde externe undo. Audit/inbox atomair gekoppeld,
+stop-event op beide clients en annulering van lopende audio/beeldvragen.
+Brede serverreeks: 662 passed, 1 POSIX-skip, 1 fout in overbodige handoffmelding;
+die fout hersteld en alle 14 betrokken finale tests passed. 17 policy/geheugentests
+en 60 chatregressies passed; Windows 143 passed; Android unit/lint/beide builds
+groen. Ruff/mypy/pip/repository groen. Alle 12 CI-checks op 8507202 groen.
+Volgende: fase 8 UI, finale volledige regressie, builds en lokale activatie.
+
 Fase 6 technisch gereed: HA REST/HTTPS met allowlist/aliassen en echte status-
 verificatie; ORS/geocodering/handmatige ritkosten via bestaande registry/vault.
 Geen geverifieerde publieke Creality Hi-status-API, live verkeer/pompprijzen of

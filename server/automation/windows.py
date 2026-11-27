@@ -24,6 +24,8 @@ class HostPolicy(Input):
     programs:dict[str,str]=Field(default_factory=dict,max_length=20)
     roots:list[str]=Field(default_factory=list,max_length=10)
     watch_downloads:bool=False
+    media_allowed:bool=False
+    programs_allowed:bool=False
     notify_device:str=Field(default='',pattern=r'^(?:[0-9a-f-]{36})?$')
     @model_validator(mode='after')
     def paths(self):

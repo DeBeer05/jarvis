@@ -2,6 +2,14 @@
 
 ## Actueel: acht productfases persoonlijke butler
 
+- Fase 7 gereed: v14, persistente noodstop, epochs, prioriteiten/deadlines,
+  adviesregels en aparte lokale hostgrants. Geen ongecontroleerde externe acties.
+  Herstel is een nieuw exact voorstel; onzekere writes nooit blind herhalen.
+- Brede reeks 662 passed/1 POSIX-skip/1 herstelde handoffmelding; 14 finale
+  regressies passed, 17 beleid/geheugen en 60 chat passed. Windows 143 passed;
+  Android unit/lint/debug/release groen. Kwaliteits-/repository/pipchecks groen.
+- Alle 12 checks op fase-6-head 8507202 groen. Nu fase 8: UI, finale suite en builds.
+
 - Fase 6 technisch afgerond: HA/HTTPS, ORS/geocodering/ritkosten, gesloten adapters
   via bestaande registry/vault. Beeldanalyse opt-in, quota/revisie/PNG-validatie,
   geen opslag/tools; SQLite v13. Windows-preview en Android-selectiecomponenten

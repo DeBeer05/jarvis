@@ -1,20 +1,19 @@
 """Authenticated UI/API. Reading third-party content never invokes a tool."""
 import asyncio
-import json
 import httpx
-from datetime import datetime, UTC
+from datetime import datetime
 from pathlib import Path
 from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request, Query
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import Field, SecretStr
 
 from server.api.routes import require_client_access
-from server.automation.models import Input, REGISTRY, CalendarRead, CalendarChange, Identifier
+from server.automation.models import Input, REGISTRY, CalendarRead, CalendarChange
 from server.automation.engine import AUTOMATION_SCOPES, EmailPriorityClassifier, ManualMessagingProvider
-from server.automation.store import fingerprint, encode
+from server.automation.store import encode
 from server.security.gate import require_permission
 from server.security.types import AuthError
 from server.ai.policy import RequestPolicy, use_policy
@@ -43,6 +42,8 @@ class Submit(Input):
     due: datetime | None = None
     repeat: Literal["once","daily","weekly","monthly","yearly"] = "once"
     timezone: str = Field(default="Europe/Amsterdam",max_length=80)
+    priority:int=Field(default=1,ge=0,le=3)
+    deadline:datetime|None=None
 
 
 class Decision(Input):
@@ -91,6 +92,34 @@ class Policy(Input):
 def engine(request): return request.app.state.automation
 
 
+class SafetyState(Input):
+    active:bool
+
+
+@router.get(BASE+'/safety')
+def safety_state(request:Request):
+    e=engine(request);e.permissions.check(request.state.principal.device_id,'automation:read')
+    state=e.safety.state(request.state.principal.device_id);state.pop('user_id',None)
+    return state
+
+
+@router.post(BASE+'/safety')
+async def safety_change(request:Request,body:SafetyState):
+    e=engine(request)
+    await asyncio.to_thread(request.app.state.security.store.rate,'safety:'+request.state.principal.device_id,10)
+    return await e.safety.set(request.state.principal,body.active)
+
+
+@router.get(BASE+'/health')
+def task_health(request:Request):
+    e=engine(request);e.permissions.check(request.state.principal.device_id,'automation:read')
+    state=e.safety.state(request.state.principal.device_id)
+    with e.store.db() as db:
+        counts={r[0]:r[1] for r in db.execute('SELECT j.status,count(*) FROM automation_jobs j JOIN auth_devices d ON d.id=j.device_id WHERE d.user_id=? GROUP BY j.status',(state['user_id'],))}
+        overdue=db.execute("SELECT count(*) FROM automation_jobs j JOIN auth_devices d ON d.id=j.device_id WHERE d.user_id=? AND j.status='queued' AND j.due<?",(state['user_id'],e.store.clock()-60)).fetchone()[0]
+    return {'stopped':state['stopped'],'counts':counts,'overdue':overdue,'scheduler_enabled':request.app.state.settings.automations_enabled,'read_retry_limit':5,'uncertain_writes_replayed':False,'automatic_resume':False}
+
+
 @router.get(BASE+'/windows')
 def windows_capabilities(request:Request):return engine(request).windows.capabilities()
 
@@ -133,7 +162,6 @@ class RouteCities(Input):
 
 @router.post(BASE+'/route-cities')
 async def city_route(request:Request,body:RouteCities):
-    from server.security.types import AuthError
     e=engine(request);n=request.app.state.natural;principal=request.state.principal
     def guard():
         n.settings.get(principal);e.permissions.check(principal.device_id,'automation:read');e.permissions.check_tool(principal.device_id,'RouteRead')
@@ -173,7 +201,8 @@ async def submit(request:Request,body:Submit):
     from server.automation.models import valid_zone
     valid_zone(body.timezone)
     if body.due is not None and body.due.tzinfo is None: raise ValueError("Tijdzone vereist")
-    row=e.submit(request.state.principal.device_id,body.tool,body.input,str(body.idempotency_key),body.due.timestamp() if body.due else None,body.repeat,body.timezone)
+    if body.deadline is not None and body.deadline.tzinfo is None:raise ValueError('Tijdzone vereist voor deadline')
+    row=e.submit(request.state.principal.device_id,body.tool,body.input,str(body.idempotency_key),body.due.timestamp() if body.due else None,body.repeat,body.timezone,priority=body.priority,deadline=body.deadline.timestamp() if body.deadline else None)
     return e.store.public(row)
 
 
@@ -188,7 +217,7 @@ async def delete_job(request:Request,identifier:UUID):
     e=engine(request)
     with e.store.db(True) as db:
         row=db.execute("SELECT status,parent_id FROM automation_jobs WHERE id=?",(str(identifier),)).fetchone()
-        if not row or row[0] not in ("completed","cancelled","denied","failed","paused"): raise ValueError("Annuleer eerst; onzekere acties blijven bewaard voor controle")
+        if not row or row[0] not in ("completed","cancelled","denied","failed","paused","expired","advisory"): raise ValueError("Annuleer eerst; onzekere acties blijven bewaard voor controle")
         if row[1]:
             parent=db.execute("SELECT status FROM automation_jobs WHERE id=?",(row[1],)).fetchone()
             if parent and parent[0] in ("waiting","queued","paused"):raise ValueError("Annuleer eerst de bovenliggende workflow")
@@ -201,6 +230,12 @@ async def delete_job(request:Request,identifier:UUID):
 @router.post(BASE+"/jobs/{identifier}/challenge")
 async def challenge(request:Request,identifier:UUID):
     return engine(request).approvals.challenge(str(identifier),request.state.principal)
+
+
+@router.post(BASE+'/jobs/{identifier}/undo')
+async def undo(request:Request,identifier:UUID):
+    e=engine(request)
+    return e.store.public(await e.undo.propose(request.state.principal,str(identifier)))
 
 
 @router.post(BASE+"/jobs/{identifier}/decision")

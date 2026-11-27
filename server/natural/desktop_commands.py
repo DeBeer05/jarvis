@@ -47,6 +47,10 @@ class DesktopCommands:
 
     async def answer(self,run,request):
         n=self.natural;e=n.automation;tool,payload=request
+        policy=e.windows.policy()
+        if tool=='DesktopControl':
+            if payload['action'] in ('open_program','close_program') and policy.programs_allowed:tool='DesktopPrograms'
+            elif payload['action'] in ('volume_up','volume_down','mute','play','pause','play_pause','next','previous') and policy.media_allowed:tool='DesktopMedia'
         def guard():
             n.settings.get(run.principal)
             e.permissions.check(run.principal.device_id,'automation:read')
@@ -55,13 +59,17 @@ class DesktopCommands:
         try:
             guard()
             e.windows.check()
-            if tool=='DesktopControl':
+            if tool in ('DesktopControl','DesktopMedia','DesktopPrograms'):
                 job=e.submit(run.principal.device_id,tool,payload,run.request_id)
                 # Desktop approval remains in the existing exact-payload UI; no
                 # model may infer approval or rebind an earlier calendar 'ja'.
                 n.chat.automation_chat.remember(run,'pending',[])
                 if job['status']=='approval':text='Ik heb het Windows-voorstel klaargezet. Controleer het bij Taken → Goedkeuringen.'
-                else:text='Dit Windows-voorstel bestaat al. De actuele status staat bij Taken.'
+                elif job['status']=='queued':
+                    await e.tick(job_id=job['id'])
+                    text=n.chat.automation_chat.approvals.status(e.store.get(job['id']))
+                elif job['status']=='advisory':text='Ik heb dit als advies klaargezet; er is niets uitgevoerd.'
+                else:text='De actuele status staat bij Taken; de uitvoering is niet bevestigd.'
             else:
                 data=await asyncio.to_thread(e.windows.read,payload,guard);guard()
                 if payload['kind']=='status':
