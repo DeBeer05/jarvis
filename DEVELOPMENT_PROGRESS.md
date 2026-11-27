@@ -4,6 +4,25 @@
 
 ### Acht productfases persoonlijke butler — 27 november 2026
 
+Finale lokale verificatie: **670 servertests passed, 1 POSIX-skip**, **150 Windows-
+clienttests passed**, Android 11 unit tests/lint/debug/release groen; contract,
+Ruff/mypy, beide pip-checks, structuur, whitespace en gitleaks groen. De vier
+browserregressies zijn hersteld en de volledige reeks opnieuw uitgevoerd.
+Bronstart vanuit een andere werkmap mist niet langer providers.speech_format;
+directe offscreen-startsmoke toont acht pagina's zonder netwerk/microfoon/helper.
+CI-Windows-build en bundle-smokes op 806d421 geslaagd. De workflow bewaart voortaan
+het geteste portable archief als artifact; actuele definitieve checks staan in PR33.
+Lokale PyInstaller-append blijft door PermissionError geblokkeerd; geen security-
+aanpassing. Bestaande snelkoppeling verwijst naar de geteste bronclient, originele
+shortcut is lokaal bewaard. Er is na de gebruikers-Escape geen vensterbediening
+meer uitgevoerd; echte zicht-/spraakacceptatie blijft open.
+Backend gecontroleerd herstart op loopback:8765; SQLite v14, integriteit en pre-v14-
+backup geverifieerd. Alleen expliciet opgegeven gewone briefingvoorkeuren lokaal
+toegepast: twee dagelijkse inboxjobs geverifieerd, bestaande stem ongewijzigd,
+geen calls/nieuwe grants/accounttest. APK gereed, geen aangesloten adb-apparaat.
+Alle acht technische fases zijn verwerkt; externe/OS-consentgrenzen staan in de
+praktische handleiding. Geen Oracle-/mini-pc-cutover. Eigenaarmaildiffs blijven apart.
+
 Fase 8 geïmplementeerd: native ButlerPanel + getypeerde formulieren, Android Butler/
 Beeldcontext/Apparaat, echte previewwiring, aparte OS-/apparaatconsents, schema-
 gedreven autonomie met advies/profielregels en expliciete vraagplicht, prioriteit/

@@ -4,6 +4,9 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Bronstart van de Windows-client hersteld voor de gedeelde lichte spraakformatter;
+  geteste portable Windows-bundles worden zeven dagen in CI als artifact bewaard.
+
 - Windows/Android: Butler-bediening voor briefings, recente meldingen, getypeerde
   lijsten/routines/sollicitaties, kosten, apparaten, routes en beeldpreview.
 - Zichtbare afzonderlijke Android-consents en opt-in achtergrondophalen;

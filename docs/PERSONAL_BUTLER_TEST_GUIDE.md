@@ -2,6 +2,14 @@
 
 ## Eerst proberen na de update
 
+Start via uw bestaande JARVIS-snelkoppeling. De ontwikkelbronclient is apart
+startbaar met `scripts/Start-WindowsClient.ps1`; de backend start daardoor niet.
+Portable Windows-builds staan na een geslaagde workflow bij het gelijknamige
+GitHub Actions-artifact en bevatten geen modellen of persoonlijke configuratie.
+Een lokale exe-packagerblokkade verandert geen Windows-beveiligingsinstellingen.
+Android-installatie vereist een werkelijk aangesloten en geautoriseerde telefoon;
+een geslaagde APK-build geldt niet als installatie of luisteracceptatie.
+
 1. Windows: Instellingen → Gesprekken en geheugen → Persoonlijke butler.
    Android: Gesprekken en geheugen → Butler. Open uw ochtend-/avondbriefing en
    de meldingengeschiedenis. Ontbrekende bronnen moeten eerlijk ontbreken.

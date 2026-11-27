@@ -1,7 +1,6 @@
 import json
 import os
 import secrets
-import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
@@ -17,6 +16,17 @@ from jarvis_client.vault import WindowsVault
 
 def credentials():
     return {"access_token": secrets.token_urlsafe(32), "refresh_token": secrets.token_urlsafe(32), "token_type": "Bearer", "expires_in": 300}
+
+
+def test_source_entrypoint_does_not_depend_on_working_directory_or_pythonpath(tmp_path):
+    import subprocess
+    import sys
+    from pathlib import Path
+    environment=dict(os.environ);environment.pop('PYTHONPATH',None);environment['QT_QPA_PLATFORM']='offscreen'
+    entry=Path(__file__).resolve().parents[1]/'run_client.py'
+    result=subprocess.run([sys.executable,str(entry),'--help'],cwd=tmp_path,env=environment,capture_output=True,text=True,timeout=20)
+    assert result.returncode==0,result.stderr
+    assert 'JARVIS Windows desktop client' in result.stdout
 
 
 def test_personal_list_queries_are_closed_and_authenticated(vault):

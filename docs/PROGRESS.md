@@ -2,6 +2,19 @@
 
 ## Actueel: acht productfases persoonlijke butler
 
+- Technische implementatie acht fases afgerond. Finale volledige lokale reeks:
+  **670 server passed / 1 POSIX-skip**, **150 client passed**. Android 11 unit/lint/
+  debug/release, contract, Ruff/mypy/pip/repository/whitespace/gitleaks groen.
+- Backend live op bestaande loopback:8765, SQLite v14 + backup/integriteit. Twee
+  dagelijkse inboxbriefings met de expliciet opgegeven lokale voorkeuren ingesteld;
+  stem behouden. Geen nieuwe grants, externe testmutaties, calls of deployment.
+- Rechtstreekse bronstart hersteld en offscreen gesmoked. Lokale exe-packager blijft
+  PermissionError geven; CI-build op 806d421 slaagde. Windows-workflow bewaart nu
+  geteste portable bundles. Definitieve HEAD-checks: PR33. Snelkoppeling naar bron-
+  client geverifieerd. Geen UI-acties na gebruikers-Escape; menselijke acceptatie open.
+- APK gereed, adb geen apparaat. Externe configuratie-/API-grenzen en praktische
+  acceptatie: docs/PERSONAL_BUTLER_TEST_GUIDE.md. Eigenaarmaildiffs niet meenemen.
+
 - Fase 8 geïmplementeerd/getest: Butler/lijsten/beeldpreview/apparaatinstellingen
   Windows/Android, eigenaarformulieren, echte autonomiekeuzes en taakcontrole.
   Windows 148 passed + laatste core/query/window 41 passed; Android 11/lint/builds
