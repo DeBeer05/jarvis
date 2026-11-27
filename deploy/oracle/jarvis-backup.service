@@ -1,0 +1,14 @@
+[Unit]
+Description=Consistent encrypted JARVIS backup
+After=jarvis.service
+
+[Service]
+Type=oneshot
+UMask=0077
+TimeoutStartSec=300
+ExecStart=/opt/jarvis/current/.venv/bin/python /opt/jarvis/current/scripts/cloud_backup.py daily --database /var/lib/jarvis/jarvis.sqlite3 --directory /var/lib/jarvis/backups --key-file /etc/jarvis/backup.key --include /etc/jarvis/server.env --include /var/lib/jarvis/secrets/vault.key --include /var/lib/jarvis/secrets/elevenlabs.key --include /var/lib/jarvis/secrets/google-client.json
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+# SQLite may need its WAL shared-memory sidecar during a read-only snapshot.
+ReadWritePaths=/var/lib/jarvis

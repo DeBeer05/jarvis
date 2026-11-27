@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 def voice_capabilities():
-    models=Path(os.environ.get("LOCALAPPDATA",str(Path.home()/".local/share")))/"JARVIS/Desktop/models"
+    models=Path(os.environ.get('JARVIS_MODELS_DIR') or str(Path(os.environ.get("LOCALAPPDATA",str(Path.home()/".local/share")))/"JARVIS/Desktop/models"))
     stt={name:all((models/name/file).is_file() for file in ("model.bin","config.json","tokenizer.json","vocabulary.txt")) for name in ("whisper-small","whisper-base","whisper-tiny")}
     voices={}
     for name,relative in (("ronnie","piper-ronnie/nl_NL-ronnie-medium.onnx"),("mls","piper/nl_NL-mls-medium.onnx")):

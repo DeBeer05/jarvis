@@ -1,0 +1,36 @@
+[Unit]
+Description=JARVIS private backend
+After=network-online.target ollama.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=jarvis
+Group=jarvis
+WorkingDirectory=/opt/jarvis/current
+EnvironmentFile=/etc/jarvis/server.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/jarvis/current/.venv/bin/python -m server run
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+UMask=0077
+StateDirectory=jarvis
+RuntimeDirectory=jarvis
+LogsDirectory=jarvis
+MemoryMax=3G
+CPUQuota=150%
+TasksMax=128
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/jarvis /var/log/jarvis /run/jarvis
+RestrictSUIDSGID=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+[Install]
+WantedBy=multi-user.target

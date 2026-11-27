@@ -9,11 +9,11 @@ from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
 
-from server.api.routes import require_loopback
+from server.api.routes import require_client_access
 from server.security.gate import ACCESS_COOKIE, REFRESH_COOKIE, CSRF_COOKIE, csrf_value, require_permission
 from server.security.types import AuthError, digest, token
 
-router = APIRouter(dependencies=[Depends(require_loopback)])
+router = APIRouter(dependencies=[Depends(require_client_access)])
 STATIC = Path(__file__).resolve().parents[1] / "static"
 
 

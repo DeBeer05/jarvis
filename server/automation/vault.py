@@ -1,15 +1,25 @@
-"""Windows DPAPI user-bound ciphertext; no plaintext fallback on other hosts."""
+"""Windows DPAPI or explicit protected-key encryption; never plaintext storage."""
 import ctypes
 import os
 from ctypes import wintypes
 
 
 class SecretVault:
-    def __init__(self, store):
+    def __init__(self, store,key_file=''):
         self.store = store
+        self.key_file=key_file
 
     def crypt(self, data, decrypt=False):
-        if os.name != "nt": raise ValueError("OAuth-opslag vereist Windows DPAPI op deze server")
+        if os.name != "nt" or self.key_file or data.startswith(b'JARVIS-FERNET-1\0'):
+            if not self.key_file:raise ValueError('Geef een beveiligd JARVIS_VAULT_KEY_FILE op; geen plaintext fallback')
+            from cryptography.fernet import Fernet,InvalidToken
+            from server.voice_secrets import read_secret
+            cipher=Fernet(read_secret(self.key_file).encode())
+            if decrypt:
+                if not data.startswith(b'JARVIS-FERNET-1\0'):raise ValueError('DPAPI-gegevens vereisen een expliciete migratie op de oorspronkelijke Windows-host')
+                try:return cipher.decrypt(data[len(b'JARVIS-FERNET-1\0'):])
+                except InvalidToken:raise ValueError('Versleutelde OAuth-opslag kon niet worden geopend') from None
+            return b'JARVIS-FERNET-1\0'+cipher.encrypt(data)
         class Blob(ctypes.Structure):
             _fields_ = [("size", wintypes.DWORD), ("data", ctypes.POINTER(ctypes.c_ubyte))]
         raw = ctypes.create_string_buffer(data)

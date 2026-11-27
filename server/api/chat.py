@@ -10,12 +10,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
-from server.api.routes import require_loopback
+from server.api.routes import require_client_access
 from server.chat_store import ChatError
 from server.ai.providers import MESSAGES
 from server.security.types import AuthError
 
-router = APIRouter(dependencies=[Depends(require_loopback)])
+router = APIRouter(dependencies=[Depends(require_client_access)])
 STATIC = Path(__file__).resolve().parents[1] / "static"
 
 

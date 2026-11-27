@@ -118,6 +118,9 @@ def create_app(
         return JSONResponse({"error":{"code":"invalid_action","message":"Controleer actie, tijdzone, accountkoppeling en actuele afspraakgegevens."}},status_code=400)
 
     app.add_middleware(SecurityHeaders)
+    if settings.profile=='oracle-production':
+        from server.trusted_proxy import TrustedHTTPSProxy
+        app.add_middleware(TrustedHTTPSProxy,origin=settings.public_origin)
 
     @app.exception_handler(AuthError)
     async def auth_error(request: Request, error: AuthError):

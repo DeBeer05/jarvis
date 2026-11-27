@@ -1,0 +1,11 @@
+[Unit]
+Description=Check for an owner-approved JARVIS release
+
+[Timer]
+OnCalendar=*-*-* 04:00:00
+RandomizedDelaySec=10m
+Persistent=false
+Unit=jarvis-update.service
+
+[Install]
+WantedBy=timers.target

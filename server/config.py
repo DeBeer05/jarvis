@@ -34,6 +34,8 @@ class Settings:
     groq_api_key: str = field(repr=False, default="")
     elevenlabs_api_key: str = field(repr=False, default="")
     elevenlabs_voice_id: str = ""
+    public_origin: str = ""
+    vault_key_file: str = field(repr=False,default="")
     groq_model: str = "openai/gpt-oss-120b"
     google_client_file: str = field(repr=False, default="")
     automations_enabled: bool = True
@@ -127,8 +129,16 @@ def load_settings(
     log_path = path("JARVIS_LOG_PATH", ".local/logs/server.log")
     if database == log_path:
         raise ConfigurationError("Database and log paths must be different")
-    profile = choice("JARVIS_PROFILE", "desktop-development", ("desktop-development", "mini-pc-production"))
-    mini = profile == "mini-pc-production"
+    profile = choice("JARVIS_PROFILE", "desktop-development", ("desktop-development", "mini-pc-production","oracle-production"))
+    cloud=profile=='oracle-production'
+    mini = profile in ('mini-pc-production','oracle-production')
+    public_origin=text('JARVIS_PUBLIC_ORIGIN','').rstrip('/')
+    try:
+        public=urlsplit(public_origin)
+        if cloud:
+            if public.scheme!='https' or not public.hostname or public.username or public.password or public.path or public.query or public.fragment or public.port not in (None,443) or public.hostname in ('localhost','127.0.0.1','::1'):raise ValueError()
+        elif public_origin:raise ValueError()
+    except ValueError:raise ConfigurationError('JARVIS_PUBLIC_ORIGIN requires oracle-production and a public HTTPS origin') from None
     provider = choice("JARVIS_AI_PROVIDER", "auto", ("auto", "none", "gemini", "groq", "ollama"))
     base_url = text("OLLAMA_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
     try:
@@ -154,10 +164,10 @@ def load_settings(
     if not prompt or len(prompt) > 12000:
         raise ConfigurationError("Invalid JARVIS_SYSTEM_PROMPT")
     port = number("JARVIS_PORT", "8765", 1, 65535)
-    trusted_hosts = tuple(part.strip().lower() for part in text("JARVIS_TRUSTED_HOSTS", "127.0.0.1,localhost").split(","))
+    trusted_hosts = tuple(part.strip().lower() for part in text("JARVIS_TRUSTED_HOSTS", '127.0.0.1,localhost'+(','+str(public.hostname) if cloud else '')).split(","))
     if not 1 <= len(trusted_hosts) <= 10 or any(not re.fullmatch(r"[a-z0-9][a-z0-9.-]{0,252}", host) or ".." in host for host in trusted_hosts):
         raise ConfigurationError("Invalid JARVIS_TRUSTED_HOSTS")
-    allowed_origins = tuple(part.strip() for part in text("JARVIS_ALLOWED_ORIGINS", f"http://127.0.0.1:{port},http://localhost:{port}").split(","))
+    allowed_origins = tuple(part.strip() for part in text("JARVIS_ALLOWED_ORIGINS", public_origin if cloud else f"http://127.0.0.1:{port},http://localhost:{port}").split(","))
     try:
         if not 1 <= len(allowed_origins) <= 10:
             raise ValueError
@@ -182,6 +192,8 @@ def load_settings(
         try:elevenlabs_key=read_secret(elevenlabs_file)
         except (ValueError,OSError,UnicodeError):raise ConfigurationError('Cannot load protected ELEVENLABS_API_KEY_FILE') from None
     return Settings(
+        public_origin=public_origin,
+        vault_key_file=text('JARVIS_VAULT_KEY_FILE',''),
         environment=choice("JARVIS_ENV", "production" if mini else "development", ("development", "production")),
         automations_enabled=automations_enabled,
         google_client_file=text("JARVIS_GOOGLE_CLIENT_FILE", ""),
@@ -229,6 +241,6 @@ def load_settings(
         max_devices=number("JARVIS_MAX_DEVICES", "20", 2, 100),
         max_sessions=number("JARVIS_MAX_SESSIONS", "20", 2, 100),
         password_revoke_all=choice("JARVIS_PASSWORD_REVOKE_ALL", "true", ("true", "false")) == "true",
-        cookie_secure=choice("JARVIS_COOKIE_SECURE", "auto", ("auto", "true")),
+        cookie_secure=choice("JARVIS_COOKIE_SECURE", 'true' if cloud else "auto", ('true',) if cloud else ("auto", "true")),
         trusted_hosts=trusted_hosts, allowed_origins=allowed_origins,
     )
