@@ -4,6 +4,17 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Persoonlijke butlerstijl met u/uw, optioneel meneer in ieder antwoord,
+  situationele terugkomst en initiatief zonder fictieve achtergrondbewaking.
+
+- Persoonlijke agenda-opdrachten direct uit expliciete gebruikersgegevens, met
+  datum/begintijd/titel, standaard één uur en standaardagenda. Ask/block-beleid,
+  actuele rechten en previews voor uitnodigingen/series blijven behouden.
+- Persistente agenda- en goedkeuringscontext vervangt berichtpositie; gebonden
+  eenmalige beslissingen, verse event-ID/etag en behoud van overige eventvelden.
+- Nederlands STT: begrensde decoder/VAD-instellingen, generieke datum-/tijdtaal,
+  transcriptpunctuatie en gerichte verduidelijking bij echte tijdsonzekerheid.
+
 - Opt-in Oracle HTTPS-profiel met strikt vertrouwde lokale reverse proxy,
   behoud van authenticatie/rechten en versleutelde Linux OAuth-vault.
 - ARM64 CI en runtimeconstraints, systemd/Caddy-templates en consistente

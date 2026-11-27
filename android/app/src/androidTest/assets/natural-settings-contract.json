@@ -204,6 +204,7 @@
       "daily": "Dagelijks gesprek",
       "technical": "Technische uitleg",
       "briefing": "Korte briefing",
+      "always": "Ieder antwoord",
       "together": "Samen plannen",
       "surprise": "Verrassingsmodus",
       "budget": "Budgetmodus",
@@ -1003,7 +1004,8 @@
               "default": "off",
               "enum": [
                 "off",
-                "occasionally"
+                "occasionally",
+                "always"
               ],
               "title": "Honorific Frequency",
               "type": "string"

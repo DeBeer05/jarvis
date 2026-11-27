@@ -51,6 +51,34 @@ def test_temporary_and_permanent_spoken_settings_are_closed_local_commands(tools
     assert config['responses']['mode']=='auto'
 
 
+def test_butler_address_policy_applies_to_text_and_voice():
+    config=UserSettings().model_dump()
+    config['personality'].update(profile='classic_butler',honorific='meneer',honorific_frequency='always')
+    UserSettings.model_validate(config)
+    for voice in (False,True):
+        prompt=response_prompt(config,'Ik ben terug van het eten',voice)
+        for phrase in ('u en uw','ieder antwoord','Britse humor','bij terugkomst','geverifieerde bronnen','geen nieuwe rechten'):
+            assert phrase.casefold() in prompt.casefold()
+        assert 'hooguit af en toe' not in prompt
+    config['personality']['honorific_frequency']='occasionally'
+    assert 'hooguit af en toe' in response_prompt(config,'Hallo',False)
+    config['personality']['honorific_frequency']='off'
+    assert 'Gebruik geen aanspreekvorm' in response_prompt(config,'Hallo',True)
+
+
+def test_always_address_command_persists_without_model_or_automation(tools_chat):
+    app,c,router=tools_chat
+    before=c.get('/api/v1/natural/settings').json()['settings']
+    answer=call(c,'Spreek mij voortaan altijd aan met meneer').json()
+    assert 'opgeslagen' in answer['message']
+    saved=c.get('/api/v1/natural/settings').json()['settings']
+    assert saved['personality']['honorific']=='meneer'
+    assert saved['personality']['honorific_frequency']=='always'
+    for category in ('voice','autonomy','notifications','privacy'):
+        assert saved[category]==before[category]
+    assert not router.planning_calls and not app.state.automation.store.items()
+
+
 def test_voice_stream_has_separate_speech_and_keeps_full_email_and_deadline(tools_chat):
     app,c,router=tools_chat
     async def search(_):return {'messages':[{'id':'mail1'}]}

@@ -4,8 +4,9 @@ import uuid
 
 from server.natural.store import encode
 
-# Approval nonces, shown timestamps and decision authority are intentionally absent.
-FIELDS=("write_question","read_question","jobs","recent","calendar_query","calendars","events","messages","drafts","reminders")
+# Persist references, never approval nonces. The manager revalidates session,
+# device, expiry, completed preview and the current payload before each decision.
+FIELDS=("write_question","read_question","jobs","recent","calendar_query","calendars","events","messages","drafts","reminders","calendar_action","last_calendar","pending","decision")
 
 
 class TaskMemory:
@@ -28,6 +29,10 @@ class TaskMemory:
         retained:dict[str,list[dict]]={}
         for key in FIELDS:
             for item in memory.get(key,[])[:20]:
+                if key in ('pending','decision'):
+                    allowed={'id','fingerprint','preview_hash','display_hash','request_id','shown','shown_at','device','session','instruction','response_hash'}
+                    if item.get('device')!=run.principal.device_id or item.get('session')!=run.principal.session_id:continue
+                    item={name:value for name,value in item.items() if name in allowed}
                 candidate={**retained,key:[*retained.get(key,[]),item]}
                 # Never truncate a parameter or external reference mid-structure.
                 if len(encode(candidate).encode("utf-8"))<=65536:retained=candidate
@@ -45,6 +50,7 @@ class TaskMemory:
             items=[]
             for row in rows:
                 values=json.loads(row["payload"])
-                if not any(values.get(key) for key in ("write_question","read_question","jobs")):continue
-                items.append({"id":row["id"],"conversation_id":row["conversation_id"],"revision":row["revision"],"updated":row["updated"],"questions":values.get("write_question",[])+values.get("read_question",[]),"jobs":values.get("jobs",[])})
+                if not any(values.get(key) for key in ("write_question","read_question","jobs","calendar_action")):continue
+                questions=values.get('write_question',[])+values.get('read_question',[])+[item for item in values.get('calendar_action',[]) if not item.get('job')]
+                items.append({"id":row["id"],"conversation_id":row["conversation_id"],"revision":row["revision"],"updated":row["updated"],"questions":questions,"jobs":values.get("jobs",[])})
             return {"items":items}

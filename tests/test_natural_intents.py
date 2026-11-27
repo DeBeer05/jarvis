@@ -80,4 +80,4 @@ def test_dependent_action_waits_for_prior_external_approval(tools_chat):
     router.plans=[{"steps":[{"kind":"calendar_create","text":first},{"kind":"calendar_read","text":second,"depends_on":[0]}]},
                   {"tool":"CalendarCreate","input":{"summary":"Noah"}}]
     result=call(c,first+" en "+second).json()
-    assert "wacht nog" in result["message"] and len(router.planning_calls)==2
+    assert "wacht nog" in result["message"] and len(router.planning_calls)==1

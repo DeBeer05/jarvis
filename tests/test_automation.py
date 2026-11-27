@@ -171,7 +171,7 @@ def test_calendar_conflicts_recurring_and_conditional_change(automation):
     def handler(request):
         calls.append(request)
         if request.url.path.endswith("/events"):return httpx.Response(200,json={"items":[event,other]})
-        if request.method=="PUT":
+        if request.method=="PATCH":
             assert request.headers["If-Match"]=="version1"
             event.update(json.loads(request.content));event["etag"]="version2"
         return httpx.Response(200,json=event)

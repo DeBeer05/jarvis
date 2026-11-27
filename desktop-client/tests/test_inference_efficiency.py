@@ -38,7 +38,7 @@ def test_missing_cuda_is_probed_once_and_cpu_model_stays_warm(inference):
     results=[provider.transcribe(request) for _ in range(3)]
     assert attempts==['cpu'] and len(probes)==len(loads)==1
     assert all(r['device']=='cpu' and r['cpu_fallback'] and r['fallback_reason']=='cuda_libraries_missing' for r in results)
-    assert all(option['beam_size']==3 for option in options)
+    assert all(option['beam_size']==5 for option in options)
 
 
 def test_explicit_cpu_does_not_touch_cuda(inference):
@@ -46,6 +46,23 @@ def test_explicit_cpu_does_not_touch_cuda(inference):
     result=engines.SpeechToTextProvider().transcribe({**request,'device':'cpu'})
     assert result['device']=='cpu' and not result['cpu_fallback'] and not probes and not loads
     assert attempts==['cpu']
+
+
+def test_dutch_transcription_preserves_boundary_speech_without_translation(inference):
+    request,attempts,probes,loads,options=inference
+    engines.SpeechToTextProvider().transcribe({**request,'device':'cpu'})
+    decoding=options[0]
+    assert decoding['language']=='nl' and decoding['task']=='transcribe'
+    assert decoding['temperature']==0 and not decoding['condition_on_previous_text']
+    assert 'morgen, vanmorgen, overmorgen' in decoding['initial_prompt']
+    assert decoding['vad_parameters']['speech_pad_ms']>=400
+    assert decoding['vad_parameters']['threshold']<=.5
+
+
+def test_light_profile_keeps_small_beam_for_constrained_hosts(inference):
+    request,attempts,probes,loads,options=inference
+    engines.SpeechToTextProvider().transcribe({**request,'device':'cpu','profile':'light'})
+    assert options[0]['beam_size']==3
 
 
 def test_gpu_inference_failure_is_not_retried_every_utterance(inference,monkeypatch):

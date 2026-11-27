@@ -29,11 +29,13 @@ def number(value):
 
 def normalize_dayparts(text):
     """Common joined Dutch speech transcripts, without guessing arbitrary words."""
-    return re.sub(r"\b(?:s|sch)(middags?|ochtends?|avonds?)\b",r"\1",text,flags=re.I)
+    text=re.sub(r"\b(?:s|sch)(middags?|ochtends?|avonds?)\b",r"\1",text,flags=re.I)
+    return re.sub(r'\b(half|kwart|voor|over|om)\s*[,;]\s*(?=(?:voor|over|half|'+NUMBER+r')\b)',r'\1 ',text,flags=re.I)
 
 
 def daypart(text):
     text=normalize_dayparts(text).casefold()
+    text=re.sub(r'\bvanmorgen\b','ochtend',text)
     found={match[1] for match in re.finditer(r"\b(?:van|morgen)?(middag|avond|ochtend|nacht)s?\b",text)}
     return next(iter(found)) if len(found)==1 else None
 
@@ -86,7 +88,7 @@ def resolve(text,*,now=None,timezone="Europe/Amsterdam",anchor=None,work_start=9
     except ValueError:raise AmbiguousTime("Die datum bestaat niet. Welke datum bedoel je?") from None
     if re.search(r"\bovermorgen\b",message):day=now.date()+timedelta(days=2)
     elif re.search(r"\bmorgen(?:ochtend|middag|avond)?\b",message):day=now.date()+timedelta(days=1)
-    elif re.search(r"\b(?:vandaag|vanavond|vanochtend|vanmiddag)\b",message):day=now.date()
+    elif re.search(r"\b(?:vandaag|vanavond|vanochtend|vanmorgen|vanmiddag)\b",message):day=now.date()
     weekday=re.search(r"\b(?:(volgende week|volgende|aanstaande|komende|deze)\s+)?("+"|".join(WEEKDAYS)+r")\b",message)
     if weekday:
         target=WEEKDAYS.index(weekday[2]);modifier=weekday[1]
@@ -98,6 +100,8 @@ def resolve(text,*,now=None,timezone="Europe/Amsterdam",anchor=None,work_start=9
         return TimeHint(local_time(start,0,0,zone),window_end=local_time(start+timedelta(days=7),0,0,zone),duration_minutes=duration,clarification="Welke dag volgende week bedoel je?")
     if re.search(r"\bna mijn werk\b",message):return TimeHint(date=day.isoformat() if day else None,duration_minutes=duration,clarification="Hoe laat ben je klaar met werken en wil je afspreken?")
     # Avoid matching appointment durations and reminder offsets as a clock.
+    vague=re.search(r'\bkort\s+(?:voor|over)\s+'+NUMBER+r'\b',message)
+    if vague:return TimeHint(date=day.isoformat() if day else None,duration_minutes=duration,clarification="Welk exact tijdstip bedoelt u met ‘"+vague[0]+"’?")
     clock_text=re.sub(r"\b(?:van|duurt|duur|ongeveer)\s+(?:anderhalf|een half|"+NUMBER+r")\s*(?:uur|uren|minuten?|min)\b","",message)
     hour=minute=None
     complex_half=re.search(r"\b("+NUMBER+r")\s+(voor|over)\s+half\s+("+NUMBER+r")\b",clock_text)

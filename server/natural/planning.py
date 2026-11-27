@@ -101,6 +101,8 @@ class ActivityPlanningManager:
         config=run.natural_context['settings'] if run.natural_context else None
         if config and not config['planning']['enabled']:return False
         text=run.message.strip()
+        from server.natural.calendar_dialogue import creating
+        if creating(text) and re.search(r'\b(?:afspraak|meeting|vergadering)\b',text,re.I):return False
         if re.match(r'\s*(?:hoe werkt|leg\b|ik wil (?:vertellen|praten|uitleggen))',text,re.I):return False
         if re.fullmatch(r'\s*wat (?:is|betekent) (?:een |het )?(?:uitje|dagtrip|activiteit|planning|weekend)[?.!\s]*',text,re.I):return False
         # Exact approval authority always stays with the existing manager.
@@ -112,6 +114,8 @@ class ActivityPlanningManager:
             from server.natural.calendar import outing_title
             if outing_title(text):return False
         if previous and COMMIT.search(text):return True
+        calendar=getattr(self.natural.chat.automation_chat,'calendar',None)
+        if calendar and calendar.candidate(run):return False
         # Preserve explicit, complete legacy agenda commands and their previews.
         if re.search(r'\b(?:agenda|kalender|toevoeg\w*)\b',text,re.I):return False
         if re.match(r'\s*plan een uitje\b',text,re.I):return False

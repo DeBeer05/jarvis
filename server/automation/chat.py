@@ -42,6 +42,8 @@ class AutomationChat:
         self.task_memory=None
         self.contacts=None
         self.conversation_context=conversation_context
+        from server.natural.calendar_dialogue import CalendarDialogue
+        self.calendar=CalendarDialogue(self)
 
     def key(self, run):
         return (run.principal.session_id, run.principal.device_id, run.conversation_id)
@@ -80,6 +82,7 @@ class AutomationChat:
         if self.task_memory:self.task_memory.save(run,memory)
 
     def candidate(self, run):
+        if self.calendar.candidate(run):return True
         if run.principal is None:return False
         if REPLY_STATUS.fullmatch(run.message):return True
         from server.natural.responses import MORE
@@ -284,7 +287,7 @@ class AutomationChat:
         try:
             self.guard(run, "automation:read")
             self.security.store.rate("chat-tools:"+run.principal.device_id, 20)
-            if compound_candidate(run.message):result,provider=await self.compound(run)
+            if compound_candidate(self.calendar.routing_text(run.message)):result,provider=await self.compound(run)
             else:result, provider = await self.answer(run)
         except AuthError:
             result = "Dit apparaat heeft geen geldige toegang tot deze functie. Laat de eigenaar bij Automatiseringen de rechten controleren: automation:read voor lezen, automation:write voor taken en automation:approve voor goedkeuren."
@@ -315,7 +318,7 @@ class AutomationChat:
             yield {"type":"provider","provider":"jarvis","model":"automation"}
         memory=self.memory(run)
         if memory.get("pending"):run.wait_state="WAITING_FOR_APPROVAL"
-        elif memory.get("write_question") or memory.get("read_question"):run.wait_state="WAITING_FOR_INFORMATION"
+        elif memory.get("write_question") or memory.get("read_question") or memory.get('calendar_action'):run.wait_state="WAITING_FOR_INFORMATION"
         if run.natural_context and run.natural_context['settings']['responses']['written'] in ('ultrashort','short'):
             from copy import deepcopy
             config=deepcopy(run.natural_context)
@@ -332,6 +335,8 @@ class AutomationChat:
             await asyncio.sleep(0)
 
     async def answer(self, run):
+        calendar_reply=await self.calendar.handle(run)
+        if calendar_reply is not None:return calendar_reply,None
         observations = dict(self.memory(run))
         question=self.task_question(observations)
         if question and not observations.get("write_question"):
@@ -368,10 +373,6 @@ class AutomationChat:
                 self.remember(run,"write_question",[])
                 return "Het voorbereiden is gestopt. Er is niets uitgevoerd.",None
             if self.slot_answer(run,observations):
-                previous=run.history[-1] if run.history else {}
-                if fingerprint(previous.get("content",""))!=observations["write_question"][0].get("question_hash") and self.approvals.is_answer(run.message):
-                    self.remember(run,"write_question",[])
-                    return "Herhaal de volledige afspraak of e-mail die je wilt voorbereiden; de eerdere vervolgvraag is niet meer de laatste vraag in dit gesprek.",None
                 # A fresh explicit outing command owns its own slots; do not
                 # replay an unrelated older ambiguous appointment first.
                 fresh_outing=self.write_intent("CalendarCreate",run.message) and outing_title(run.message)

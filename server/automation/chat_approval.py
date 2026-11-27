@@ -20,6 +20,11 @@ class ChatApprovals:
 
     def is_answer(self, message): return bool(YES_NO.fullmatch(message))
 
+    def record_display(self,run):
+        pending=self.chat.memory(run).get('pending',[])
+        if len(pending)==1 and pending[0].get('request_id')==run.request_id:
+            self.chat.remember(run,'pending',[{**pending[0],'display_hash':fingerprint(run.text)}])
+
     def show(self, run, row):
         c = self.chat; c.guard(run, "automation:read")
         if row["status"] != "approval": return self.status(row)
@@ -38,6 +43,7 @@ class ChatApprovals:
                 value = payload.get(key)
                 text += "\n" + label + ": " + (datetime.fromisoformat(value).astimezone(ZoneInfo(payload["timezone"])).strftime("%d-%m-%Y %H:%M %z") if value else "Hele dag / controleer Google")
             text += "\nTijdzone: " + payload["timezone"] + "\nLocatie: " + (payload.get("location") or "Geen")
+            if payload.get('description'):text+='\nBeschrijving: '+payload['description']
             text += "\nGenodigden: " + (", ".join(payload.get("attendees", [])) or "Geen")
             text += "\nHerhaling: " + ("; ".join(payload.get("recurrence", [])) or "Geen")
             if tool!="CalendarDelete":text += "\nHerinnering: " + (str(payload["reminder_minutes"])+" minuten vooraf" if payload.get("reminder_minutes") is not None else "Bestaande agenda-instelling")
@@ -49,7 +55,7 @@ class ChatApprovals:
             return "Dit voorstel kan niet volledig in de chat worden getoond. Open Automatiseringen → Goedkeuringen voor de volledige controle."
         previous=c.memory(run).get("pending",[])
         instruction=run.message if c.write_intent(tool,run.message) else (previous[0].get("instruction","") if len(previous)==1 and previous[0]["id"]==row["id"] else "")
-        c.remember(run, "pending", [{"id":row["id"], "fingerprint":fingerprint([tool,payload]), "preview_hash":fingerprint(text), "request_id":run.request_id, "shown":c.clock(),"instruction":instruction}])
+        c.remember(run, "pending", [{"id":row["id"], "fingerprint":fingerprint([tool,payload]), "preview_hash":fingerprint(text), "request_id":run.request_id, "shown":c.clock(),"shown_at":c.engine.store.clock(),"device":run.principal.device_id,"session":run.principal.session_id,"instruction":instruction}])
         return text
 
     @staticmethod
@@ -72,8 +78,8 @@ class ChatApprovals:
         spoken = YES_NO.fullmatch(message)
         if spoken and memory.get("pending"):decision=spoken
         elif spoken and memory.get("decision"):
-            previous=run.history[-1] if run.history else {}
-            if fingerprint(previous.get("content",""))==memory["decision"][0].get("response_hash"):
+            previous=memory['decision'][0]
+            if previous.get('device')==run.principal.device_id and previous.get('session')==run.principal.session_id:
                 return self.status(c.engine.store.get(memory["decision"][0]["id"]))
         if STATUS.fullmatch(message):
             last = memory.get("decision", [])
@@ -94,11 +100,13 @@ class ChatApprovals:
         if row["status"] != "approval":
             c.remember(run, "pending", [])
             return self.status(row)
-        previous = run.history[-1] if run.history else {}
         with c.engine.store.db() as db:
-            latest=db.execute("SELECT id,status FROM chat_turns WHERE conversation_id=? AND id!=? ORDER BY sequence DESC LIMIT 1",(run.conversation_id,run.request_id)).fetchone()
+            displayed=db.execute("SELECT status,assistant_text FROM chat_turns WHERE conversation_id=? AND id=?",(run.conversation_id,shown.get('request_id'))).fetchone()
         actual = fingerprint([row["tool"], json.loads(row["payload"])])
-        if not latest or latest["id"]!=shown.get("request_id") or latest["status"]!="completed" or c.clock()-shown.get("shown",0)>300 or previous.get("role")!="assistant" or fingerprint(previous.get("content",""))!=shown.get("preview_hash") or actual!=shown.get("fingerprint"):
+        if (not displayed or displayed['status']!='completed' or shown.get('display_hash')!=shown.get('preview_hash')
+            or displayed['assistant_text'] and fingerprint(displayed['assistant_text'])!=shown.get('preview_hash')
+            or shown.get('device')!=run.principal.device_id or shown.get('session')!=run.principal.session_id
+            or c.engine.store.clock()-shown.get('shown_at',0)>300 or c.clock()-shown.get('shown',0)>300 or actual!=shown.get('fingerprint')):
             return self.show(run, row)
         # No model sees the nonce. Check the same payload again inside the decision transaction.
         challenge = c.engine.approvals.challenge(row["id"],run.principal)
@@ -106,7 +114,7 @@ class ChatApprovals:
         c.guard(run, "automation:approve")
         approved = not decision[1].casefold().startswith(("weiger","nee","laat maar","annuleer"))
         result = c.engine.approvals.decide(row["id"],run.principal,challenge["token"],approved,expected_fingerprint=actual)
-        c.remember(run,"pending",[]);c.remember(run,"decision",[{"id":row["id"]}])
+        c.remember(run,"pending",[]);c.remember(run,"decision",[{"id":row["id"],"device":run.principal.device_id,"session":run.principal.session_id}])
         if approved:
             for _ in range(20):
                 c.guard(run,"automation:read")
@@ -114,5 +122,9 @@ class ChatApprovals:
                 if result["status"] not in ("queued","running"):break
                 await asyncio.sleep(.25)
         text=self.status(result)
-        c.remember(run,"decision",[{"id":row["id"],"response_hash":fingerprint(c.clean(text))}])
+        if approved and result['status']=='completed' and row['tool'] in ('CalendarCreate','CalendarUpdate'):
+            event=json.loads(result.get('result') or '{}')
+            if event.get('id') and event.get('etag') and event.get('start',{}).get('dateTime'):
+                text=await c.calendar.result(run,result,row['tool'])
+        c.remember(run,"decision",[{"id":row["id"],"response_hash":fingerprint(c.clean(text)),"device":run.principal.device_id,"session":run.principal.session_id}])
         return text

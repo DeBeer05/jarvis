@@ -38,6 +38,7 @@ class CalendarChange(Input):
     timezone: str = Field(default="Europe/Amsterdam", max_length=80)
     attendees: list[str] = Field(default_factory=list, max_length=50)
     location: str = Field(default="", max_length=500)
+    description: str | None = Field(default=None,max_length=8000)
     recurrence: list[str] = Field(default_factory=list, max_length=5)
     reminder_minutes: int | None = Field(default=None, ge=0, le=40320, strict=True)
     etag: str = Field(default="", max_length=256)
