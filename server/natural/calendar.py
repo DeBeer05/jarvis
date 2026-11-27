@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 
 from server.natural.temporal import resolve,local_time,AmbiguousTime,NUMBER,number,normalize_dayparts,daypart
 
-TITLE_PREFIX=r'\b(?:genaamd|getiteld|titel(?:\s+is)?)\s*[:,]?\s+'
+TITLE_PREFIX=r'\b(?:genaamd|getiteld|titel(?:\s+is)?|(?:die|dat)\s+heet)\s*[:,]?\s+'
 
 
 def timing_text(text,summary=''):

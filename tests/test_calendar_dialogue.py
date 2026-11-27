@@ -89,6 +89,7 @@ def test_approval_permission_is_never_granted_by_calendar_command(calendar):
     ('Maak overmorgen, om half, drie, een afspraak met de titel, teamoverleg.','teamoverleg','14:30'),
     ('Maak morgen om 14:00 een afspraak die Geen uitje en plan maken heet.','Geen uitje en plan maken','14:00'),
     ('Ik wil dat je morgen om 14:00 een afspraak maakt die Controle heet.','Controle','14:00'),
+    ('Jarvis, kun je voor 28 november 2026 een afspraak in mijn agenda zetten dat heet uit je met Noah om twee uur middags.','uit je met Noah','14:00'),
 ])
 def test_generic_titles_dates_and_times_without_a_planner(calendar,command,summary,clock):
     app,c,router,events,writes=calendar
