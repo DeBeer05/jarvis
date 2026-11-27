@@ -189,3 +189,14 @@ def test_default_hour_does_not_reenable_disabled_reminder_defaults(calendar):
     payload=writes[0][1]
     assert datetime.fromisoformat(payload['end'])-datetime.fromisoformat(payload['start'])==timedelta(hours=1)
     assert payload['reminder_minutes'] is None
+
+
+def test_missing_slot_sets_the_existing_conversation_waiting_state(calendar):
+    app,c,router,events,writes=calendar;seen=[]
+    original=app.state.chat._finalize
+    async def finalize(run,*args):
+        seen.append(run.wait_state)
+        return await original(run,*args)
+    app.state.chat._finalize=finalize
+    result=call(c,'Maak morgen om 14:00 een afspraak.').json()
+    assert 'titel' in result['message'] and seen==['WAITING_FOR_INFORMATION']

@@ -318,7 +318,7 @@ class AutomationChat:
             yield {"type":"provider","provider":"jarvis","model":"automation"}
         memory=self.memory(run)
         if memory.get("pending"):run.wait_state="WAITING_FOR_APPROVAL"
-        elif memory.get("write_question") or memory.get("read_question"):run.wait_state="WAITING_FOR_INFORMATION"
+        elif memory.get("write_question") or memory.get("read_question") or memory.get('calendar_action'):run.wait_state="WAITING_FOR_INFORMATION"
         if run.natural_context and run.natural_context['settings']['responses']['written'] in ('ultrashort','short'):
             from copy import deepcopy
             config=deepcopy(run.natural_context)
