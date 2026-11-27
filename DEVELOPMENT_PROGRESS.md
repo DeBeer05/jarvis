@@ -4,6 +4,13 @@
 
 ### Acht productfases persoonlijke butler — 27 november 2026
 
+Fase 1 checkpoint 25410ad. Fase 2 voegt gedeelde modi, opt-in aanwezigheid,
+persistente terugkomst en lokale/no-history privémodus toe. Windows WTS/idle/
+procesclassificatie en Android foreground lock/idle; achtergrond volgt fase 5.
+617 servertests/1 skip, 136 clienttests, Android-tests/lint/debug/release groen;
+echte apparaatacceptatie apart. Nieuwe parameters, routes en SQLite v10 behouden
+8765 en bestaande rechten. Verdere voortgang staat in IMPLEMENTATION_PLAN.md.
+
 Nieuwe vervolgopdracht implementeert de productfases uit IMPLEMENTATION_PLAN.md.
 AGENTS verduidelijkt scope zonder nieuwe grants of Oracle/productiemigratie.
 Branch feature/personal-butler bouwt op ea09cb6/PR 32 omdat develop deze basis

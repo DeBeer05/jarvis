@@ -93,7 +93,7 @@ class ChatService:
         self.admissions.append(tick)
         try:
             if self.natural and principal:
-                document=await asyncio.to_thread(self.natural.settings.get,principal)
+                document=await asyncio.to_thread(self.natural.settings.runtime,principal)
                 run.persist_history=document["settings"]["memory"]["history"]
             if self.natural and principal and conversation_id:
                 await asyncio.to_thread(self.natural.authorize_conversation,principal,conversation_id)

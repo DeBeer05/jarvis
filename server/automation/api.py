@@ -100,6 +100,9 @@ async def dashboard(request:Request,offset:int=Query(default=0,ge=0,le=5000)):
     with e.store.db() as db:
         notifications=[dict(x) for x in db.execute("SELECT * FROM automation_notifications WHERE at<=? ORDER BY at DESC LIMIT 50",(e.store.clock(),))]
         events=[dict(x) for x in db.execute("SELECT * FROM automation_events ORDER BY id DESC LIMIT 100")]
+    from server.natural.presence import allowed_notification
+    mode=request.app.state.natural.presence.snapshot(request.state.principal)['mode']
+    notifications=[item for item in notifications if allowed_notification(mode,item['category'])]
     return {"items":[e.store.public(x) for x in e.store.items(offset)],"offset":offset,"next_offset":offset+20,"notifications":notifications,"history":events,"tools":list(REGISTRY),"notification_policy":e.store.preference("notifications",Policy().model_dump(mode="json")),"external_push_available":False,"scheduler_enabled":request.app.state.settings.automations_enabled}
 
 

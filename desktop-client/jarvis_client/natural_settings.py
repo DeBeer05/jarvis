@@ -80,9 +80,14 @@ class NaturalSettingsPanel(QWidget):
         self.make_contacts()
         self.make_memory()
         self.make_diagnostics()
+        from jarvis_client.presence import PresencePanel
+        if hasattr(window,'presence'):
+            self.presence_panel=PresencePanel(window)
+            self.tabs.addTab(self.presence_panel,'Aanwezigheid op dit apparaat')
         self.clear()
 
     def clear(self):
+        if hasattr(self,'presence_panel'):self.presence_panel.clear()
         self.document=self.draft=self.schema=None;self.category=None;self.controls={};self.dirty=False
         self.keys=[];self.search.clear();self.memory_search.clear()
         self.categories.clear();self.memory_list.clear();self.memory_items=[];self.summary_list.clear();self.summary_text.clear();self.summary_items=[]

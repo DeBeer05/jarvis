@@ -16,7 +16,8 @@
       "autonomy": "Zelfstandigheid en machtigingen",
       "notifications": "Meldingen",
       "privacy": "Privacy",
-      "diagnostics": "Diagnostiek"
+      "diagnostics": "Diagnostiek",
+      "presence": "Aanwezigheid en modi"
     },
     "labels": {
       "actions": "Regels per actie",
@@ -158,7 +159,10 @@
       "supertonic_voice": "Supertonic-mannenstem",
       "steps": "Supertonic kwaliteitsstappen",
       "pause_ms": "Pauze tussen tekstblokken (ms)",
-      "episodes": "Eerdere gesprekken gericht terugvinden"
+      "episodes": "Eerdere gesprekken gericht terugvinden",
+      "presence": "Aanwezigheid en modi",
+      "presence_allowed": "Aanwezigheidsstatus delen op dit apparaat",
+      "application_allowed": "Werk-/gameherkenning op dit apparaat"
     },
     "values": {
       "allow": "Automatisch toestaan",
@@ -206,6 +210,13 @@
       "technical": "Technische uitleg",
       "briefing": "Korte briefing",
       "always": "Ieder antwoord",
+      "work": "Werk",
+      "gaming": "Gaming",
+      "away": "Afwezig",
+      "sleeping": "Slapen",
+      "travelling": "Onderweg",
+      "private": "Privé",
+      "emergency": "Noodgeval",
       "together": "Samen plannen",
       "surprise": "Verrassingsmodus",
       "budget": "Budgetmodus",
@@ -1103,6 +1114,80 @@
           "title": "Personality",
           "type": "object"
         },
+        "Presence": {
+          "additionalProperties": false,
+          "properties": {
+            "mode": {
+              "default": "normal",
+              "enum": [
+                "normal",
+                "work",
+                "gaming",
+                "away",
+                "sleeping",
+                "travelling",
+                "private",
+                "emergency"
+              ],
+              "title": "Mode",
+              "type": "string"
+            },
+            "automatic": {
+              "default": false,
+              "title": "Automatisch omschakelen met toegestane apparaatsignalen",
+              "type": "boolean"
+            },
+            "idle_seconds": {
+              "default": 300,
+              "maximum": 7200,
+              "minimum": 60,
+              "title": "Afwezig na inactiviteit (s)",
+              "type": "integer"
+            },
+            "greetings": {
+              "default": true,
+              "title": "Eenmalige terugkomstbegroeting",
+              "type": "boolean"
+            },
+            "sleep_schedule": {
+              "default": false,
+              "title": "Slapen vermoeden wanneer alle apparaten afwezig zijn",
+              "type": "boolean"
+            },
+            "sleep_start": {
+              "default": 23,
+              "maximum": 23,
+              "minimum": 0,
+              "title": "Sleep Start",
+              "type": "integer"
+            },
+            "sleep_end": {
+              "default": 7,
+              "maximum": 23,
+              "minimum": 0,
+              "title": "Sleep End",
+              "type": "integer"
+            },
+            "work_apps": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 20,
+              "title": "Werkprogramma’s (alleen procesnamen, lokaal vergelijken)",
+              "type": "array"
+            },
+            "gaming_apps": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 20,
+              "title": "Games (alleen procesnamen, lokaal vergelijken)",
+              "type": "array"
+            }
+          },
+          "title": "Presence",
+          "type": "object"
+        },
         "Privacy": {
           "additionalProperties": false,
           "properties": {
@@ -1663,6 +1748,9 @@
         "notifications": {
           "$ref": "#/$defs/Notifications"
         },
+        "presence": {
+          "$ref": "#/$defs/Presence"
+        },
         "privacy": {
           "$ref": "#/$defs/Privacy"
         },
@@ -1706,6 +1794,16 @@
         "keep_awake": {
           "default": false,
           "title": "Keep Awake",
+          "type": "boolean"
+        },
+        "presence_allowed": {
+          "default": false,
+          "title": "Aanwezigheidsstatus van dit apparaat delen",
+          "type": "boolean"
+        },
+        "application_allowed": {
+          "default": false,
+          "title": "Actief programma lokaal met werk-/gamelijst vergelijken",
           "type": "boolean"
         }
       },
@@ -1942,6 +2040,17 @@
         "suggestions_per_hour": 3,
         "quiet_start": 22,
         "quiet_end": 7
+      },
+      "presence": {
+        "mode": "normal",
+        "automatic": false,
+        "idle_seconds": 300,
+        "greetings": true,
+        "sleep_schedule": false,
+        "sleep_start": 23,
+        "sleep_end": 7,
+        "work_apps": [],
+        "gaming_apps": []
       },
       "privacy": {
         "cloud_memories": false,

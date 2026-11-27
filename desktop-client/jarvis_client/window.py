@@ -18,6 +18,7 @@ from jarvis_client.settings import Preferences
 from jarvis_client.theme import icon, stylesheet
 from jarvis_client.automations import AutomationPanel
 from jarvis_client.natural_settings import NaturalSettingsPanel
+from jarvis_client.presence import PresenceController
 from jarvis_client.voice.session import ConversationSession
 from jarvis_client.voice.server_worker import ServerInferenceWorker
 from jarvis_client.voice.worker import InferenceWorker
@@ -69,6 +70,7 @@ class MainWindow(QMainWindow):
         self.login_busy = False
         self.active_origin = None
         self.permissions = LocalAgent()
+        self.presence=PresenceController(self)
         self.pending_voice = None
         self.natural_refresh=0
         self.setWindowTitle("JARVIS — Desktop")
@@ -381,6 +383,7 @@ class MainWindow(QMainWindow):
         self.model_info.setText(" · ".join(f"{name}: {value.get('model', '—')}" for name, value in result.get("providers", {}).items()))
 
     def apply_natural_settings(self,document):
+        self.presence.configure(document['settings'])
         self.voice.configure_natural(document["settings"])
         enabled=document["settings"]["conversations"]["enabled"]
         worker=self.voice.next_worker or self.voice.worker
@@ -719,6 +722,7 @@ class MainWindow(QMainWindow):
             self.logout(revoke=True)
 
     def clear_private(self):
+        self.presence.clear()
         if hasattr(self,"voice_session"):self.voice_session.clear()
         if hasattr(self,"automation_panel"): self.automation_panel.clear()
         if hasattr(self,"natural_settings"):self.natural_settings.clear()
@@ -797,6 +801,7 @@ class MainWindow(QMainWindow):
         if self.closing:
             return
         self.closing = True
+        self.presence.clear()
         self.voice_panel.close_voice()
         self.manager.stop()
         self.render_timer.stop()
@@ -806,6 +811,10 @@ class MainWindow(QMainWindow):
         self.shutdown_timer = QTimer(self)
         self.shutdown_timer.timeout.connect(self.finish_shutdown)
         self.shutdown_timer.start(50)
+
+    def nativeEvent(self,event_type,message):
+        if hasattr(self,'presence'):self.presence.native_event(message)
+        return super().nativeEvent(event_type,message)
 
     def finish_shutdown(self):
         if self.jobs.pool.activeThreadCount() == 0 and not self.voice.busy:

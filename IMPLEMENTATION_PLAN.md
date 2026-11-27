@@ -26,7 +26,7 @@ Qwen2.5:3B en bestaande Windows-/Android-/upstreamcode blijven behouden.
 | Fase | Bestaand | Ontbrekende delta / bewijs | Status |
 |---|---|---|---|
 | 1 Persoonlijkheid/geheugen | Butler, instellingen, contact-/voorkeurgeheugen, historie, bronvergeten | Gerichte episodische retrieval tussen gesprekken; toon op context, correctie zonder extra classifier; restart/apparaat/privacytests | Technisch afgerond; menselijke acceptatie open |
-| 2 Aanwezigheid/modi | Gespreksstatus, clientstatus, meldingsbeleid | Acht modi, handmatig/automatisch, begrensde OS-signalen met opt-in, persistente transitions en eenmalige terugkomst | Nog niet gestart; vereist 1 |
+| 2 Aanwezigheid/modi | Gespreksstatus, clientstatus, meldingsbeleid | Acht modi, handmatig/automatisch, begrensde OS-signalen met opt-in, persistente transitions en eenmalige terugkomst | Technisch afgerond; echte apparaatacceptatie open |
 | 3 Persoonlijke assistentie | Calendar/Gmail, conflictcontrole, follow-up, scheduler, quiet hours | Brongebonden briefings/routines/lijsten, connectorstatus, prioritering; actuele weer/nieuws/verkeer alleen echte bron | Nog niet gestart; locatie/connectorconfig deels extern |
 | 4 Spraak | ElevenLabs, tekst-/zinsstreaming, lokale Whisper/Piper, echo/barge-in, foreground vervolg | Meetbare streaminggrenzen, hervatten en fallback audit; echte audioacceptatie apart | Nog niet gestart; gebruikt bestaande helper |
 | 5 Windows/Android | Native clients, apparaatpairing, Windows gesloten acties | Toegestane OS-acties/status, Android ondersteunde intents/toestemmingen en achtergrondsync; geen WhatsApp/Signal-API verzinnen | Nog niet gestart; grants/telefoon nodig voor echte tests |
@@ -57,3 +57,22 @@ geheugen/context/instellingenreeks 24 passed. Brede reeks 608 passed/1 skip;
 alleen een oude backupbestandsnaamassertie faalde en is afzonderlijk hersteld
 en geslaagd. Ruff/mypy (39 modules), pip check, contract, repository en
 geheimcontrole geslaagd. Geen echte accounts, TTS of modeldownloads gebruikt.
+
+### Fase 2 — testbewijs en grenzen
+
+- Acht handmatige modi, opt-in automatische signalen, persistente transities en
+  apparaatgebonden events/ontvangstbewijzen. Privé forceert nieuwe beurten lokaal,
+  zonder opgeslagen gesprekstekst; geen nieuwe grants of uitgevoerde acties wissen.
+- Windows: WTS-lock/unlock, initiële sessiestatus, idle en optionele lokale
+  procesclassificatie. Android: lock/idle zolang app vooraan staat; opt-in
+  achtergrondservice volgt in fase 5. Geen Android-appgebruik of locatie verzameld.
+- Volledige serverreeks: 617 passed/1 POSIX-skip; finale gerichte reeks 15 passed.
+  Windows-client 136 passed; Android 8 unit tests, lint, debug/release builds groen.
+  Ruff/mypy, contract, dependencies en repositorycheck groen. Echte toestemmingen,
+  lock/unlock en telefoon niet gesimuleerd als gebruikersacceptatie.
+- Fase-1-CI: 11 groen, één bekende offscreen-Qt-abort op test_window.py:130.
+  Niet als opgelost gemeld; nieuwe head wordt opnieuw volledig door CI getest.
+- Locatie, briefingtijden en bestaande koppelingen zijn ontvangen. Persoonlijke
+  configuratie blijft buiten Git. Ondersteunde mogelijkheden van Phone Link en
+  Creality Cloud worden vóór connectorimplementatie geverifieerd. Een geplande
+  melding is geen echt ochtendtelefoontje; daarvoor moet een oproeproute bestaan.

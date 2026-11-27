@@ -7,6 +7,7 @@ from pydantic import Field, ValidationError
 
 from server.natural.models import StrictModel, MemoryInput, Personality, Voice
 from server.natural.store import Conflict
+from server.natural.presence import Signal as PresenceSignal
 
 router=APIRouter(prefix="/api/v1/natural")
 
@@ -23,6 +24,41 @@ def result(call):
 class SettingPatch(StrictModel):
     revision:int=Field(ge=0)
     changes:dict
+
+
+class ModeChange(StrictModel):
+    mode:Literal['normal','work','gaming','away','sleeping','travelling','private','emergency']
+
+
+@router.get('/presence')
+def presence_state(request:Request):
+    return service(request).presence.state(request.state.principal)
+
+
+@router.post('/presence/signals')
+def presence_signal(request:Request,body:PresenceSignal):
+    natural=service(request);principal=request.state.principal
+    natural.security.store.rate('presence:'+principal.device_id,60)
+    try:return natural.presence.signal(principal,body)
+    except PermissionError:raise HTTPException(403,'Aanwezigheid delen is niet toegestaan of tijdelijk gepauzeerd') from None
+
+
+@router.post('/presence/mode')
+def presence_mode(request:Request,body:ModeChange):
+    return service(request).presence.set_mode(request.state.principal,body.mode)
+
+
+@router.get('/events')
+def personal_events(request:Request):
+    natural=service(request);state=natural.presence.snapshot(request.state.principal)
+    notifications=natural.settings.get(request.state.principal)['settings']['notifications']
+    if not notifications['enabled']:return {'items':[]}
+    return natural.events.list(request.state.principal,urgent_only=notifications['proactivity']=='off' or state['mode'] in ('away','sleeping','private','gaming','emergency'))
+
+
+@router.post('/events/{identifier}/ack')
+def acknowledge_event(request:Request,identifier:UUID):
+    return service(request).events.ack(request.state.principal,str(identifier))
 
 
 class SettingDocument(StrictModel):

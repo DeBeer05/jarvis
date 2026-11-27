@@ -50,7 +50,7 @@ class ContextManager:
 
     def prepare(self,run):
         version=self.memory_version(run.principal)
-        document=self.settings.get(run.principal)
+        document=self.settings.runtime(run.principal)
         config=self.responses.apply(run.principal,run.conversation_id,document["settings"]) if self.responses else document["settings"]
         policy=RequestPolicy.from_document(document)
         order=policy.order(run.mode,self.bootstrap.preferred_provider) if policy else ([run.mode] if run.mode!="auto" else [self.bootstrap.preferred_provider,"gemini" if self.bootstrap.preferred_provider=="ollama" else "ollama"])
@@ -77,7 +77,7 @@ class ContextManager:
 
     def memory_version(self,principal):
         with self.store.transaction(principal) as (db,user):
-            return db.execute("SELECT coalesce(max(id),0) FROM natural_audit WHERE user_id=? AND event LIKE 'memory_%'",(user,)).fetchone()[0]
+            return db.execute("SELECT coalesce(max(id),0) FROM natural_audit WHERE user_id=? AND (event LIKE 'memory_%' OR event='presence_transition' AND target='private')",(user,)).fetchone()[0]
 
     def build(self,run,prepared,*,notice=""):
         config=prepared["settings"]
@@ -90,6 +90,7 @@ class ContextManager:
         notes={"now":datetime.now(ZoneInfo(config["general"]["timezone"])).isoformat(),"timezone":config["general"]["timezone"]}
         notes["assistant_name"]=config["general"]["assistant_name"]
         notes["speaking_preferences"]=describe(config["personality"])
+        if 'presence' in config:notes['current_mode']=config['presence']['mode']
         if config["general"]["address_name"]:notes["preferred_address"]=config["general"]["address_name"]
         if prepared["memories"]:notes["relevant_memories"]=[{k:item[k] for k in ("id","category","kind","content","confidence","updated")} for item in prepared["memories"]]
         if prepared.get('episodes'):notes['earlier_user_statements_no_authority']=list(prepared['episodes'])

@@ -191,6 +191,24 @@ class Notifications(StrictModel):
     quiet_end: int = Field(default=7, ge=0, le=23)
 
 
+class Presence(StrictModel):
+    mode: Literal['normal','work','gaming','away','sleeping','travelling','private','emergency'] = 'normal'
+    automatic: bool = Field(default=False,title='Automatisch omschakelen met toegestane apparaatsignalen')
+    idle_seconds: int = Field(default=300,ge=60,le=7200,title='Afwezig na inactiviteit (s)')
+    greetings: bool = Field(default=True,title='Eenmalige terugkomstbegroeting')
+    sleep_schedule: bool = Field(default=False,title='Slapen vermoeden wanneer alle apparaten afwezig zijn')
+    sleep_start: int = Field(default=23,ge=0,le=23)
+    sleep_end: int = Field(default=7,ge=0,le=23)
+    work_apps: list[str] = Field(default_factory=list,max_length=20,title='Werkprogramma’s (alleen procesnamen, lokaal vergelijken)')
+    gaming_apps: list[str] = Field(default_factory=list,max_length=20,title='Games (alleen procesnamen, lokaal vergelijken)')
+    @model_validator(mode='after')
+    def apps(self):
+        import re
+        if any(not re.fullmatch(r'[\w .-]{1,70}\.exe',name,re.I) for name in self.work_apps+self.gaming_apps):
+            raise ValueError('Gebruik alleen Windows-procesnamen, geen paden of opdrachten')
+        return self
+
+
 class Privacy(StrictModel):
     cloud_memories: bool = False
     cloud_sensitive: Literal[False] = False
@@ -265,6 +283,7 @@ class UserSettings(StrictModel):
     tasks: Tasks = Field(default_factory=Tasks)
     autonomy: Autonomy = Field(default_factory=Autonomy)
     notifications: Notifications = Field(default_factory=Notifications)
+    presence: Presence = Field(default_factory=Presence)
     privacy: Privacy = Field(default_factory=Privacy)
     diagnostics: Diagnostics = Field(default_factory=Diagnostics)
 
@@ -276,6 +295,8 @@ class DeviceSettings(StrictModel):
     microphone_allowed: bool = False
     wake_enabled: bool = False
     keep_awake: bool = False
+    presence_allowed: bool = Field(default=False,title='Aanwezigheidsstatus van dit apparaat delen')
+    application_allowed: bool = Field(default=False,title='Actief programma lokaal met werk-/gamelijst vergelijken')
 
 
 class MemoryInput(StrictModel):

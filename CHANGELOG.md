@@ -4,6 +4,9 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Acht gedeelde modi, opt-in Windows-/Android-aanwezigheid, persistente eenmalige
+  terugkomstevents en lokale/no-history privémodus. Geen impliciete telemetriegrant.
+
 - Opt-in episodisch zoeken in eerdere gebruikersuitspraken met SQLite FTS5,
   bronvergeten, apparaatscope, privacyfilters en migratiebackup; geen extra LLM.
 

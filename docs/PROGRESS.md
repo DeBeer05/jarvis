@@ -2,6 +2,19 @@
 
 ## Actueel: acht productfases persoonlijke butler
 
+- Fase 1 checkpoint 25410ad. Fase 2 technisch gereed: acht modi, opt-in Windows
+  WTS/idle/lokale procesclassificatie en Android foreground lock/idle. SQLite v10
+  bevat persistente status en een begrensde, apparaatgebonden event-inbox.
+- Privé: nieuwe chattekst niet opslaan, lokale AI/TTS, geen impliciete cloudfallback;
+  ruwe voorkeuren blijven behouden. Meldingen volgen modus/opt-in, geen grantwijziging.
+- Fase-2-checks: 617 servertests passed/1 skip, 15 finale gerichte tests, 136 client-
+  tests; Android 8 tests + lint + debug/release-build geslaagd. Geen echte apparaat-
+  of microfoonacceptatie. Logs .local/butler-phase2-*.log. Volgende: fase 3.
+- Gevraagde locatie/tijden/koppelingen ontvangen in chat; niet als persoonlijke
+  gegevens in Git vastleggen. Scheduled bellen vereist aantoonbare echte route.
+- PR 33 is gestapeld op PR 32. Fase-1-CI 11 groen/1 bekende Qt-testabort;
+  laatste clientreeks lokaal groen, nieuwe head volgen na push. Geen CI-bypass.
+
 - Nieuwe expliciete opdracht staat acht productfases toe; plan in
   IMPLEMENTATION_PLAN.md. Branch feature/personal-butler vanaf ea09cb6/PR 32;
   develop mist nog deze basis. Nieuwe branch zonder stash/reset; eigenaarmail

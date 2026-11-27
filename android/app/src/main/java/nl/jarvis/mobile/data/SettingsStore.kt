@@ -16,6 +16,15 @@ data class Preferences(
     val firebaseEnabled: Boolean = false, val inputDevice: Int = 0, val outputDevice: Int = 0
 )
 class SettingsStore(private val context: Context) {
+    private fun receiptKey(origin:String)=stringPreferencesKey("personal_events_"+java.security.MessageDigest.getInstance("SHA-256").digest(origin.toByteArray()).joinToString(""){"%02x".format(it)})
+    suspend fun personalEventSeen(origin:String,id:String):Boolean =
+        (context.settingsData.data.first()[receiptKey(origin)] ?: "").split(',').contains(id)
+    suspend fun markPersonalEventSeen(origin:String,id:String) {
+        require(runCatching {java.util.UUID.fromString(id)}.isSuccess)
+        context.settingsData.edit {p -> val key=receiptKey(origin)
+            p[key]=((p[key] ?: "").split(',').filter {it.isNotBlank() && it!=id}+id).takeLast(200).joinToString(",")
+        }
+    }
     private fun cursorKey(origin: String)=doublePreferencesKey("notification_cursor_"+java.security.MessageDigest.getInstance("SHA-256").digest(origin.toByteArray()).joinToString(""){"%02x".format(it)})
     suspend fun notificationCursor(origin: String):Double = context.settingsData.data.first()[cursorKey(origin)] ?: (System.currentTimeMillis()/1000.0)
     suspend fun notificationSeen(origin: String,at: Double) { context.settingsData.edit { p -> val key=cursorKey(origin);p[key]=maxOf(p[key] ?: 0.0,at) } }

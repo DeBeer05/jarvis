@@ -31,3 +31,34 @@ samenvattingscall. Maximaal drie fragmenten van 480 tekens, binnen het bestaande
 contextbudget. De functie is standaard uit en verandert geen cloudtoestemming.
 
 Volgende fasen worden hier pas toegevoegd nadat ze zijn geïmplementeerd.
+
+## Fase 2: aanwezigheid en modi
+
+1. Kies bij globale instellingen Aanwezigheid en modi. Alle acht handmatige modi
+   zijn beschikbaar. Werk beperkt lichte meldingen; Gaming/Afwezig/Slapen/Privé/
+   Noodgeval tonen alleen urgente events. Onderweg laat belangrijke meldingen toe.
+   Geen modus geeft extra actierechten of belt zelfstandig.
+2. Zeg ‘Ik ga nu eten’, daarna ‘Ik ben weer terug’. Eén begroeting, passend bij
+   de eerdere activiteit; een tweede ‘Ik ben terug’ herhaalt de begroeting niet.
+   Herstart tussendoor om de persistente status te controleren.
+3. Windows: tab Aanwezigheid op dit apparaat. Zet delen alleen zelf aan als u dat
+   wilt. Activeer daarnaast globale automatische modi. Vergrendel/ontgrendel en
+   controleer Afwezig → Normaal. De begroeting verschijnt stil in de actieve app.
+   Ontvangstbewijs wordt lokaal bewaard; herstart mag haar niet opnieuw tonen.
+4. Alleen na apart aanvinken: stel werk-/gameprocesnamen in (bijvoorbeeld
+   `Code.exe`). Lokaal vergelijken; geen procesnamen of venstertitels naar backend.
+   Trek toestemming in en controleer dat er geen nieuwe signalen worden geaccepteerd.
+5. Android: Instellingen → Aanwezigheid. Delen staat uit. Na eigen opt-in worden
+   lock/idle alleen in de voorgrond gerapporteerd. Achtergrond is in deze fase
+   onbekend en vervalt na 120 seconden; er wordt geen aanwezigheid verzonnen.
+6. Zet Privé aan. Nieuwe gesprekstekst ontbreekt in opgeslagen historie en lokale
+   AI/spraak vervangt cloud/premium. Bij ontbrekende lokale modellen volgt een
+   fout, nooit stilzwijgende cloudfallback. Voorkeuren voor normale modus blijven
+   behouden. Oude historie en verplichte actie-/goedkeuringslogs worden niet gewist.
+7. Schakel meldingen uit; ook eerder klaargezette terugkomstevents mogen niet
+   verschijnen. Urgentie omzeilt geen apparaat- of uitvoeringsrechten.
+
+Primaire API-bronnen: [Windows sessie-events](https://learn.microsoft.com/en-us/windows/win32/termserv/wm-wtssession-change),
+[initiële WTS-status](https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/ns-wtsapi32-wtsinfoex_level1_w),
+[idle in eigen sessie](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getlastinputinfo),
+[Android systeemintents](https://developer.android.com/reference/android/content/Intent).

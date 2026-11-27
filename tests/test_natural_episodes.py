@@ -80,7 +80,7 @@ def test_episode_fts_migration_indexes_old_history_and_tracks_edits(tmp_path):
             db.execute('DROP TRIGGER '+trigger)
         for table in ('natural_episode_sources','natural_episode_origins','natural_episode_fts'):
             db.execute('DROP TABLE '+table)
-        db.execute('DELETE FROM schema_migrations WHERE version=9')
+        db.execute('DELETE FROM schema_migrations WHERE version>=9')
         db.execute('PRAGMA user_version=8')
         db.execute("INSERT INTO chat_conversations VALUES ('c','test','now','now')")
         db.execute("INSERT INTO chat_turns(id,conversation_id,created_at,user_text,status,sequence) VALUES ('t','c','now','oudonderwerp','completed',1)")

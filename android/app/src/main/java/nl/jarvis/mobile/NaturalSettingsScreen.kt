@@ -97,7 +97,7 @@ internal object SettingsDraft {
     Text(state.naturalStatus.ifBlank {"Globale voorkeuren synchroniseren met Windows. Microfoon en luidspreker blijven lokaal."})
     if(!state.connection.authenticated) { Text("Log in en koppel deze telefoon om je persoonlijke instellingen te openen.");return }
     var page by remember {mutableStateOf("Instellingen")}
-    Row(Modifier.horizontalScroll(rememberScrollState())) {listOf("Instellingen","Geheugen","Adresboek","Voice Studio","Diagnostiek").forEach {name ->FilterChip(selected=page==name,onClick={page=name;if(name=="Geheugen")model.naturalMemory();if(name=="Adresboek")model.naturalContacts();if(name=="Voice Studio")model.voiceStudio();if(name=="Diagnostiek")model.naturalDiagnostics()},label={Text(name)})}}
+    Row(Modifier.horizontalScroll(rememberScrollState())) {listOf("Instellingen","Geheugen","Adresboek","Voice Studio","Diagnostiek","Aanwezigheid").forEach {name ->FilterChip(selected=page==name,onClick={page=name;if(name=="Geheugen")model.naturalMemory();if(name=="Adresboek")model.naturalContacts();if(name=="Voice Studio")model.voiceStudio();if(name=="Diagnostiek")model.naturalDiagnostics();if(name=="Aanwezigheid")model.presenceRefresh()},label={Text(name)})}}
     val context=LocalContext.current;val scope=rememberCoroutineScope();var exportText by remember {mutableStateOf("")}
     val export=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) {uri -> if(uri!=null) scope.launch {
         try { withContext(Dispatchers.IO) { context.contentResolver.openOutputStream(uri)?.use {it.write(exportText.toByteArray(Charsets.UTF_8))} ?: error("Geen uitvoerbestand") };model.message("Export opgeslagen") }
@@ -108,6 +108,18 @@ internal object SettingsDraft {
     if(page=="Adresboek") {NaturalContacts(state,model);return}
     if(page=="Geheugen") {NaturalMemory(state,model) {exportData("/memory/export","jarvis-geheugen.json")};return}
     if(page=="Diagnostiek") {NaturalDiagnostics(state,model) {exportData("/diagnostics","jarvis-diagnostiek.json")};return}
+    if(page=="Aanwezigheid") {
+        Text(state.presenceStatus.ifBlank {"Aanwezigheid delen staat standaard uit"})
+        Text("Alleen vergrendeling en inactiviteit terwijl JARVIS vooraan staat. Geen schermbeelden, locatie of gebruik van andere apps. Achtergrondstatus vereist later een afzonderlijk ingeschakelde service. Globale modi staan onder Instellingen → Aanwezigheid en modi.")
+        val document=objectOrEmpty(state.presenceDevice)
+        val enabled=document.optJSONObject("settings")?.optBoolean("presence_allowed")==true
+        Row(verticalAlignment=Alignment.CenterVertically) {
+            Switch(checked=enabled,onCheckedChange=model::presenceSave,enabled=state.presenceDevice.isNotBlank())
+            Text("Aanwezigheidsstatus van deze telefoon delen")
+        }
+        OutlinedButton(onClick=model::presenceRefresh){Text("Vernieuwen")}
+        return
+    }
     if(state.naturalSchema.isBlank() || state.naturalSettings.isBlank()) {Button(onClick=model::naturalRefresh){Text("Instellingen ophalen")};return}
     val schema=remember(state.naturalSchema) {JSONObject(state.naturalSchema)}
     var base by remember {mutableStateOf(state.naturalSettings)}

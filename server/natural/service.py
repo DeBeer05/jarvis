@@ -24,6 +24,11 @@ class NaturalService:
         self.security,self.chat,self.automation=security,chat,automation
         self.store=NaturalStore(database,security,chat.store.clean)
         self.settings=SettingsManager(self.store)
+        from server.natural.events import EventInbox
+        from server.natural.presence import PresenceManager
+        self.events=EventInbox(self.store)
+        self.presence=PresenceManager(self)
+        self.settings.presence=self.presence
         self.memory=MemoryManager(self.store)
         from server.natural.tts import TTSRouter
         self.tts=TTSRouter(self)
@@ -80,6 +85,8 @@ class NaturalService:
 
     def command(self,run):
         response=self.responses.command(run)
+        if response is not None:return response
+        response=self.presence.command(run)
         if response is not None:return response
         """Explicit memory commands are executed locally, never by generated code."""
         message=run.message.strip();config=run.natural_context["settings"]
@@ -184,6 +191,5 @@ class NaturalService:
             yield {"type":"provider","provider":"local","model":"memory"}
             yield {"type":"delta","text":reply}
 
-    @staticmethod
-    def is_command(run):
-        return bool((run.natural_context and IntelligentResponseManager.preference(run.message,run.natural_context["settings"])) or CAPABILITIES.fullmatch(run.message.strip()) or OPEN_TASKS.fullmatch(run.message.strip()) or re.match(r"^(?:jarvis[, ]+)?(?:onthou(?:d)?\b|vergeet\b|wat (?:weet|onthoud) je (?:nog )?(?:over|van) mij[?.!]*$)",run.message.strip(),re.I))
+    def is_command(self,run):
+        return bool(self.presence.intent(run.message) or (run.natural_context and IntelligentResponseManager.preference(run.message,run.natural_context["settings"])) or CAPABILITIES.fullmatch(run.message.strip()) or OPEN_TASKS.fullmatch(run.message.strip()) or re.match(r"^(?:jarvis[, ]+)?(?:onthou(?:d)?\b|vergeet\b|wat (?:weet|onthoud) je (?:nog )?(?:over|van) mij[?.!]*$)",run.message.strip(),re.I))

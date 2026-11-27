@@ -50,6 +50,7 @@ class MainActivity: ComponentActivity() {
         intent?.getStringExtra("screen")?.let(model::navigate)
     }
     override fun onStart() { super.onStart(); model.active(true) }
+    override fun onUserInteraction() {super.onUserInteraction();model.presenceInteraction()}
     override fun onStop() { model.active(false); super.onStop() }
     override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); intent.getStringExtra("screen")?.let(model::navigate) }
 }
@@ -78,6 +79,9 @@ private fun navigationTitle(screen: String, language: String): String = if(langu
         Scaffold(topBar={ TopAppBar(title={ Text("JARVIS · ${navigationTitle(state.screen,state.preferences.language)}", fontWeight=FontWeight.SemiBold) }, navigationIcon={ TextButton(onClick={scope.launch {drawer.open()}}) {Text("☰", style=MaterialTheme.typography.headlineSmall)} },
             actions={ TextButton(onClick=model::reconnect) { Text(if(state.connection.authenticated) "● Online" else if(state.connection.online) "○ Inloggen" else "○ Offline") } }) }) { padding ->
             Column(Modifier.fillMaxSize().padding(padding).imePadding().widthIn(max=1100.dp).padding(horizontal=20.dp, vertical=8.dp)) {
+                if(state.butlerMessage.isNotBlank()) Surface(color=MaterialTheme.colorScheme.secondaryContainer,shape=MaterialTheme.shapes.medium,modifier=Modifier.fillMaxWidth().padding(bottom=12.dp)) {
+                    Column(Modifier.padding(14.dp)) {Text(state.butlerMessage);TextButton(onClick=model::dismissButlerMessage){Text("Begrepen")}}
+                }
                 if(state.error.isNotBlank()) Surface(color=MaterialTheme.colorScheme.errorContainer, shape=MaterialTheme.shapes.medium, modifier=Modifier.fillMaxWidth().padding(bottom=12.dp)) {
                     Text(state.error, Modifier.padding(14.dp), color=MaterialTheme.colorScheme.onErrorContainer)
                 }

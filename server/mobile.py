@@ -73,7 +73,7 @@ class SpeechBridge:
 
 
 async def audio_preferences(request):
-    document=await asyncio.to_thread(request.app.state.natural.settings.get,request.state.principal)
+    document=await asyncio.to_thread(request.app.state.natural.settings.runtime,request.state.principal)
     voice=document["settings"]["voice"]
     return {"model":voice["whisper_model"],"device":voice["processing"],"provider":voice["tts_provider"],
             "voice":voice["voice"],"speaker":voice["speaker"],"speed":voice["speed"],"unload_after_seconds":voice["unload_after_seconds"],
@@ -140,10 +140,11 @@ async def synthesize(request: Request, body: Speak):
     preferences=await audio_preferences(request)
     if body.speed is not None:preferences["speed"]=body.speed
     from copy import deepcopy
-    config=deepcopy((await asyncio.to_thread(request.app.state.natural.settings.get,principal))["settings"])
+    config=deepcopy((await asyncio.to_thread(request.app.state.natural.settings.runtime,principal))["settings"])
     if body.conversation_id:
         await asyncio.to_thread(request.app.state.natural.authorize_conversation,principal,body.conversation_id)
         config=request.app.state.natural.responses.apply(principal,body.conversation_id,config)
+    if config.get('presence',{}).get('mode')=='private':config['voice']['mode']='offline'
     if body.speed is not None:config["voice"]["speed"]=body.speed
     from providers.speech_format import format_speech
     result=await request.app.state.natural.tts.synthesize(request,format_speech(body.text,config["general"]["timezone"]),config,body.utterance_id)
