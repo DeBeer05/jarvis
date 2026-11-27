@@ -4,6 +4,16 @@
 
 ### Acht productfases persoonlijke butler — 27 november 2026
 
+Fase 5 technisch gereed: gesloten Windows-hostacties en Downloads-events,
+CPU/RAM en optionele bestaande NVIDIA NVML-sensoren; Android getypeerde
+apphandoffs, opt-in WorkManager, meldingsaantallen en batterij/laatst bekende
+locatie met afzonderlijke toestemmingen. SQLite v12/backup, bronrevisies,
+approvals/policyfingerprint/eenmaligheid en onzeker resultaat blijven leidend.
+642 servertests passed/1 POSIX-skip; na laatste SDK/expiry/parent-stopwijzigingen
+13 gerichte tests passed. Android 11 unit tests, lint/debug/release en kwaliteit
+groen. Geen echte oproep/bericht of automatische grant; nog niet live.
+Fase-4-head 096b87a alle 12 CI-checks groen. Volgende fase: externe integraties.
+
 Fase 4 technisch gereed: opt-in incrementele STT op beide clients met 500 ms
 overlap, één request tegelijk, laatste audiodeel en uitsluitend finale uitvoering.
 Voorlopige requests verlopen na acht seconden; late/cancelled tekst blijft weg.

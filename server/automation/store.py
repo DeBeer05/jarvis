@@ -47,7 +47,9 @@ class Store:
     def recover(self):
         # A crash after an external HTTP request has an unknown outcome. Never replay it.
         with self.db(True) as db:
-            db.execute("UPDATE automation_jobs SET status=CASE WHEN tool IN ('CalendarCreate','CalendarUpdate','CalendarDelete','EmailDraft','EmailSend') THEN 'uncertain' ELSE 'queued' END,approval_hash=NULL WHERE status='running'")
+            from server.automation.models import SIDE_EFFECT_TOOLS
+            tools=sorted(SIDE_EFFECT_TOOLS)
+            db.execute("UPDATE automation_jobs SET status=CASE WHEN tool IN ("+','.join('?' for _ in tools)+") THEN 'uncertain' ELSE 'queued' END,approval_hash=NULL WHERE status='running'",tools)
             # Keep idempotency tombstones, remove old sensitive action bodies.
             db.execute("UPDATE automation_jobs SET payload='{}',result=NULL,status='deleted' WHERE status IN ('completed','denied','cancelled','failed') AND updated<?",(self.clock()-30*86400,))
 

@@ -313,6 +313,16 @@ class DeviceSettings(StrictModel):
     keep_awake: bool = False
     presence_allowed: bool = Field(default=False,title='Aanwezigheidsstatus van dit apparaat delen')
     application_allowed: bool = Field(default=False,title='Actief programma lokaal met werk-/gamelijst vergelijken')
+    handoff_allowed:bool=Field(default=False,title='Goedgekeurde opdrachten in telefoonapps klaarzetten')
+    status_allowed:bool=Field(default=False,title='Batterijstatus met uw andere apparaten delen')
+    notification_allowed:bool=Field(default=False,title='Aantallen meldingen delen (geen inhoud)')
+    notification_packages:list[str]=Field(default_factory=list,max_length=20,title='Toegestane apppakketnamen voor meldingsaantallen')
+    location_allowed:bool=Field(default=False,title='Optionele laatst bekende locatie delen (maximaal 24 uur bewaard)')
+    @model_validator(mode='after')
+    def packages(self):
+        import re
+        if any(not re.fullmatch(r'[a-z][a-z0-9_.]{2,100}',package) for package in self.notification_packages):raise ValueError('Ongeldige apppakketnaam')
+        return self
 
 
 class MemoryInput(StrictModel):

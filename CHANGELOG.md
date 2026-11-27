@@ -4,6 +4,12 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Gesloten Windows-hostbediening met eigenaarallowlist, policyfingerprint en
+  bestaande approvals; CPU/RAM, optionele NVML-sensoren en Downloads-events.
+- Android-apphandoffs en opt-in achtergrondsync. Meldingsaantallen zonder inhoud,
+  batterij/laatst bekende locatie onder afzonderlijke grants/retentie; SQLite v12.
+  Oproepen/verzending via externe apps worden nooit als voltooid voorgesteld.
+
 - Opt-in incrementele Nederlandse STT op Windows en Android met korte overlap,
   sequentiële inference, verwerking van het laatste audiodeel en begrensde
   voorlopige herkenning. Alleen afgeronde uitspraken gaan naar chat/tools.

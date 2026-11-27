@@ -46,6 +46,13 @@ class NaturalService:
         from server.natural.briefings import BriefingManager
         self.life=LifeItems(self);automation.life=self.life
         self.briefings=BriefingManager(self);automation.briefings=self.briefings
+        from server.natural.handoffs import Handoffs
+        self.handoffs=Handoffs(self);automation.handoffs=self.handoffs
+        from server.natural.device_status import DeviceStatus
+        self.device_status=DeviceStatus(self)
+        from server.natural.desktop_commands import DesktopCommands
+        self.desktop_commands=DesktopCommands(self)
+        automation.desktop_monitor=self.desktop_commands.monitor
         chat.natural=self
 
     def authorize_conversation(self,principal,conversation):
@@ -193,7 +200,9 @@ class NaturalService:
     async def stream_command(self,run):
         import asyncio
         from server.natural.briefings import REQUEST as BRIEFING_REQUEST
-        if BRIEFING_REQUEST.fullmatch(run.message.strip()):reply=await self.briefings.answer(run)
+        desktop=self.desktop_commands.parse(run.message)
+        if desktop:reply=await self.desktop_commands.answer(run,desktop)
+        elif BRIEFING_REQUEST.fullmatch(run.message.strip()):reply=await self.briefings.answer(run)
         else:reply=await asyncio.to_thread(self.command,run)
         if reply is not None:
             yield {"type":"provider","provider":"local","model":"memory"}
@@ -201,5 +210,5 @@ class NaturalService:
 
     def is_command(self,run):
         from server.natural.briefings import REQUEST as BRIEFING_REQUEST
-        if BRIEFING_REQUEST.fullmatch(run.message.strip()) or self.life.intent(run.message):return True
+        if BRIEFING_REQUEST.fullmatch(run.message.strip()) or self.life.intent(run.message) or self.desktop_commands.parse(run.message):return True
         return bool(self.presence.intent(run.message) or (run.natural_context and IntelligentResponseManager.preference(run.message,run.natural_context["settings"])) or CAPABILITIES.fullmatch(run.message.strip()) or OPEN_TASKS.fullmatch(run.message.strip()) or re.match(r"^(?:jarvis[, ]+)?(?:onthou(?:d)?\b|vergeet\b|wat (?:weet|onthoud) je (?:nog )?(?:over|van) mij[?.!]*$)",run.message.strip(),re.I))

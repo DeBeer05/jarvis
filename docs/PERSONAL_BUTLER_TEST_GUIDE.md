@@ -107,3 +107,41 @@ Primaire bronnen: [Open-Meteo](https://open-meteo.com/en/docs),
 
 Implementatiegrens: incrementele audiosegmenten via de bestaande WAV-route,
 geen nieuw model of vendor-WebSocket. [Faster-Whisper documentatie](https://github.com/SYSTRAN/faster-whisper).
+
+## Fase 5: Windows en Android
+
+1. Hostbediening staat uit. Configureer als eigenaar alleen programma’s en
+   specifieke documentmappen die u wilt toestaan. Laat commandoverwerkers en
+   project-/systeemmappen buiten de lijst. Formulieren volgen fase 8.
+2. Vraag ‘Toon mijn systeemstatus’ en ‘Open [uw ingestelde programmanaam]’.
+   Status vraagt geen model; openen blijft een volledig te controleren voorstel
+   bij Taken → Goedkeuringen. Een oude agenda-‘ja’ mag dit niet goedkeuren.
+3. Wijzig de hostconfiguratie na een voorstel: het oude voorstel mag niet meer
+   uitvoeren. Zoek een document, probeer daarna een pad buiten de toegestane map:
+   dat wordt geweigerd. Sluiten gebruikt een vriendelijk vensterverzoek; een
+   opslaanvenster blijft mogelijk. Store-app-launchers kunnen een andere exe hebben.
+4. Test media alleen wanneer passend. Energieacties worden technisch gemockt;
+   er is geen echte afsluit-/slaaptest uitgevoerd. Afsluiten/herstarten gebruikt
+   60 seconden; een afzonderlijke geautoriseerde annuleeropdracht blijft beschikbaar.
+5. Downloads-monitoring vereist expliciete selectie van uw Downloads-map en
+   ontvangend apparaat. Bestaande bestanden geven geen startspam; een nieuw
+   fictief bestand levert een wijzigingsevent, geen claim dat een download klaar is.
+6. Android: geef zelf de gewenste app-/status-/meldings-/locatietoestemmingen.
+   Meldingsmetadata bevat uitsluitend aantallen per gekozen app. De optionele
+   locatie is laatst bekend en kan verouderd zijn; dat blijft zichtbaar.
+7. Bereid een telefoonactie voor en keur het exacte voorstel goed. Op de telefoon
+   verschijnt ‘Open telefoonapp’. Test met fictieve concepttekst en verzend niet.
+   Dialer/WhatsApp/Signal/SMS/mail/navigatie blijven zelf verantwoordelijk voor de
+   laatste stap. Een ontbrekende app geeft een fout, nooit ‘verzonden’ of ‘gebeld’.
+8. Herstart voor/na openen: dezelfde opdracht mag niet opnieuw openen. Trek bron-
+   of doelrechten in, stop de bovenliggende taak of wacht twee minuten: geen
+   nieuwe overdracht. Een verlopen onbevestigde overdracht wordt onzeker bewaard.
+9. Achtergrondophalen staat uit. Na eigen opt-in haalt WorkManager ongeveer iedere
+   15 minuten op; Android/batterij/netwerk mogen uitstellen. Een melding toont geen
+   privé-inhoud op het lockscreen. Open JARVIS om de echte briefing te lezen.
+
+Bronnen: [Windows geheugen](https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-globalmemorystatusex),
+[media-opdrachten](https://learn.microsoft.com/en-us/windows/win32/inputdev/wm-appcommand),
+[NVML](https://docs.nvidia.com/deploy/nvml-api/latest/),
+[Android notification access](https://developer.android.com/reference/android/service/notification/NotificationListenerService),
+[WorkManager intervallen](https://developer.android.com/develop/background-work/background-tasks/persistent/getting-started/define-work).

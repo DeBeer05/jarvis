@@ -2,6 +2,23 @@
 
 ## Actueel: acht productfases persoonlijke butler
 
+- Fase 5 technisch afgerond: Windows-hostadapter (gesloten acties,
+  specifieke programma-/documentrechten, policyfingerprint, workerthreads),
+  Android-apphandoff met doelapparaatconsent/eenmalige approval en aparte
+  ready/handed-off-status. Geen oproep of verzending geclaimd. Lokale Windows-
+  en automationreeks 28 passed; laatste SDK/handoff/privacyreeks 13 passed.
+- Nieuw: opt-in WorkManager-achtergrondophalen (15 min, OS mag uitstellen), geen
+  permanente microfoon/LLM/service. Server-inbox blijft ongelezen tot voorgrond;
+  aparte opaque notificationreceipt voorkomt herhaling. Android 11 tests, lint en
+  debug/release geslaagd. Meldingsmetadata/batterij/optionele locatie: SQLite v12,
+  actuele grants, ouderdomslabel en bestaande 24-uursmaintenance.
+- Volledige serverreeks 642 passed/1 POSIX-skip; na laatste SDK/expiry/parent-stop-
+  wijzigingen 13 gerichte tests passed. Logs .local/butler-phase5-*.log. Geen
+  nieuwe functies live of echte telefoonacceptatie. Formulieren volgen fase 8.
+- Volgende fase: 6, ondersteunde externe adapters en schermcontext. Geen Oracle-
+  installatie/cutover, geen betaalde diensten of nieuwe werkelijke apparaatgrant.
+- Fase-4-head 096b87a heeft alle 12 echte CI-checks groen. Eigenaarmaildiffs apart.
+
 - Fase 4 technisch gereed: opt-in incrementele STT op Windows/Android, 500 ms
   overlap, restaudio en achtsecondenlimiet voor voorlopige herkenning. Alleen
   afgeronde uitspraak naar tools. 140 clienttests, 28 server/ElevenLabs-tests,

@@ -39,6 +39,8 @@ class RetentionManager:
             users=db.execute("SELECT id FROM auth_users").fetchall()
             for user_row in users:
                 user=user_row["id"]
+                if getattr(natural,'device_status',None):natural.device_status.prune(db,user,now)
+                db.execute("UPDATE automation_jobs SET status='uncertain',result=?,updated=? WHERE tool='MobileHandoff' AND status='waiting' AND EXISTS(SELECT 1 FROM natural_events e WHERE e.user_id=? AND e.kind='device.handoff' AND json_extract(e.payload,'$.job_id')=automation_jobs.id AND e.expires<=?)",(json.dumps({'handoff':'expired_unconfirmed','called':False,'sent':False}),now,user,now))
                 saved=db.execute("SELECT payload FROM natural_settings WHERE user_id=? AND scope='user' AND device_id=''",(user,)).fetchone()
                 config=UserSettings.model_validate_json(saved["payload"]).model_dump(mode="json") if saved else UserSettings().model_dump(mode="json")
                 if config["memory"]["prune_expired"]:

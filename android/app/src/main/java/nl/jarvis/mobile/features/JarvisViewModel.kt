@@ -29,7 +29,7 @@ data class ScreenState(
     val automations: String = "", val automationResult: String = "",
     val naturalSettings: String = "", val naturalSchema: String = "", val naturalMemory: String = "", val naturalContacts: String = "",val voiceStudio:String="",
     val naturalSummaries: String = "", val naturalStatus: String = "",val conversationState: String="STANDBY",val naturalDiagnostics:String="",val activityPlanning:String="",
-    val presenceDevice:String="",val presenceStatus:String="",val butlerMessage:String=""
+    val presenceDevice:String="",val presenceStatus:String="",val butlerMessage:String="",val phoneHandoff:String=""
 )
 class JarvisViewModel(application: Application,val audio: AudioClient): AndroidViewModel(application) {
     constructor(application: Application):this(application,AudioClient(application))
@@ -46,7 +46,8 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
         {currentApi},{mutable.value.connection.authenticated},
         {naturalConfig()?.optJSONObject("presence")?.optString("mode")=="private"},
         {document,status -> mutable.update {it.copy(presenceDevice=document?.toString() ?: it.presenceDevice,presenceStatus=status)}},
-        {text -> mutable.update {it.copy(butlerMessage=text)}})
+        {text -> mutable.update {it.copy(butlerMessage=text)}},
+        {item -> mutable.update {it.copy(phoneHandoff=item?.toString() ?: "")}})
     private var voiceConversationActive=false;private var voiceStarted=0L;private var lastVoice=0L
     private var interruptionJob:Job?=null;private var failedBargeGeneration:Int?=null
     private var responseClock=0L;private var firstAudioReported=false
@@ -189,6 +190,26 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
     }
     fun presenceInteraction() {presence.interaction()}
     fun dismissButlerMessage() {mutable.update {it.copy(butlerMessage="")}}
+
+    fun phoneAction(open:(JSONObject)->Boolean) {
+        val api=currentApi ?: return
+        if(!foreground || !mutable.value.connection.authenticated)return
+        val item=runCatching {JSONObject(mutable.value.phoneHandoff)}.getOrNull() ?: return
+        val epoch=generation;mutable.update {it.copy(phoneHandoff="")}
+        viewModelScope.launch {
+            try {
+                val current=api.json("/api/v1/natural/mobile-handoffs").getJSONArray("items")
+                val fresh=(0 until current.length()).map{current.getJSONObject(it)}.firstOrNull {it.getString("id")==item.getString("id")} ?: return@launch message("Telefoonopdracht is verlopen of ingetrokken")
+                val id=fresh.getString("id")
+                if(graph.settings.personalEventSeen(api.endpoint.origin,id))return@launch
+                graph.settings.markPersonalEventSeen(api.endpoint.origin,id)
+                if(epoch!=generation || !foreground || currentApi!==api || !mutable.value.connection.authenticated)return@launch
+                val handedOff=open(fresh.getJSONObject("request"))
+                api.json("/api/v1/natural/mobile-handoffs/$id/result","POST",JSONObject().put("state",if(handedOff)"handed_off" else "dismissed"))
+                message(if(handedOff)"Geopend in de telefoonapp. Bellen of verzenden bevestigt u daar zelf, meneer." else "Telefoonapp niet beschikbaar; niets verzonden of gebeld, meneer.")
+            }catch(error:Exception){if(epoch==generation)message("Overdracht niet bevestigd; ik herhaal de actie niet automatisch, meneer.")}
+        }
+    }
     fun naturalDiagnostics() {naturalRequest("/diagnostics") {data -> mutable.update {it.copy(naturalDiagnostics=data.toString())}}}
     fun refreshPlanning() {
         val conversation=mutable.value.conversation ?: return
@@ -312,7 +333,9 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
     }
     fun message(text: String) { mutable.update { it.copy(error=text) } }
     fun save(preferences: Preferences) { viewModelScope.launch {
-        try { Endpoint.parse(preferences.origin, BuildConfig.DEBUG); graph.settings.save(preferences); mutable.update { it.copy(error="Instellingen opgeslagen") } } catch (error: Exception) { problem(error) }
+        try { Endpoint.parse(preferences.origin, BuildConfig.DEBUG); graph.settings.save(preferences)
+            nl.jarvis.mobile.notifications.BackgroundSync.configure(getApplication(),preferences.backgroundSync)
+            mutable.update { it.copy(error="Instellingen opgeslagen") } } catch (error: Exception) { problem(error) }
     } }
     fun beginPair(username: String = "", password: String = "") {
         val api = currentApi ?: return message("Stel eerst een geldig serveradres in")

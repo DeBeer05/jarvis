@@ -3,6 +3,7 @@ package nl.jarvis.mobile
 import android.app.Application
 import android.content.Context
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.first
 import nl.jarvis.mobile.core.Endpoint
 import nl.jarvis.mobile.data.*
 import nl.jarvis.mobile.notifications.Notifications
@@ -20,5 +21,7 @@ class AppGraph(context: Context) {
 class JarvisApplication: Application() {
     lateinit var graph: AppGraph
         private set
-    override fun onCreate() { super.onCreate(); graph = AppGraph(this); graph.notifications.channels() }
+    override fun onCreate() { super.onCreate(); graph = AppGraph(this); graph.notifications.channels()
+        graph.scope.launch {nl.jarvis.mobile.notifications.BackgroundSync.configure(this@JarvisApplication,graph.settings.values.first().backgroundSync)}
+    }
 }

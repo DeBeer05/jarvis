@@ -31,6 +31,34 @@ class ModeChange(StrictModel):
     mode:Literal['normal','work','gaming','away','sleeping','travelling','private','emergency']
 
 
+@router.get('/mobile-handoffs')
+def phone_handoffs(request:Request):return service(request).handoffs.list(request.state.principal)
+
+
+class HandoffResult(StrictModel):
+    state:Literal['handed_off','dismissed']
+
+
+@router.get('/device-status')
+def device_snapshots(request:Request):return service(request).device_status.list(request.state.principal)
+
+
+from server.natural.device_status import Snapshot
+
+
+@router.post('/device-status')
+def device_snapshot(request:Request,body:Snapshot):
+    natural=service(request);principal=request.state.principal
+    natural.security.store.rate('device-status:'+principal.device_id,12)
+    try:return natural.device_status.save(principal,body)
+    except PermissionError:raise HTTPException(403,'Apparaatstatus delen is niet toegestaan') from None
+
+
+@router.post('/mobile-handoffs/{identifier}/result')
+def phone_handoff_result(request:Request,identifier:UUID,body:HandoffResult):
+    return service(request).handoffs.result(request.state.principal,str(identifier),body.state)
+
+
 @router.get('/briefings/capabilities')
 def briefing_capabilities(request:Request):
     service(request).settings.get(request.state.principal)

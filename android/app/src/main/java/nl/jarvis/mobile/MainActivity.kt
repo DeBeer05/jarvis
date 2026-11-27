@@ -82,6 +82,17 @@ private fun navigationTitle(screen: String, language: String): String = if(langu
                 if(state.butlerMessage.isNotBlank()) Surface(color=MaterialTheme.colorScheme.secondaryContainer,shape=MaterialTheme.shapes.medium,modifier=Modifier.fillMaxWidth().padding(bottom=12.dp)) {
                     Column(Modifier.padding(14.dp)) {Text(state.butlerMessage);TextButton(onClick=model::dismissButlerMessage){Text("Begrepen")}}
                 }
+                if(state.phoneHandoff.isNotBlank()) {
+                    val context=androidx.compose.ui.platform.LocalContext.current
+                    val action=runCatching {org.json.JSONObject(state.phoneHandoff).getJSONObject("request")}.getOrNull()
+                    if(action!=null) Surface(color=MaterialTheme.colorScheme.secondaryContainer,modifier=Modifier.fillMaxWidth().padding(bottom=12.dp)) {
+                        Column(Modifier.padding(14.dp)) {
+                            Text("${nl.jarvis.mobile.device.PhoneHandoff.label(action.optString("action"))} · ${action.optString("target")}")
+                            Text("Open de betreffende app om zelf de laatste stap uit te voeren.")
+                            TextButton(onClick={model.phoneAction {request -> runCatching {context.startActivity(nl.jarvis.mobile.device.PhoneHandoff.intent(request));true}.getOrDefault(false)}}){Text("Open telefoonapp")}
+                        }
+                    }
+                }
                 if(state.error.isNotBlank()) Surface(color=MaterialTheme.colorScheme.errorContainer, shape=MaterialTheme.shapes.medium, modifier=Modifier.fillMaxWidth().padding(bottom=12.dp)) {
                     Text(state.error, Modifier.padding(14.dp), color=MaterialTheme.colorScheme.onErrorContainer)
                 }
@@ -204,7 +215,8 @@ private fun navigationTitle(screen: String, language: String): String = if(langu
         Row(verticalAlignment=Alignment.CenterVertically) {Checkbox(checked=category in pref.categories,onCheckedChange={checked ->model.save(pref.copy(categories=if(checked) pref.categories+category else pref.categories-category))});Text(category,Modifier.weight(1f));TextButton(onClick={model.testNotification(category)}){Text("Test")}}
     } }
     Row(verticalAlignment=Alignment.CenterVertically) {Switch(checked=state.preferences.firebaseEnabled,onCheckedChange=model::firebase);Text("FCM inschakelen",Modifier.padding(start=12.dp))}
-    Text("Zonder eigen Firebase-configuratie zijn alleen lokale voorbeeldmeldingen beschikbaar. Externe bezorging is nog niet geverifieerd.",style=MaterialTheme.typography.bodySmall)
+    Row(verticalAlignment=Alignment.CenterVertically) {Switch(checked=state.preferences.backgroundSync,onCheckedChange={model.save(state.preferences.copy(backgroundSync=it))});Text("Briefings op de achtergrond ophalen",Modifier.padding(start=12.dp))}
+    Text("Achtergrondophalen is optioneel en ongeveer iedere 15 minuten mogelijk; Android kan dit uitstellen. Hiervoor is geen Firebase nodig. FCM vereist eigen configuratie en is nog niet geverifieerd.",style=MaterialTheme.typography.bodySmall)
 }
 @Composable private fun Account(state: ScreenState,model: JarvisViewModel) {
     var confirm by remember {mutableStateOf(false)}

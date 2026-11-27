@@ -29,7 +29,7 @@ Qwen2.5:3B en bestaande Windows-/Android-/upstreamcode blijven behouden.
 | 2 Aanwezigheid/modi | Gespreksstatus, clientstatus, meldingsbeleid | Acht modi, handmatig/automatisch, begrensde OS-signalen met opt-in, persistente transitions en eenmalige terugkomst | Technisch afgerond; echte apparaatacceptatie open |
 | 3 Persoonlijke assistentie | Calendar/Gmail, conflictcontrole, follow-up, scheduler, quiet hours | Brongebonden briefings/routines/lijsten, connectorstatus, prioritering; actuele weer/nieuws/verkeer alleen echte bron | Kern technisch afgerond; verkeer/telefonie/bankkoppeling ontbreken extern |
 | 4 Spraak | ElevenLabs, tekst-/zinsstreaming, lokale Whisper/Piper, echo/barge-in, foreground vervolg | Meetbare streaminggrenzen, hervatten en fallback audit; echte audioacceptatie apart | Technisch afgerond; menselijke audioacceptatie open |
-| 5 Windows/Android | Native clients, apparaatpairing, Windows gesloten acties | Toegestane OS-acties/status, Android ondersteunde intents/toestemmingen en achtergrondsync; geen WhatsApp/Signal-API verzinnen | Nog niet gestart; grants/telefoon nodig voor echte tests |
+| 5 Windows/Android | Native clients, apparaatpairing, Windows gesloten acties | Toegestane OS-acties/status, Android ondersteunde intents/toestemmingen en achtergrondsync; geen WhatsApp/Signal-API verzinnen | Technisch afgerond; echte grants/apparaatacceptatie open |
 | 6 Externe omgeving | Bestaande scherm-/apparaatrechtstructuur | Opt-in schermcontext, ondersteunde HA/Creality/navigatieadapters en capabilities | Nog niet gestart; endpoints/apparaatconfig extern |
 | 7 Betrouwbare autonomie | Jobs, scheduler, approvals, audit, dedup, revoke, secretstore | Centrale events integreren, begrensde retries/prioriteit/deadlines, noodstop en expliciete undo-capabilities | Nog niet gestart; hergebruik engine |
 | 8 Interface/instellingen | Dynamische gedeelde instellingen, taken/logs, usage en diagnose | Nieuwe fases zichtbaar op beide clients, ontbrekende configuratie tonen, testhandleiding en builds | Nog niet gestart; na voorgaande deltas |
@@ -108,3 +108,30 @@ geheimcontrole geslaagd. Geen echte accounts, TTS of modeldownloads gebruikt.
 - 140 Windows-clienttests, 28 gerichte server/ElevenLabs-tests, lint/types groen.
   Android unit/lint/debug/release ook na laatste timeoutaanpassing geslaagd.
   Menselijke microfoon-/luisteracceptatie nog afzonderlijk.
+
+### Fase 5 — apparaten en platformgrenzen
+
+- Gesloten Windows-hostadapter: eigenaarallowlist voor Win32-programma’s en
+  documentmappen, zoeken/openen/sluiten, media/volume, lock/sleep/power. Werk
+  buiten UI/eventloop, policyfingerprint en bestaande eenmalige approvals.
+  Verzoeken en bewezen afhandeling blijven afzonderlijk; geen successen verzinnen.
+- CPU/RAM via Windows SDK; optionele NVIDIA NVML-belasting/GPU-temperatuur via
+  reeds aanwezige driver. Geen installatie; CPU-temperatuur/andere GPU-drivers
+  niet beschikbaar. Alleen de Windows-backendhost wordt bestuurd, geen verzonnen
+  remote agent na een eventuele latere Oracle-migratie.
+- Opt-in Downloads-bron: begrensde metadata-scan iedere 30 s, eerste scan alleen
+  baseline, wijzigingen naar dezelfde event-inbox, geen periodieke LLM-aanroep.
+- Android: getypeerde apphandoff voor dialer, SMS/e-mailconcept, WhatsApp,
+  Signal-deelvenster en navigatie. Paired doelapparaat, eigen opt-in, eenmalige
+  approval, twee minuten geldig, persistente receipt vóór openen. Bellen/verzenden
+  gebeurt in de externe app; server claimt dit nooit als uitgevoerd.
+- WorkManager-achtergrondophalen: opt-in, minimaal 15 min en OS mag uitstellen;
+  geen permanente microfoon/foregroundservice. Inbox blijft leesbaar in de app.
+- Meldingen uitsluitend aantallen per toegestane app, nooit titel/body/actions.
+  Android notification access en optionele locatie vereisen echte OS-grants.
+  Batterij/laatst bekende locatie elk eigen consent, staleness en maximaal 24 uur
+  metadata met bestaande maintenance. Geen SMS-/oproep-/toegankelijkheidsrechten.
+- SQLite v12, bestaande backup. Brede reeks 642 passed/1 POSIX-skip; daaropvolgende
+  finale SDK/handoff/privacytests 13 passed. Android 11 unit tests, lint en beide
+  builds groen. Ruff/mypy/contract/pip/structuur groen. Gegevensoverzicht en nieuwe
+  grant-/hostformulieren volgen fase 8; echte apparaten niet als getest opgevoerd.

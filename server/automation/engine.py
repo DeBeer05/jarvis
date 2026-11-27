@@ -5,9 +5,9 @@ import json
 from datetime import datetime, UTC
 from typing import Protocol
 
-from server.automation.models import REGISTRY, validate, next_occurrence, UrgentEvent
+from server.automation.models import REGISTRY, validate, next_occurrence, UrgentEvent,SIDE_EFFECT_TOOLS
 from server.automation.store import Store, encode, fingerprint
-from server.automation.google import IntegrationManager, WRITE_GUARD
+from server.automation.google import IntegrationManager, WRITE_GUARD,REQUEST_GUARD
 from server.security.types import AuthError, digest, token
 
 AUTOMATION_SCOPES = frozenset({"automation:read", "automation:write", "automation:approve", "integrations:manage"})
@@ -26,7 +26,7 @@ class PermissionManager:
             row=db.execute("SELECT s.payload FROM natural_settings s JOIN auth_devices d ON d.user_id=s.user_id WHERE d.id=? AND s.scope='user' AND s.device_id=''",(device,)).fetchone()
         if not row:return
         autonomy=json.loads(row["payload"])["autonomy"]
-        reads={"CalendarList","CalendarRead","EmailSearch","EmailRead","ReminderList","WorkflowStatus","CalendarSummary","EmailCheck","WaitForReply","PersonalBriefing"}
+        reads={"CalendarList","CalendarRead","EmailSearch","EmailRead","ReminderList","WorkflowStatus","CalendarSummary","EmailCheck","WaitForReply","PersonalBriefing","DesktopRead"}
         if autonomy["actions"].get(tool)=="block" or autonomy["profile"]=="read_propose" and tool not in reads:
             raise AuthError("permission_denied","Deze actie is geblokkeerd door je instellingen voor zelfstandigheid.",403)
 
@@ -296,6 +296,16 @@ class ActionExecutor:
         if tool=="EmailDraft": return await e.integrations.draft(p)
         if tool=="EmailSend": return await e.integrations.send(p)
         if tool=="PersonalBriefing":return await e.briefings.execute(row,p)
+        if tool=='MobileHandoff':return await asyncio.to_thread(e.handoffs.publish,row,p,WRITE_GUARD.get() or (lambda:None))
+        if tool in ('DesktopRead','DesktopControl'):
+            write_guard=WRITE_GUARD.get();request_guard=REQUEST_GUARD.get()
+            def guard():
+                if write_guard:write_guard()
+                if request_guard:request_guard()
+                e.permissions.check(row['device_id'],'automation:read')
+            guard()
+            result=await asyncio.to_thread(e.windows.read if tool=='DesktopRead' else e.windows.control,p,guard)
+            guard();return result
         if tool=="ReminderCreate":
             if p.get('source_id'):e.life.guard_reminder(row['device_id'],p)
             return e.notifications.send("important",p["text"],row["key"]+":"+str(row["due"]),row["id"])
@@ -342,12 +352,15 @@ class AutomationEngine:
         self.workflows=WorkflowManager(self); self.followups=FollowUpManager(self)
         self.triggers=TriggerManager(self); self.executor=ActionExecutor(self); self.scheduler=TaskScheduler(self)
         self.lock=asyncio.Lock()
+        from server.automation.windows import WindowsHost
+        self.windows=WindowsHost(self.store)
 
     def submit(self, device, tool, payload, key, due=None, repeat="once", timezone="Europe/Amsterdam", parent=None, step=0):
         if repeat not in ('once','daily','weekly','monthly','yearly'):raise ValueError('Onbekende herhaling')
         self.permissions.check(device,"automation:write")
         self.permissions.check_tool(device,tool)
         if tool in self.store.preference("disabled_tools",[]): raise ValueError("Deze actie is uitgeschakeld door de eigenaar")
+        if tool=='DesktopControl' and not payload.get('policy_hash'):payload={**payload,'policy_hash':self.windows.signature()}
         payload=validate(tool,payload)
         if repeat!="once" and REGISTRY[tool][1]: raise ValueError("Externe wijzigingen mogen niet terugkerend worden goedgekeurd")
         if tool=="ReminderCreate":
@@ -372,6 +385,7 @@ class AutomationEngine:
     async def tick(self,*,job_id=None):
         async with self.lock:
             if job_id is None:
+                if getattr(self,'desktop_monitor',None):await asyncio.to_thread(self.desktop_monitor)
                 if getattr(self,'briefings',None):self.briefings.schedule_events()
                 self.followups.schedule_automatic()
                 self.workflows.advance()
@@ -417,7 +431,7 @@ class AutomationEngine:
                     finally: WRITE_GUARD.reset(context)
                     # Never persist email bodies or event descriptions in execution history.
                     safe_result={"available":True} if row["tool"] in ("EmailRead","EmailSearch","CalendarRead","CalendarList") else result
-                    status="waiting" if row["tool"] in ("WorkflowCreate","WaitForReply") else "completed"
+                    status="waiting" if row["tool"] in ("WorkflowCreate","WaitForReply","MobileHandoff") else "completed"
                     with self.store.db(True) as db:
                         if row["repeat"]!="once":
                             due=next_occurrence(row["due"],row["repeat"],row["timezone"],self.store.clock()); status="queued"
@@ -426,12 +440,12 @@ class AutomationEngine:
                         self.store.event(db,"completed",row["id"],row["device_id"])
                 except asyncio.CancelledError:
                     with self.store.db(True) as db:
-                        external=row['tool'] in ('EmailDraft','EmailSend','CalendarCreate','CalendarUpdate','CalendarDelete')
+                        external=row['tool'] in SIDE_EFFECT_TOOLS
                         db.execute("UPDATE automation_jobs SET status=?,updated=? WHERE id=? AND status='running'",('uncertain' if external else 'queued',self.store.clock(),row['id']))
                     raise
                 except Exception:
                     with self.store.db(True) as db:
-                        external=row["tool"] in ("EmailDraft","EmailSend","CalendarCreate","CalendarUpdate","CalendarDelete")
+                        external=row["tool"] in SIDE_EFFECT_TOOLS
                         retry=not external and row["tool"] in ("CalendarRead","EmailSearch","EmailRead","EmailCheck","CalendarSummary") and row["attempts"]<5
                         db.execute("UPDATE automation_jobs SET status=?,result=?,attempts=attempts+1,due=? WHERE id=?",("uncertain" if external else "queued" if retry else "failed",encode({"error":"Uitvoering niet bevestigd; controleer integratie of provider vóór een nieuwe actie."}),self.store.clock()+min(3600,30*2**row["attempts"]) if retry else row["due"],row["id"]))
                         self.store.event(db,"execution_unconfirmed",row["id"],row["device_id"])

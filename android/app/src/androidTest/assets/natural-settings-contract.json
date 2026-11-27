@@ -1888,6 +1888,34 @@
           "default": false,
           "title": "Actief programma lokaal met werk-/gamelijst vergelijken",
           "type": "boolean"
+        },
+        "handoff_allowed": {
+          "default": false,
+          "title": "Goedgekeurde opdrachten in telefoonapps klaarzetten",
+          "type": "boolean"
+        },
+        "status_allowed": {
+          "default": false,
+          "title": "Batterijstatus met uw andere apparaten delen",
+          "type": "boolean"
+        },
+        "notification_allowed": {
+          "default": false,
+          "title": "Aantallen meldingen delen (geen inhoud)",
+          "type": "boolean"
+        },
+        "notification_packages": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Toegestane apppakketnamen voor meldingsaantallen",
+          "type": "array"
+        },
+        "location_allowed": {
+          "default": false,
+          "title": "Optionele laatst bekende locatie delen (maximaal 24 uur bewaard)",
+          "type": "boolean"
         }
       },
       "title": "DeviceSettings",
@@ -1900,11 +1928,14 @@
       "CalendarRead",
       "CalendarSummary",
       "CalendarUpdate",
+      "DesktopControl",
+      "DesktopRead",
       "EmailCheck",
       "EmailDraft",
       "EmailRead",
       "EmailSearch",
       "EmailSend",
+      "MobileHandoff",
       "NotificationSend",
       "PersonalBriefing",
       "ReminderCancel",
@@ -1917,6 +1948,8 @@
       "MemoryUpdate"
     ],
     "mandatory_approval": [
+      "DesktopControl",
+      "MobileHandoff",
       "CalendarCreate",
       "CalendarUpdate",
       "CalendarDelete",

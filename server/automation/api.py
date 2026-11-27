@@ -90,6 +90,20 @@ class Policy(Input):
 def engine(request): return request.app.state.automation
 
 
+@router.get(BASE+'/windows')
+def windows_capabilities(request:Request):return engine(request).windows.capabilities()
+
+
+@router.put(BASE+'/windows',dependencies=[Depends(require_permission('admin:account'))])
+async def windows_policy(request:Request,body:dict):
+    from server.automation.windows import HostPolicy
+    policy=HostPolicy.model_validate(body)
+    e=engine(request);e.store.set_preference('windows_host',policy.model_dump(mode='json'))
+    e.store.set_preference('windows_watch_owner',request.state.principal.device_id)
+    e.audit.record('windows_host_policy_updated',device=request.state.principal.device_id)
+    return await asyncio.to_thread(e.windows.capabilities)
+
+
 @router.get("/automations")
 def page(): return FileResponse(STATIC/"automations.html")
 

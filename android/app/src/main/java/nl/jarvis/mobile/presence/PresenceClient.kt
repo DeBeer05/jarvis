@@ -22,7 +22,8 @@ class PresenceClient(
     private val authenticated:()->Boolean,
     private val privateMode:()->Boolean,
     private val state:(JSONObject?,String)->Unit,
-    private val event:(String)->Unit
+    private val event:(String)->Unit,
+    private val handoff:(JSONObject?)->Unit={}
 ) {
     private val mutex=Mutex()
     private var job:Job?=null
@@ -39,6 +40,7 @@ class PresenceClient(
     fun install(value:JSONObject) {
         document=value
         if(!enabled || privateMode()) unregister() else register()
+        if(value.optJSONObject("settings")?.optBoolean("handoff_allowed")!=true || privateMode())handoff(null)
         state(value,if(enabled) "Aanwezigheid delen toegestaan; alleen zolang JARVIS actief is" else "Aanwezigheid delen uitgeschakeld")
     }
     fun interaction() {if(enabled) lastInput=SystemClock.elapsedRealtime()}
@@ -48,7 +50,7 @@ class PresenceClient(
         job=scope.launch {while(isActive) {step();delay(20000)}}
     }
     fun stop() {foreground=false;job?.cancel();job=null;unregister()}
-    fun clear() {stop();document=null;lastApi=null;sequence=null;state(null,"Aanwezigheid niet gekoppeld")}
+    fun clear() {stop();document=null;lastApi=null;sequence=null;handoff(null);state(null,"Aanwezigheid niet gekoppeld")}
     fun kick() {scope?.launch {step()}}
     private fun register() {
         if(!foreground || receiver!=null || !enabled || privateMode())return
@@ -81,6 +83,18 @@ class PresenceClient(
                 state(document,"Modus: ${result.optString("label","Onbekend")}")
             }
             if(!locked && foreground && current===api() && authenticated()) {
+                if(!privateMode())document?.optJSONObject("settings")?.let {
+                    try {nl.jarvis.mobile.device.DeviceSnapshot.send(context,current,it)}catch(cancel:CancellationException){throw cancel}catch(_:Exception){ /* Optional metadata must not block the inbox. */ }
+                }
+                if(document?.optJSONObject("settings")?.optBoolean("handoff_allowed")==true && !privateMode()) {
+                    val actions=current.json("/api/v1/natural/mobile-handoffs").getJSONArray("items")
+                    var first:JSONObject?=null
+                    for(index in 0 until actions.length()) {
+                        val item=actions.getJSONObject(index)
+                        if(!store.personalEventSeen(current.endpoint.origin,item.getString("id"))) {first=item;break}
+                    }
+                    if(foreground && current===api() && authenticated())handoff(first)
+                }
                 val items=current.json("/api/v1/natural/events").getJSONArray("items")
                 for(index in 0 until items.length()) {
                     if(!foreground || current!==api() || !authenticated())return

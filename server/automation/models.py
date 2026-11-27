@@ -133,6 +133,44 @@ class PersonalBriefing(Input):
     source_event:str|None=Field(default=None,pattern=r'^[0-9a-f-]{36}$')
 
 
+class DesktopRead(Input):
+    kind:Literal['status','files','downloads']='status'
+    query:str=Field(default='',max_length=80)
+
+
+class MobileHandoff(Input):
+    target_device:str=Field(pattern=r'^[0-9a-f-]{36}$')
+    action:Literal['dial','sms','email','whatsapp','signal','navigate']
+    target:str=Field(default='',max_length=300)
+    text:str=Field(default='',max_length=1800)
+    subject:str=Field(default='',max_length=120)
+    @model_validator(mode='after')
+    def fields(self):
+        import re
+        if self.action in ('dial','sms','whatsapp') and not re.fullmatch(r'\+?[0-9]{6,15}',self.target):raise ValueError('Gebruik een volledig telefoonnummer')
+        if self.action=='email' and (not re.fullmatch(r'[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+',self.target) or any(ch in self.subject for ch in '\r\n')):raise ValueError('Ongeldig mailadres of onderwerp')
+        if self.action=='navigate' and not self.target.strip():raise ValueError('Geef een bestemming')
+        if self.action=='signal' and self.target:raise ValueError('Kies de ontvanger in Signal zelf')
+        if self.action in ('dial','navigate') and (self.text or self.subject):raise ValueError('Ongebruikte actiegegevens')
+        if self.action!='email' and self.subject:raise ValueError('Alleen e-mail heeft een onderwerp')
+        return self
+
+
+class DesktopControl(Input):
+    action:Literal['open_program','close_program','open_file','volume_up','volume_down','mute','play','pause','play_pause','next','previous','lock','sleep','shutdown','restart','cancel_shutdown']
+    program:str=Field(default='',max_length=50)
+    path:str=Field(default='',max_length=400)
+    policy_hash:str=Field(default='',pattern=r'^(?:[0-9a-f]{64})?$')
+    @model_validator(mode='after')
+    def fields(self):
+        if self.action in ('open_program','close_program'):
+            if not self.program or self.path:raise ValueError('Kies één toegestaan programma')
+        elif self.action=='open_file':
+            if not self.path or self.program:raise ValueError('Kies één toegestaan document')
+        elif self.path or self.program:raise ValueError('Ongebruikte actiegegevens')
+        return self
+
+
 class NotificationSend(Input):
     category: Literal["urgent", "appointments", "important", "news"] = "important"
     text: str = Field(min_length=1, max_length=500)
@@ -155,6 +193,8 @@ class WorkflowCreate(Input):
 
 
 REGISTRY = {
+    'DesktopRead':(DesktopRead,False),'DesktopControl':(DesktopControl,True),
+    'MobileHandoff':(MobileHandoff,True),
     "PersonalBriefing": (PersonalBriefing,False),
     "CalendarList": (Empty, False),
     "CalendarSummary": (CalendarSummary, False), "EmailCheck": (EmailSearch, False),
@@ -167,6 +207,8 @@ REGISTRY = {
     "ReminderCancel": (Identifier, False), "NotificationSend": (NotificationSend, False),
     "WorkflowCreate": (WorkflowCreate, False), "WorkflowStatus": (Identifier, False),
 }
+
+SIDE_EFFECT_TOOLS=frozenset({'CalendarCreate','CalendarUpdate','CalendarDelete','EmailDraft','EmailSend','DesktopControl','MobileHandoff'})
 
 
 def aware(value):
