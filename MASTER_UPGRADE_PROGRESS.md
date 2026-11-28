@@ -34,7 +34,10 @@ hybride implementatie/PR33. Twee bestaande maildigest-eigenaarsdiffs blijven int
    Controles tot nu: 48 gerichte servertests, 155 clienttests; Android unit/lint/
    debug/release gebouwd. Laatste kleine cachewijzigingen worden opnieuw getest.
    Eén noodzakelijke kleine dependency: websockets 17.4, uitsluitend geïsoleerd.
-4. [ ] Persoonlijkheid: korte gedeelde butlerstijl zonder interne uitvoerdetails.
+4. [x] Persoonlijkheid: bestaande gedeelde Nederlandse stijl behouden; vaste
+   functie-/taakantwoorden gebruiken nu u/uw en onthullen geen toolnaam of taak-ID.
+   Werkelijke bevoegdheden blijven leidend; geen universele bevestigingsplicht
+   in de functie-uitleg. Configuratie en stem blijven per eigenaar synchroniseren.
 5. [ ] Infrastructuur: Oracle-backend, back-up/restore/rollback, systemd, TLS;
    mini-pc-gatewaypakket, optionele beschikbare Windows-compute.
 6. [ ] Geheugen/Life Engine: bestaande CRUD/FTS/items/scheduler uitbreiden voor

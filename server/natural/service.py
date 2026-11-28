@@ -127,22 +127,25 @@ class NaturalService:
         if CAPABILITIES.fullmatch(message):
             features=self.automation.integrations.status().get("features",[])
             permissions=run.principal.permissions
-            abilities=["met je praten en vragen beantwoorden"]
-            if config["memory"]["long_term"]:abilities.append("op jouw verzoek voorkeuren onthouden en vergeten")
+            abilities=["met u spreken en vragen beantwoorden"]
+            if config["memory"]["long_term"]:abilities.append("op uw verzoek voorkeuren onthouden en vergeten")
             if "automation:read" in permissions:
-                if "calendar_read" in features:abilities.append("je agenda opvragen")
+                if "calendar_read" in features:abilities.append("uw agenda opvragen")
                 if "gmail_read" in features:abilities.append("e-mails zoeken en op verzoek lezen")
             if "automation:write" in permissions and config["autonomy"]["profile"]!="read_propose":
                 if "calendar_write" in features:abilities.append("afspraken voorbereiden")
                 if "gmail_compose" in features:abilities.append("mailconcepten voorbereiden")
-            return "Ik kan "+", ".join(abilities)+". Agenda wijzigen of een mail versturen gebeurt alleen na het volledige voorstel en jouw goedkeuring. Je kunt bijvoorbeeld zeggen: ‘Ik wil een afspraak maken’, en daarna de gegevens aanvullen."
+            from server.natural.presence import address
+            return address("Ik kan "+", ".join(abilities)+". Daarbij volg ik uw verleende bevoegdheden en bevestig ik handelingen pas na de uitvoering",config)
         if OPEN_TASKS.fullmatch(message):
             self.automation.permissions.check(run.principal.device_id,"automation:read")
             with self.store.transaction(run.principal) as (db,user):
                 rows=db.execute("SELECT j.id,j.tool,j.status FROM automation_jobs j JOIN auth_devices d ON d.id=j.device_id WHERE d.user_id=? AND j.status IN ('approval','queued','waiting','paused','blocked','uncertain') ORDER BY j.updated DESC LIMIT 21",(user,)).fetchall()
-            if not rows:return "Er staan geen openstaande automatiseringstaken klaar."
-            names={"approval":"wacht op jouw toestemming","queued":"ingepland","waiting":"wacht op resultaat","paused":"gepauzeerd","blocked":"geblokkeerd","uncertain":"uitkomst niet bevestigd"}
-            return "Je openstaande taken:\n"+"\n".join(f"- {row['tool']}: {names[row['status']]} (taak {row['id']})." for row in rows[:20])+("\nBekijk Automatiseringen voor de overige taken." if len(rows)>20 else "")
+            from server.natural.presence import address
+            if not rows:return address("Er staan geen openstaande taken klaar",config)
+            names={"approval":"wacht op uw toestemming","queued":"ingepland","waiting":"wacht op resultaat","paused":"gepauzeerd","blocked":"kan nog niet verder","uncertain":"uitkomst niet bevestigd"}
+            labels={'CalendarCreate':'Afspraak maken','CalendarUpdate':'Afspraak wijzigen','CalendarDelete':'Afspraak annuleren','CalendarRead':'Agenda bekijken','EmailDraft':'E-mail voorbereiden','EmailSend':'E-mail versturen','EmailRead':'E-mail lezen','EmailSearch':'E-mail zoeken','Reminder':'Herinnering','PersonalBriefing':'Uw briefing','DeviceCommand':'Apparaat bedienen','DeviceQuery':'Apparaat bekijken','HomeControl':'Uw huis bedienen'}
+            return address("Uw openstaande taken",config)+"\n"+"\n".join(f"- {labels.get(row['tool'],'Taak')}: {names[row['status']]}." for row in rows[:20])+("\nDe overige taken vindt u in het taakoverzicht." if len(rows)>20 else "")
         match=re.fullmatch(r"(?:jarvis[, ]+)?onthou(?:d)?(?: dat)?\s+(.+)",message,re.I|re.S)
         if match:
             if not config["memory"]["long_term"] or config["autonomy"]["actions"].get("MemorySave")=="block":
@@ -152,7 +155,7 @@ class NaturalService:
             if content.casefold().rstrip(".!") in ("dit","dat"):
                 turns=run.natural_context["turns"]
                 previous=turns[-1] if turns else None
-                if not previous or "?" in previous["user_text"] or not re.match(r"(?:ik|mijn)\b",previous["user_text"],re.I):return "Wat wil je precies dat ik onthoud? Noem de voorkeur of het feit."
+                if not previous or "?" in previous["user_text"] or not re.match(r"(?:ik|mijn)\b",previous["user_text"],re.I):return "Wat wilt u dat ik onthoud, meneer?"
                 content=previous["user_text"];source=previous["id"]
             value=preference(content) or {"content":content,"kind":"preference" if re.search(r"\b(liever|voorkeur|liefst)\b",content,re.I) else "fact"}
             if config['autonomy']['actions'].get('MemorySave')=='advise':value['status']='proposed'
