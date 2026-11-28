@@ -3,6 +3,8 @@ $ErrorActionPreference='Stop'
 if(-not $InstallRoot){$InstallRoot=Join-Path $env:TEMP ('jarvis-minipc-smoke-'+[guid]::NewGuid())}
 if(-not $UseExisting){& "$Package\INSTALL.ps1" -InstallRoot $InstallRoot -NoService -SkipOwnerSetup -SkipVoice}
 if(-not $?) {throw 'Isolatie-installatie mislukt.'}
+if(-not(Test-Path -LiteralPath "$InstallRoot\provision-link.sh")){throw 'SSH-bootstrap ontbreekt in de zelfstandige installatie.'}
+if((Test-Path -LiteralPath "$Package\oracle-connection.json") -and -not(Test-Path -LiteralPath "$InstallRoot\oracle-connection.json")){throw 'Publieke Oracle-verbindingsconfiguratie is niet geinstalleerd.'}
 . "$Package\Common.ps1"
 $release=Current-Release $InstallRoot
 $python="$release\.venv\Scripts\python.exe"

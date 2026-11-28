@@ -37,6 +37,8 @@ Set-Content "$InstallRoot\current.txt" $manifest.version
 try{
  & "$PSScriptRoot\START.ps1" -InstallRoot $InstallRoot
  Copy-Item "$Package\*.ps1" $InstallRoot -Force
+ Copy-Item -LiteralPath "$Package\provision-link.sh" -Destination (Join-Path $InstallRoot 'provision-link.sh') -Force
+ if(Test-Path -LiteralPath "$Package\oracle-connection.json"){Copy-Item -LiteralPath "$Package\oracle-connection.json" -Destination (Join-Path $InstallRoot 'oracle-connection.json') -Force}
 }catch{
  & "$PSScriptRoot\STOP.ps1" -InstallRoot $InstallRoot
  $stamp=Get-Date -Format 'yyyyMMddHHmmssfff'

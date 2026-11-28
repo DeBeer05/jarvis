@@ -50,6 +50,8 @@ try{
  if(-not $SkipOwnerSetup){Invoke-Python $runtimePython @('-m','server','setup-owner')}
 }finally{Pop-Location}
 Copy-Item "$PSScriptRoot\*.ps1" $InstallRoot -Force
+Copy-Item -LiteralPath "$PSScriptRoot\provision-link.sh" -Destination (Join-Path $InstallRoot 'provision-link.sh') -Force
+if(Test-Path -LiteralPath "$PSScriptRoot\oracle-connection.json"){Copy-Item -LiteralPath "$PSScriptRoot\oracle-connection.json" -Destination (Join-Path $InstallRoot 'oracle-connection.json') -Force}
 Copy-Item "$PSScriptRoot\INSTALLATIE.md" $InstallRoot -Force
 Set-Content "$InstallRoot\current.txt" $manifest.version
 if(-not $NoService){
