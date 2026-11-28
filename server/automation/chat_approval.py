@@ -81,6 +81,14 @@ class ChatApprovals:
         with self.chat.engine.store.db() as db:
             return [dict(row) for row in db.execute("SELECT * FROM automation_jobs WHERE status='approval' ORDER BY created DESC LIMIT 21")]
 
+    def unbound(self,memory):
+        identifiers=[item['id'] for item in memory.get('jobs',[]) if item.get('id')][:20]
+        if identifiers:
+            with self.chat.engine.store.db() as db:
+                count=db.execute("SELECT count(*) FROM automation_jobs WHERE status='approval' AND id IN ("+','.join('?' for _ in identifiers)+')',identifiers).fetchone()[0]
+            if count>1:return 'Er staan meerdere voorstellen klaar, meneer. Kies eerst het gewenste voorstel bij Taken.'
+        return 'Er staat in dit gesprek geen voorstel ter bevestiging klaar, meneer.'
+
     async def handle(self, run):
         c = self.chat; message = run.message; memory = c.memory(run)
         show = SHOW.fullmatch(message); decision = DECISION.fullmatch(message)
@@ -90,7 +98,8 @@ class ChatApprovals:
             previous=memory['decision'][0]
             if previous.get('device')==run.principal.device_id and previous.get('session')==run.principal.session_id:
                 return self.status(c.engine.store.get(memory["decision"][0]["id"]))
-        if spoken and not decision:return "Er staat in dit gesprek geen voorstel ter bevestiging klaar, meneer."
+        if spoken and not decision and memory.get("read_question"):return None
+        if spoken and not decision:return self.unbound(memory)
         if STATUS.fullmatch(message):
             last = memory.get("decision", [])
             return self.status(c.engine.store.get(last[0]["id"])) if last else "Er is in dit gesprek nog geen voorstel goedgekeurd. Vraag ‘Toon mijn voorstellen’."
@@ -103,7 +112,7 @@ class ChatApprovals:
         if not decision: return None
         pending = memory.get("pending", [])
         if len(pending) != 1:
-            return "Er staat in dit gesprek geen voorstel ter bevestiging klaar, meneer."
+            return self.unbound(memory)
         c.guard(run, "automation:approve")
         shown = pending[0]; row = c.engine.store.get(shown["id"])
         if row["status"] != "approval":

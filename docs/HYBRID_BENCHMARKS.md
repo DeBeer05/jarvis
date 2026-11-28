@@ -9,7 +9,7 @@ of persoonlijke database gebruikt; geen luisteracceptatie of mini-pc-meting.
 Drie synthetische geauthenticeerde HTTP-proeven met dezelfde mocks:
 
 - Vooraf: bevestiging mediaan 5545.9 ms; weer 103.5 ms.
-- Na router-/approvalwijziging: bevestiging mediaan 499.3 ms; weer 272.7 ms.
+- Na router-/approvalwijziging (laatste drie proeven): bevestiging mediaan 294.1 ms; weer 142.2 ms.
 
 Vooraf ging de weervraag ten onrechte naar het model (één call, nul broncalls).
 Daarna: nul modelcalls, één echte bronadapteraanroep per proef. De twee weertijden
@@ -72,3 +72,7 @@ STT/first-audio-tijden blijven beschikbaar in de bestaande diagnostiek.
 Externe broninformatie: [NDW-incidenten](https://docs.ndw.nu/faq/incidenten/),
 [Caddy streamingproxy](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy),
 [Ollama chat API](https://docs.ollama.com/api/chat).
+
+Het versie-endpoint op Oracle had over de bestaande SSH-tunnel in drie proeven
+een mediane HTTP-rondreis van 61,0 ms. Dit omvat ook de korte remote handler;
+het is geen losse pakket-/netwerkmeting.

@@ -93,3 +93,19 @@ def test_remote_status_query_does_not_require_write_permission(worker):
     assert job['status']=='waiting',response.text
     assert target.post(N+'/devices/claim',json={}).json()['item']['tool']=='DesktopRead'
     assert e.store.get(job['id'])['approval_required']==0
+
+
+def test_revoked_write_grant_blocks_a_leased_program_action(worker,tmp_path):
+    from tests.test_windows_host import approve
+    app,c,e,target,identifier,policy=worker
+    policy.update(programs_allowed=True,programs={'Example':str(tmp_path/'example.exe')})
+    consent(target,execution_policy=policy)
+    assert target.post(N+'/devices/heartbeat',json={'policy':policy}).status_code==200
+    payload={'target_device':identifier,'operation':'DesktopPrograms','input':{'action':'open_program','program':'Example','policy_hash':fingerprint(policy)}}
+    response=submit(c,'DeviceCommand',payload);assert response.status_code==200,response.text
+    job=response.json();approve(c,job);c.portal.call(e.tick)
+    item=target.post(N+'/devices/claim',json={}).json()['item'];assert item
+    source=c.get('/api/v1/auth/session').json()['device_id']
+    with e.store.db(True) as db:db.execute("DELETE FROM auth_permissions WHERE device_id=? AND permission='automation:write'",(source,))
+    assert target.post(N+'/devices/commands/'+item['id']+'/start',json={'lease':item['lease']}).status_code==403
+    assert e.store.get(job['id'])['status']=='waiting'

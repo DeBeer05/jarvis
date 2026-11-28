@@ -109,7 +109,7 @@ class DeviceBroker:
     def guard(self,job,row):
         e=self.n.automation
         if job['status']!='waiting':raise ValueError('Opdracht niet meer actief')
-        e.permissions.check(job['device_id'],'automation:read' if row['tool'] in ('DesktopRead','DesktopPrograms') else 'automation:write')
+        e.permissions.check(job['device_id'],'automation:read' if row['tool']=='DesktopRead' else 'automation:write')
         e.permissions.check_tool(job['device_id'],row['tool'])
         if row['tool'] in e.store.preference('disabled_tools',[]):raise ValueError('Deze functie is uitgeschakeld')
         if job['approval_required']:

@@ -20,6 +20,8 @@ geen persoonlijke migratie/cutover uitgevoerd. Geen nieuwe betaalde resources.
 - SQLite v15: apparaat-heartbeats, gebonden opdrachtleases, eenmalige start,
   onzekere uitkomsten bij verlopen gestarte leases. Windows-worker hergebruikt de
   gesloten hostadapter en lokale receipts; ontvangst blijft expliciete owner-opt-in.
+- Trage spraakaanvragen geven na 1,25 s een korte voortgangszin, zonder
+  succesclaim; berichttekst en annulering blijven afzonderlijk geverifieerd.
 - Windows-paneel voor toegestane programma's/mappen en verbindingsstatus; Android
   Oracle-keuze en bijgewerkt instellingencontract. Geen nieuwe Android-grants.
 - Mini-PC-builder en lifecycle-scripts toegevoegd, inclusief DPAPI-machineopslag,
@@ -33,7 +35,9 @@ geen persoonlijke migratie/cutover uitgevoerd. Geen nieuwe betaalde resources.
 
 Tussenstand controles: 698 servertests + 1 Windows-skip; gerichte vervolgproeven
 42 context/spraak, 35 hybride tests en 15 aanvullende cache/queue/package-proeven
-zijn groen. Definitieve volledige herhaling/CI en artifacts worden nog gecontroleerd.
+zijn groen. CI-installatiepakket en Windows-build slagen. CI vond drie focus-/leesvraagregressies;
+98 gerichte tests slagen na het herstel. Definitieve CI-herhaling en artifacts
+worden nog gecontroleerd.
 Windows 153 tests groen. Android unit/lint/debug/release gebouwd; nog niet als
 nieuwe APK op fysieke hardware geverifieerd. Menselijke luisteracceptatie blijft open.
 De twee bestaande maildigest-eigenaarsdiffs blijven onveranderd en ongecommit.

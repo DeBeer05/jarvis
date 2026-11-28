@@ -82,3 +82,22 @@ def test_topic_change_cannot_rebind_an_older_unapproved_job(tools_chat):
     assert app.state.automation.store.get(row['id'])['status']=='approval'
     run=__import__('server.chat_service',fromlist=['Generation']).Generation('synthetic',shown['conversation_id'],'ollama','',principal=app.state.security.store.authenticate(c.cookies.get('jarvis_access')))
     assert not app.state.chat.automation_chat.memory(run).get('pending')
+
+
+def test_slow_voice_request_acknowledges_without_claiming_success(tools_chat):
+    import json
+    app,c,router=tools_chat
+    app.state.chat.progress_seconds=.01
+    provider=router.providers['ollama']
+    async def slow(messages):
+        await asyncio.sleep(.05)
+        yield 'Een fictief antwoord.'
+    provider.stream=slow
+    session=c.post('/api/v1/natural/conversations/start',json={}).json()
+    for event in ('listening','processing'):
+        assert c.post('/api/v1/natural/conversations/'+session['conversation_id']+'/events',json={'event':event,'epoch':session['epoch']}).status_code==200
+    response=c.post('/api/v1/chat/stream',json={'message':'Vertel eens iets over schilderen','provider':'ollama','channel':'voice','conversation_id':session['conversation_id'],'session_epoch':session['epoch']})
+    events=[json.loads(line[6:]) for line in response.text.splitlines() if line.startswith('data: ')]
+    speech=[item['text'] for item in events if item['type']=='speech']
+    assert speech[0].startswith('Een ogenblik') and events[-1]['status']=='completed'
+    assert 'Een ogenblik' not in events[-1]['message'] and not app.state.automation.store.items()

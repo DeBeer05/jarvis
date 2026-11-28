@@ -56,7 +56,7 @@ def test_task_question_does_not_swallow_topic_change_or_later_yes(tools_chat,kin
     assert second['message']=='Gewone chat.' and len(router.planning_calls)==expected
     third=call(c,'Ja',first['conversation_id']).json()
     assert third['status']=='completed' and len(router.planning_calls)==expected
-    assert third['message']=='Gewone chat.' if kind=='read' else 'datum en begintijd' in third['message']
+    assert 'geen voorstel ter bevestiging' in third['message'] if kind=='read' else 'datum en begintijd' in third['message']
     assert not app.state.automation.store.items()
 
 

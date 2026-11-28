@@ -84,6 +84,13 @@ class AutomationChat:
         self.references[self.key(run)] = (self.clock(), memory)
         if self.task_memory:self.task_memory.save(run,memory)
 
+    def suspend_read_question(self,run):
+        # A normal conversation is an explicit focus change. Keep write actions
+        # independently bound, but do not interpret a later casual yes as the
+        # answer to an older read clarification.
+        if self.memory(run).get('read_question') and not self.task_question(self.memory(run)):
+            self.remember(run,'read_question',[])
+
     def candidate(self, run):
         if self.calendar.candidate(run):return True
         if run.principal is None:return False
@@ -299,10 +306,10 @@ class AutomationChat:
             result=str(error)
             provider=None
         except (ValueError, KeyError, TypeError):
-            result = "Ik kon geen veilige, eenduidige actie afronden. Geef de afspraak, ontvanger of het tijdstip concreter aan en controleer bij een leesfout je Google-koppeling en rechten. Ik heb geen bevestigde externe wijziging uitgevoerd."
+            result = "Ik kan hiervoor geen veilige opdracht bepalen, meneer. De uitvoering is niet bevestigd."
             provider = None
         except httpx.TransportError:
-            result = "De Google-verbinding is onderbroken. Ik kan je gegevens nu niet betrouwbaar ophalen. Controleer de verbinding en de accountkoppeling."
+            result = "De verbinding met uw account is onderbroken, meneer. Ik kan uw gegevens nu niet betrouwbaar ophalen."
             provider = None
         if result is None:
             # A planner may decline a tool. Rejoin the exact same bounded,

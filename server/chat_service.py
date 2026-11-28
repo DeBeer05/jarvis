@@ -63,6 +63,7 @@ class Generation:
 
 
 class ChatService:
+    progress_seconds=1.25
     def __init__(self, settings: Settings, store: ChatStore, router: AIRouter):
         self.settings, self.store, self.router = settings, store, router
         self.active: dict[str, Generation] = {}
@@ -175,6 +176,8 @@ class ChatService:
                 tool_route=False
             else:
                 tool_route=bool(self.automation_chat and self.automation_chat.candidate(run))
+                if not tool_route and run.principal and hasattr(self.automation_chat,'suspend_read_question'):
+                    self.automation_chat.suspend_read_question(run)
                 source = self.automation_chat.stream(run) if tool_route else self.router.stream(self.context(run), run.mode)
             run.timings["intent_ms"]=(time.perf_counter()-intent_started)*1000
             if self.natural and run.channel=="voice" and run.natural_context and not planning_route:
@@ -184,6 +187,16 @@ class ChatService:
                     async with asyncio.timeout(run.ai_policy.timeout_seconds if run.ai_policy else self.settings.ai_timeout_seconds):
                         while True:
                             pending = asyncio.create_task(next_with_policy(stream,run.ai_policy))
+                            if run.channel=='voice' and self.natural and run.natural_context and not run.text and not run.speech_message:
+                                ready,_=await asyncio.wait((pending,cancellation),timeout=self.progress_seconds,return_when=asyncio.FIRST_COMPLETED)
+                                if not ready and not run.cancel.is_set():
+                                    if run.session_epoch is not None:
+                                        await asyncio.to_thread(self.natural.check_audio,run)
+                                        await self.natural.phase(run,State.ASSISTANT_SPEAKING)
+                                    from server.natural.presence import address
+                                    notice=address('Een ogenblik',run.natural_context['settings'])
+                                    run.speech_message+=notice+' '
+                                    yield {'type':'speech','text':notice+' '}
                             done, _ = await asyncio.wait((pending, cancellation), return_when=asyncio.FIRST_COMPLETED)
                             if cancellation in done:
                                 run.status = "cancelled"
