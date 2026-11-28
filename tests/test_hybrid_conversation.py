@@ -101,3 +101,13 @@ def test_slow_voice_request_acknowledges_without_claiming_success(tools_chat):
     speech=[item['text'] for item in events if item['type']=='speech']
     assert speech[0].startswith('Een ogenblik') and events[-1]['status']=='completed'
     assert 'Een ogenblik' not in events[-1]['message'] and not app.state.automation.store.items()
+
+
+def test_public_read_denial_is_explicit_and_never_calls_the_source(tools_chat):
+    app,c,router=tools_chat;calls=[]
+    async def forbidden(*args,**kwargs):calls.append(True);raise AssertionError('Unauthorized source call')
+    app.state.natural.briefings.sources.weather=forbidden
+    with app.state.automation.store.db(True) as db:db.execute("DELETE FROM auth_permissions WHERE permission='automation:read'")
+    result=call(c,'Hoe is het weer in Testplaats?').json()
+    assert result['status']=='completed' and 'geen toegang' in result['message']
+    assert not calls and not router.planning_calls

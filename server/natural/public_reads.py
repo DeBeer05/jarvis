@@ -64,7 +64,7 @@ class PublicReads:
                 text='De laatste nieuwskoppen:\n'+'\n'.join('• '+n.chat.store.clean(item['title']) for item in data['items'][:3])
                 if data.get('stale'):text+='\nDit is een eerdere update; verversen lukte niet.'
             return address(text,config)
-        except AuthError:raise
+        except AuthError:return address('Dit apparaat heeft voor deze leesfunctie nog geen toegang',config)
         except (ValueError,KeyError,TypeError,httpx.HTTPError):return address('De actuele bron is niet betrouwbaar bereikbaar. Ik heb geen gegevens ingevuld',config)
 
         finally:run.timings['source_fetch_ms']=(time.perf_counter()-started)*1000
