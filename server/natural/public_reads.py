@@ -36,10 +36,10 @@ class PublicReads:
         n=self.natural;c=n.chat.automation_chat;kind,payload=parsed;config=run.natural_context['settings']
         # The job remains available in Tasks; casual 'ja' after a topic change
         # no longer points to an older calendar/mail proposal or result.
-        c.remember_many(run,{**{field:[] for field in ('pending','decision','write_question','read_question','calendar_action','public_question')},'recent':[{'kind':'public','source':kind}]})
         started=time.perf_counter()
         try:
             n.settings.get(run.principal);n.briefings.guard(run.principal.device_id,kind)
+            c.remember_many(run,{**{field:[] for field in ('pending','decision','write_question','read_question','calendar_action','public_question')},'recent':[{'kind':'public','source':kind}]})
             if config['ai']['offline']:return address('Offline kan ik geen actuele bron ophalen',config)
             if kind in ('WeatherRead','TrafficRead'):
                 place=payload['location'] or config['briefings']['location']

@@ -9,6 +9,9 @@ geen persoonlijke migratie/cutover uitgevoerd. Geen nieuwe betaalde resources.
 - Bevestigingen wachten direct op geverifieerde uitvoering; korte CalendarUpdate-
   vraag en succesmelding. Publieke weer/nieuws/NDW-reads zonder model; nieuwe
   onderwerpen verwijderen oude ja-bindingen. Expiratie/wijziging sluit voorstellen.
+- Ontbrekende leesrechten worden vóór het opslaan van vervolgcontext gecontroleerd:
+  een duidelijke weigering, geen bron- of modelaanroep. Tien gerichte gesprekstests
+  slagen, inclusief deze weigering en de bestaande onderwerpwisselingen.
 - Oracle ARM64: 2 CPU/12 GB; Ollama v0.40.19 met localhostbinding, beperkte resources,
   systemd-herstart; vier modellen werkelijk gemeten. Qwen2.5:3B blijft standaard;
   redeneernauwkeurigheid van kleine CPU-modellen blijft een aangetoonde beperking.
