@@ -1,2 +1,5 @@
 # Preserve the upstream transport's CRLF endings while still checking real whitespace errors.
 providers/llm_openai.py whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+
+# Remote Linux deployment scripts must survive Windows checkouts.
+deploy/**/*.sh text eol=lf

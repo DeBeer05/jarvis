@@ -1,0 +1,40 @@
+name: Mini-PC distribution
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  minipc:
+    name: Mini-PC package and isolated Windows install
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Build allowlisted standalone package
+        run: python scripts/build_minipc.py
+      - name: Parse lifecycle scripts with Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $allErrors=@()
+          Get-ChildItem deploy/minipc/*.ps1 | ForEach-Object {
+            $tokens=$null; $parseErrors=$null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName,[ref]$tokens,[ref]$parseErrors)
+            $allErrors+=$parseErrors
+          }
+          if($allErrors.Count){$allErrors;throw 'Invalid lifecycle script'}
+      - name: Real isolated installation without scheduled tasks or account setup
+        shell: powershell
+        run: ./scripts/check_minipc_installation.ps1 -Package dist/JARVIS-MiniPC
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: JARVIS-MiniPC
+          path: dist/JARVIS-MiniPC.zip
+          if-no-files-found: error
+          retention-days: 7
