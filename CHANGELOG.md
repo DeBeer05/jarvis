@@ -4,6 +4,15 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Hybride hub/Oracle-router met compacte private context, HTTP-pooling en offline
+  degradatie; echte model-/gatewaymetingen gedocumenteerd.
+- Directe geautoriseerde weer-, nieuws- en regionale NDW-reads zonder LLM;
+  bevestigde agenda-acties wachten op uitvoering, korte Nederlandse butlerteksten.
+- Duurzame apparaatqueues/leases en Windows-receipts voorkomen opnieuw uitvoeren
+  na een onzekere netwerkfout. Expliciete ontvangst-/programmarechten in de client.
+- Standalone MiniPC-distributie met beveiligde SSH/HTTPS-link, installatie,
+  back-up/herstel, update/rollback en afzonderlijke CI-build.
+
 - Bronstart van de Windows-client hersteld voor de gedeelde lichte spraakformatter;
   geteste portable Windows-bundles worden zeven dagen in CI als artifact bewaard.
 

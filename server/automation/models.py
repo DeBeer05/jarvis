@@ -226,7 +226,24 @@ class WorkflowCreate(Input):
     steps: list[dict] = Field(min_length=1, max_length=10)
 
 
+class DeviceCommand(Input):
+    target_device:str=Field(pattern=r'^[0-9a-f-]{36}$')
+    operation:Literal['DesktopRead','DesktopControl','DesktopMedia','DesktopPrograms']
+    input:dict=Field(default_factory=dict,max_length=10)
+    @model_validator(mode='after')
+    def closed(self):
+        self.input=validate(self.operation,self.input)
+        return self
+
+
+class DeviceQuery(DeviceCommand):
+    operation:Literal['DesktopRead']='DesktopRead'
+
+
 REGISTRY = {
+    'DeviceQuery':(DeviceQuery,False),
+    'DeviceCommand':(DeviceCommand,True),
+    'TrafficRead':(Empty,False),'WeatherRead':(Empty,False),'NewsRead':(Empty,False),
     'DesktopRead':(DesktopRead,False),'DesktopControl':(DesktopControl,True),
     'DesktopMedia':(DesktopMedia,False),'DesktopPrograms':(DesktopPrograms,False),
     'MobileHandoff':(MobileHandoff,True),
@@ -244,7 +261,7 @@ REGISTRY = {
     "WorkflowCreate": (WorkflowCreate, False), "WorkflowStatus": (Identifier, False),
 }
 
-SIDE_EFFECT_TOOLS=frozenset({'CalendarCreate','CalendarUpdate','CalendarDelete','EmailDraft','EmailSend','DesktopControl','DesktopMedia','DesktopPrograms','MobileHandoff','HomeControl'})
+SIDE_EFFECT_TOOLS=frozenset({'DeviceCommand','CalendarCreate','CalendarUpdate','CalendarDelete','EmailDraft','EmailSend','DesktopControl','DesktopMedia','DesktopPrograms','MobileHandoff','HomeControl'})
 
 
 def aware(value):

@@ -77,6 +77,7 @@ def create_app(
             await app.state.natural.retention.close()
             await app.state.automation.close()
             await chat.shutdown()
+            await chat.router.close()
             await app.state.natural.briefings.close()
             app.state.natural.context.private.clear()
             if hasattr(app.state.speech,"close"):await app.state.speech.close()
@@ -119,7 +120,7 @@ def create_app(
         return JSONResponse({"error":{"code":"invalid_action","message":"Controleer actie, tijdzone, accountkoppeling en actuele afspraakgegevens."}},status_code=400)
 
     app.add_middleware(SecurityHeaders)
-    if settings.profile=='oracle-production':
+    if settings.public_origin:
         from server.trusted_proxy import TrustedHTTPSProxy
         app.add_middleware(TrustedHTTPSProxy,origin=settings.public_origin)
 

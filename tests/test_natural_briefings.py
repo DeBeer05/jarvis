@@ -41,7 +41,7 @@ def test_missing_source_is_visible_and_does_not_block_public_or_local_features(t
     create(c,'shopping',{'name':'Appels','amount':'twee'})
     assert c.get('/api/v1/natural/life-items').json()['items'][0]['data']['name']=='Appels'
     capabilities=c.get('/api/v1/natural/briefings/capabilities').json()
-    assert not capabilities['scheduled_calls'] and not capabilities['traffic']
+    assert not capabilities['scheduled_calls'] and capabilities['traffic'] and 'routevertraging' in capabilities['traffic_reason']
 
 
 def test_schedules_are_idempotent_and_call_block_does_not_block_evening(tools_chat):

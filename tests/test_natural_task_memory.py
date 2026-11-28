@@ -31,7 +31,7 @@ def test_slot_question_survives_restart_and_approval_authority_does_not(settings
         c.headers['Authorization']='Bearer '+old_access
         again_router.plans=[{"clarification":"Wat is het onderwerp?"}]
         reply=c.post("/api/v1/chat",json={"message":"Vrijdag om drie uur, twee uur lang","conversation_id":cid,"provider":"ollama"}).json()
-        assert reply["status"]=="completed" and "Voorstel-ID" in reply["message"]
+        assert reply["status"]=="completed" and "wijzigingsvoorstel" in reply["message"]
         assert not again_router.planning_calls
         principal=again.state.security.store.authenticate(old_access)
         run=Generation("synthetic",cid,"ollama","",principal=principal)
@@ -87,7 +87,7 @@ def test_natural_create_and_free_form_title_keep_all_previous_slots(settings):
         cid=first["conversation_id"]
         router.plans=[{"clarification":"Hoe lang duurt de afspraak?"}]
         title=c.post("/api/v1/chat",json={"message":"Bioscoop met Noah","conversation_id":cid,"provider":"ollama"}).json()
-        assert title["status"]=="completed" and "Voorstel-ID" in title["message"]
+        assert title["status"]=="completed" and "wijzigingsvoorstel" in title["message"]
         assert not router.planning_calls
         jobs=app.state.automation.store.items()
         assert len(jobs)==1 and jobs[0]["tool"]=="CalendarCreate" and jobs[0]["status"]=="approval"

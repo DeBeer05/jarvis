@@ -27,7 +27,7 @@ class PermissionManager:
             row=db.execute("SELECT s.payload FROM natural_settings s JOIN auth_devices d ON d.user_id=s.user_id WHERE d.id=? AND s.scope='user' AND s.device_id=''",(device,)).fetchone()
         if not row:return
         autonomy=json.loads(row["payload"])["autonomy"]
-        reads={"CalendarList","CalendarRead","EmailSearch","EmailRead","ReminderList","WorkflowStatus","CalendarSummary","EmailCheck","WaitForReply","PersonalBriefing","DesktopRead","HomeRead","RouteRead"}
+        reads={"DeviceQuery","CalendarList","CalendarRead","EmailSearch","EmailRead","ReminderList","WorkflowStatus","CalendarSummary","EmailCheck","WaitForReply","PersonalBriefing","DesktopRead","HomeRead","RouteRead",'WeatherRead','NewsRead','TrafficRead'}
         if autonomy["actions"].get(tool)=="block" or autonomy["profile"]=="read_propose" and tool not in reads and autonomy['actions'].get(tool)!='advise':
             raise AuthError("permission_denied","Deze actie is geblokkeerd door je instellingen voor zelfstandigheid.",403)
 
@@ -285,6 +285,7 @@ class ActionExecutor:
             with e.store.db(True) as db:
                 db.execute("INSERT INTO automation_followups VALUES (?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET status='waiting',due=excluded.due WHERE automation_followups.status='blocked'",(row["id"],p["thread_id"],encode(baseline),datetime.fromisoformat(p["due"]).timestamp(),"waiting",row["device_id"]))
             return {"waiting_for_reply":True}
+        if tool in ('DeviceCommand','DeviceQuery'):return e.devices.enqueue(row,p,WRITE_GUARD.get())
         if tool=="CalendarRead": return await e.integrations.events(p)
         if tool=="CalendarList": return await e.integrations.calendar_list()
         if tool.startswith("Calendar"):
@@ -297,6 +298,13 @@ class ActionExecutor:
         if tool=="EmailDraft": return await e.integrations.draft(p)
         if tool=="EmailSend": return await e.integrations.send(p)
         if tool=="PersonalBriefing":return await e.briefings.execute(row,p)
+        if tool in ('WeatherRead','NewsRead','TrafficRead'):
+            e.briefings.guard(row['device_id'],tool)
+            _,config=e.briefings.device(row['device_id'])
+            if config['ai']['offline']:raise ValueError('Publieke bron is offline niet beschikbaar')
+            result=await e.briefings.sources.weather(config['briefings']['location'],'Europe/Amsterdam') if tool=='WeatherRead' else await e.briefings.sources.traffic(config['briefings']['location']) if tool=='TrafficRead' else await e.briefings.sources.news()
+            e.briefings.guard(row['device_id'],tool)
+            return result
         if tool=='MobileHandoff':return await asyncio.to_thread(e.handoffs.publish,row,p,WRITE_GUARD.get() or (lambda:None))
         if tool in ('HomeRead','HomeControl','RouteRead'):
             write_guard=WRITE_GUARD.get()
@@ -365,7 +373,9 @@ class AutomationEngine:
         self.approvals=ApprovalManager(self); self.notifications=NotificationManager(self.store)
         self.workflows=WorkflowManager(self); self.followups=FollowUpManager(self)
         self.triggers=TriggerManager(self); self.executor=ActionExecutor(self); self.scheduler=TaskScheduler(self)
-        self.lock=asyncio.Lock()
+        # Row claims are atomic. Bound concurrent I/O without making a confirmed
+        # action wait for a whole unrelated scheduler batch on the 8-GB hub.
+        self.lock=asyncio.Semaphore(3)
         from server.automation.windows import WindowsHost
         self.windows=WindowsHost(self.store)
         from server.automation.external import ExternalAdapters
@@ -377,7 +387,7 @@ class AutomationEngine:
 
     def submit(self, device, tool, payload, key, due=None, repeat="once", timezone="Europe/Amsterdam", parent=None, step=0,*,priority=1,deadline=None):
         if repeat not in ('once','daily','weekly','monthly','yearly'):raise ValueError('Onbekende herhaling')
-        self.permissions.check(device,"automation:write")
+        self.permissions.check(device,"automation:read" if tool=="DeviceQuery" else "automation:write")
         self.permissions.check_tool(device,tool)
         if tool in self.store.preference("disabled_tools",[]): raise ValueError("Deze actie is uitgeschakeld door de eigenaar")
         if type(priority) is not int or not 0<=priority<=3:raise ValueError('Ongeldige taakprioriteit')
@@ -445,7 +455,7 @@ class AutomationEngine:
                         continue
                 try:
                     epoch=self.safety.check(row['device_id'])['epoch']
-                    self.permissions.check(row["device_id"],"automation:write")
+                    self.permissions.check(row["device_id"],"automation:read" if row["tool"]=="DeviceQuery" else "automation:write")
                     self.permissions.check_tool(row["device_id"],row["tool"])
                 except AuthError:
                     with self.store.db(True) as db: db.execute("UPDATE automation_jobs SET status='blocked' WHERE id=? AND status='queued'",(row["id"],))
@@ -458,7 +468,7 @@ class AutomationEngine:
                         self.safety.check(row['device_id'],epoch)
                         level=self.safety.directive(row['device_id'],row['tool'])
                         if level=='advise' or level=='ask' and not row['approval_required']:raise ValueError('Bevoegdheden zijn tijdens de uitvoering beperkt')
-                        self.permissions.check(row["device_id"],"automation:write")
+                        self.permissions.check(row["device_id"],"automation:read" if row["tool"]=="DeviceQuery" else "automation:write")
                         self.permissions.check_tool(row["device_id"],row["tool"])
                         if row["tool"] in self.store.preference("disabled_tools",[]): raise ValueError("Actie uitgeschakeld")
                         current=self.store.get(row["id"])
@@ -475,7 +485,7 @@ class AutomationEngine:
                     guard()
                     # Never persist email bodies or event descriptions in execution history.
                     safe_result={"available":True} if row["tool"] in ("EmailRead","EmailSearch","CalendarRead","CalendarList") else result
-                    status="waiting" if row["tool"] in ("WorkflowCreate","WaitForReply","MobileHandoff") else "completed"
+                    status="waiting" if row["tool"] in ("WorkflowCreate","WaitForReply","MobileHandoff","DeviceCommand","DeviceQuery") else "completed"
                     with self.store.db(True) as db:
                         if db.execute('SELECT status FROM automation_jobs WHERE id=?',(row['id'],)).fetchone()[0]!='running':continue
                         if row["repeat"]!="once":

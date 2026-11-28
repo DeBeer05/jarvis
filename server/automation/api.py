@@ -66,7 +66,7 @@ class OAuth(Input):
 
 class Rules(Input):
     calendar_buffer_minutes:int=Field(default=15,ge=0,le=240)
-    disabled_tools:list[str]=Field(default_factory=list,max_length=30)
+    disabled_tools:list[str]=Field(default_factory=list,max_length=64)
     important_senders:list[str]=Field(default_factory=list,max_length=50)
     urgent_terms:list[str]=Field(default_factory=lambda:["deadline vandaag","dringend","urgent"],max_length=50)
 

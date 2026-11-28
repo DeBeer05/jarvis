@@ -48,10 +48,14 @@ class NaturalService:
         from server.natural.briefings import BriefingManager
         self.life=LifeItems(self);automation.life=self.life
         self.briefings=BriefingManager(self);automation.briefings=self.briefings
+        from server.natural.public_reads import PublicReads
+        self.public_reads=PublicReads(self)
         from server.natural.handoffs import Handoffs
         self.handoffs=Handoffs(self);automation.handoffs=self.handoffs
         from server.natural.device_status import DeviceStatus
         self.device_status=DeviceStatus(self)
+        from server.natural.device_broker import DeviceBroker
+        self.devices=DeviceBroker(self);automation.devices=self.devices
         from server.natural.desktop_commands import DesktopCommands
         self.desktop_commands=DesktopCommands(self)
         from server.natural.vision import VisionService
@@ -218,7 +222,9 @@ class NaturalService:
         from server.natural.briefings import REQUEST as BRIEFING_REQUEST
         desktop=self.desktop_commands.parse(run.message)
         environment=self.environment.parse(run.message)
-        if self.stop_command(run.message):
+        public=self.public_reads.parse(run)
+        if public:reply=await self.public_reads.answer(run,public)
+        elif self.stop_command(run.message):
             await self.automation.safety.set(run.principal,True,exclude_request=run.request_id)
             self.chat.automation_chat.remember(run,'pending',[])
             reply='De noodstop is actief, meneer. Openstaande taken zijn gepauzeerd. Reeds verzonden opdrachten kunnen niet worden teruggehaald.'
@@ -235,7 +241,7 @@ class NaturalService:
 
     def is_command(self,run):
         from server.natural.briefings import REQUEST as BRIEFING_REQUEST
-        if self.stop_command(run.message) or BRIEFING_REQUEST.fullmatch(run.message.strip()) or self.life.intent(run.message) or self.desktop_commands.parse(run.message) or self.environment.parse(run.message):return True
+        if self.public_reads.parse(run) or self.stop_command(run.message) or BRIEFING_REQUEST.fullmatch(run.message.strip()) or self.life.intent(run.message) or self.desktop_commands.parse(run.message) or self.environment.parse(run.message):return True
         return bool(self.presence.intent(run.message) or (run.natural_context and IntelligentResponseManager.preference(run.message,run.natural_context["settings"])) or CAPABILITIES.fullmatch(run.message.strip()) or OPEN_TASKS.fullmatch(run.message.strip()) or re.match(r"^(?:jarvis[, ]+)?(?:onthou(?:d)?\b|vergeet\b|wat (?:weet|onthoud) je (?:nog )?(?:over|van) mij[?.!]*$)",run.message.strip(),re.I))
 
     @staticmethod

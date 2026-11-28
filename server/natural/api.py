@@ -80,7 +80,7 @@ def phone_handoff_result(request:Request,identifier:UUID,body:HandoffResult):
 def briefing_capabilities(request:Request):
     service(request).settings.get(request.state.principal)
     return {'inbox':True,'scheduled_calls':False,'call_reason':'Phone Link biedt geen ondersteunde publieke oproep-API; een apart oproepkanaal ontbreekt.',
-            'traffic':False,'traffic_reason':'Geen actuele verkeersbron gekoppeld; er worden geen reistijden verzonnen.'}
+            'traffic':True,'traffic_reason':'Actuele NDW-meldingen in de regio; geen geverifieerde routevertraging.'}
 
 
 @router.get('/briefings/{kind}')
@@ -464,3 +464,32 @@ async def voice_preview(request:Request,body:VoicePreview):
     raw=base64.b64decode(audio["audio"],validate=True)
     if len(raw)>5_000_000:raise HTTPException(413,"Stemvoorbeeld te groot; gebruik een kortere tekst")
     return {"audio":audio["audio"],"provider":audio["selected_provider"],"voice":audio["selected_voice"],"seconds":time.perf_counter()-started,"runtime_stats":audio.get("runtime_stats",{}),"saved":False,"microphone_used":False}
+
+
+from server.natural.device_broker import Heartbeat,Lease,Outcome
+
+@router.get('/devices')
+def connected_devices(request:Request):return service(request).devices.list(request.state.principal)
+
+@router.post('/devices/heartbeat')
+def device_heartbeat(request:Request,body:Heartbeat):return service(request).devices.heartbeat(request.state.principal,body)
+
+@router.post('/devices/claim')
+def claim_device_command(request:Request):return service(request).devices.claim(request.state.principal)
+
+@router.post('/devices/commands/{identifier}/start')
+def start_device_command(request:Request,identifier:UUID,body:Lease):return service(request).devices.transition(request.state.principal,str(identifier),body,start=True)
+
+@router.post('/devices/commands/{identifier}/result')
+def finish_device_command(request:Request,identifier:UUID,body:Outcome):return service(request).devices.transition(request.state.principal,str(identifier),body)
+
+
+@router.get('/hybrid/status')
+async def hybrid_status(request:Request):
+    natural=service(request);principal=request.state.principal
+    natural.settings.get(principal)
+    natural.security.store.rate('hybrid-status:'+principal.device_id,20)
+    provider=natural.chat.router.providers.get('oracle')
+    status=await provider.availability() if provider else {'available':False,'state':'not_configured'}
+    natural.settings.get(principal)
+    return {'hub':natural.chat.settings.profile,'oracle':status,'devices':natural.devices.list(principal),'gateway_configured':bool(natural.chat.settings.public_origin),'local_heavy_model_required':False}

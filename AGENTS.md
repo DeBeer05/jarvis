@@ -1,5 +1,24 @@
 # Rules for coding agents working on JARVIS
 
+## Actuele vervolgopdracht 28 november 2026: hybride systeem
+
+De eigenaar heeft nu expliciet installatie/configuratie/deployment op de bestaande
+Oracle-VM, benchmarks/modelselectie, beveiligde gateway/netwerkinrichting en een
+zelfstandig Windows-mini-pc-pakket opgedragen. Deze concrete opdracht vervangt
+voor dit werk de oudere verboden op Oracle-installatie/productievoorbereiding,
+automatische Windows-start en de fase-7.5-grens. Geen nieuwe betaalde resources,
+accountupgrade of training. Bestaande SSH-toegang en gebruikersdata behouden.
+Verifieer bestaande SSH-hostpins; accepteer geen onbekende sleutel blind.
+De mini-pc is nog niet beschikbaar: bouw/test een geïsoleerd distributiepakket;
+claim geen echte mini-pc-installatie. Een gratis HTTPS-hostnaam is toegestaan.
+Persoonlijke gegevens/agenda/rechten blijven op de lokale hub; Oracle verwerkt
+alleen toegestane compacte AI-context. Inferencepoorten nooit direct publiek.
+Geen private SSH-sleutels, gebruikersconfiguratie of databanken in bron/artifacts.
+Gewone agenda-updates gebruiken korte natuurlijke bevestiging, intern exact aan
+de onveranderde payload en actie gekoppeld; AI kan geen goedkeuring verlenen.
+Reeds verleende leesrechten niet opnieuw uitvragen. Tests op echte accounts
+blijven afzonderlijk van synthetische regressies; geen ongevraagde echte berichten.
+
 The built-in coding agent (`actions/dev_agent.py`) reads this file before every
 change it makes to this project, and so should any other agent or contributor.
 Each rule below exists because breaking it produced code that looked right,

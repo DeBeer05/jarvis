@@ -77,11 +77,17 @@ class BriefingManager:
         for name,enabled,read in (
             ('calendar',config['calendar'],calendar),('email',config['email'],email),
             ('weather',config['weather'],lambda:self.sources.weather(config['location'],zone)),
-            ('news',config['news'],self.sources.news)):
+            ('news',config['news'],self.sources.news),
+            ('traffic',config['traffic'],lambda:self.sources.traffic(config['location']))):
             if enabled:calls.append((name,read))
         async def fetch(name,read):
             guard=REQUEST_GUARD.set(lambda:self.engine.permissions.check(device,'automation:read')) if name in ('calendar','email') else None
-            try:return name,{'status':'available','data':await asyncio.wait_for(read(),8)}
+            try:
+                tool={'weather':'WeatherRead','news':'NewsRead','traffic':'TrafficRead'}.get(name)
+                if tool:self.guard(device,tool)
+                data=await asyncio.wait_for(read(),8)
+                if tool:self.guard(device,tool)
+                return name,{'status':'available','data':data}
             except asyncio.CancelledError:raise
             except Exception:return name,{'status':'unavailable','reason':'Niet gekoppeld, niet toegestaan of tijdelijk niet bereikbaar'}
             finally:
@@ -91,7 +97,7 @@ class BriefingManager:
         lines=[{'morning':'Ochtendbriefing','evening':'Avondbriefing','return':'Terugkomstbriefing','prepare':'Voorbereide briefing'}.get(kind,'Briefing')+f' · {now:%d-%m-%Y %H:%M}']
         for name,value in sources.items():
             if value['status']!='available':
-                lines.append({'calendar':'Agenda','email':'E-mail','weather':'Weer','news':'Nieuws'}[name]+': niet beschikbaar; niet gecontroleerd.');continue
+                lines.append({'calendar':'Agenda','email':'E-mail','weather':'Weer','news':'Nieuws','traffic':'Verkeer'}[name]+': niet beschikbaar; niet gecontroleerd.');continue
             data=value['data']
             if name=='calendar':
                 lines.append('Agenda: '+str(data['count'])+' afspraken in het ontvangen resultaat'+(' (gedeeltelijk).' if data['partial'] else '.'))
@@ -113,6 +119,8 @@ class BriefingManager:
             elif name=='weather':
                 values=data['values'];units=data['units']
                 lines.append(f"Weer {data['location']}: {values['temperature_2m']:g} {units['temperature_2m']}, neerslag {values['precipitation']:g} {units['precipitation']}, wind {values['wind_speed_10m']:g} {units['wind_speed_10m']} (Open-Meteo, {data['observed_at']})."+(' Bron is verouderd; ophalen mislukt.' if data.get('stale') else ''))
+            elif name=='traffic':
+                lines.append('Verkeer rond '+data['location']+' (NDW): '+('; '.join(item['text'] for item in data['items'][:3]) if data['items'] else 'geen ontvangen meldingen binnen 25 kilometer')+'. Geen routevertraging berekend.'+(' Eerdere update; verversen lukte niet.' if data.get('stale') else ''))
             else:
                 lines.append('NOS-nieuwskoppen (geen geverifieerde noodmeldingen):')
                 lines.extend('- '+item['title'] for item in data['items'][:2])

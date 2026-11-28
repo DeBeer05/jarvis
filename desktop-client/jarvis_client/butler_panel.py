@@ -31,6 +31,8 @@ class ButlerPanel(QWidget):
         for title,callback in (('Noodstop',self.stop),('Veiligheidsstatus',self.health),('Stop opheffen als eigenaar',self.resume)):
             button=QPushButton(title);button.clicked.connect(callback);safety.addWidget(button)
         self.make_lists();self.make_integrations()
+        from jarvis_client.device_panel import DevicePanel
+        self.devices=DevicePanel(window);self.tabs.addTab(self.devices,"Computerbediening en verbinding")
 
     def call(self,method,path,body,done):
         serial=self.serial
@@ -42,6 +44,7 @@ class ButlerPanel(QWidget):
 
     def clear(self):
         self.serial+=1;self.busy=False;self.schema={};self.rows=[];self.current=None;self.pending=None
+        self.devices.reset()
         self.report.clear();self.integration_report.clear();self.list.clear();self.new_item()
         self.status.setText('Log in om uw persoonlijke butler te gebruiken.');self.mail.clear();self.origin.clear();self.destination.clear();self.distance.setValue(0)
 

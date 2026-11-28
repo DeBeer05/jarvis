@@ -73,7 +73,7 @@ class ContextManager:
             if memories:
                 stamp=self.store.clock()
                 db.execute("INSERT INTO natural_pending(id,user_id,conversation_id,kind,payload,revision,created,updated,status) VALUES (?,?,?,?,?,1,?,?,'completed')",(run.request_id,user,run.conversation_id,"memory_context",encode([item["id"] for item in memories]),stamp,stamp))
-        return {"settings":config,"policy":policy,"memory_version":version,"memories":memories,"episodes":episodes,"turns":turns,"summary":dict(summary) if summary else None,"jobs":[dict(row) for row in jobs],"local":local}
+        return {"settings":config,"policy":policy,"memory_version":version,"memories":memories,"episodes":episodes,"turns":turns,"summary":dict(summary) if summary else None,"jobs":[dict(row) for row in jobs],"local":local,"oracle":bool(order and order[0]=="oracle")}
 
     def memory_version(self,principal):
         with self.store.transaction(principal) as (db,user):
@@ -86,10 +86,14 @@ class ContextManager:
         planning=bool(prepared.get('planning'))
         system=self.bootstrap.system_prompt+("\n"+VOICE_PROMPT if voice and not planning and not outing_overview(run.message) else "")
         from server.natural.responses import response_prompt
-        system+=('' if planning else response_prompt(config,run.message,voice))+notice
+        oracle_compact=bool(config['ai']['compact_context'] and prepared.get('oracle') or config['ai']['context_tokens']<=2048 or self.bootstrap.max_context_chars<4096)
+        if oracle_compact:
+            from server.natural.compact import prompt
+            system=prompt(self.bootstrap.system_prompt,config,run.message,voice)+notice
+        else:system+=('' if planning else response_prompt(config,run.message,voice))+notice
         notes={"now":datetime.now(ZoneInfo(config["general"]["timezone"])).isoformat(),"timezone":config["general"]["timezone"]}
         notes["assistant_name"]=config["general"]["assistant_name"]
-        notes["speaking_preferences"]=describe(config["personality"])
+        if not oracle_compact:notes["speaking_preferences"]=describe(config["personality"])
         if 'presence' in config:notes['current_mode']=config['presence']['mode']
         if config["general"]["address_name"]:notes["preferred_address"]=config["general"]["address_name"]
         if prepared["memories"]:notes["relevant_memories"]=[{k:item[k] for k in ("id","category","kind","content","confidence","updated")} for item in prepared["memories"]]
@@ -99,6 +103,7 @@ class ContextManager:
         if self.responses and prepared.get('planning'):
             notes['activity_planning']=self.responses.natural.planning.compact(run,prepared)
         token_limit=config["ai"]["context_tokens"]
+        if oracle_compact:token_limit=min(token_limit,max(1600,units(system)+units(run.message)))
         char_limit=self.bootstrap.max_context_chars
         messages=[{"role":"system","content":self.store.clean(system)}]
         current={"role":"user","content":run.message}

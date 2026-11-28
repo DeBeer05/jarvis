@@ -96,15 +96,15 @@ class Voice(StrictModel):
 
 
 class Personality(StrictModel):
-    profile: Literal["classic_butler", "classic", "professional", "friendly", "informal", "humorous", "concise", "informative", "custom"] = "friendly"
-    honorific: str=Field(default="",max_length=30,title="Aanspreekvorm (leeg = uit)")
-    honorific_frequency: Literal["off","occasionally","always"]="off"
+    profile: Literal["classic_butler", "classic", "professional", "friendly", "informal", "humorous", "concise", "informative", "custom"] = "classic_butler"
+    honorific: str=Field(default="meneer",max_length=30,title="Aanspreekvorm (leeg = uit)")
+    honorific_frequency: Literal["off","occasionally","always"]="occasionally"
     confidence:int=Field(default=90,ge=0,le=100,title="Zelfverzekerde spreekstijl")
-    formality: int = Field(default=35, ge=0, le=100)
+    formality: int = Field(default=80, ge=0, le=100)
     humor: int = Field(default=35, ge=0, le=100)
     sarcasm: int = Field(default=5, ge=0, le=100)
     friendliness: int = Field(default=75, ge=0, le=100)
-    brevity: int = Field(default=75, ge=0, le=100)
+    brevity: int = Field(default=90, ge=0, le=100)
     proactivity: int = Field(default=30, ge=0, le=100)
     initiative: int = Field(default=30, ge=0, le=100)
     followup_questions: int = Field(default=25, ge=0, le=100)
@@ -114,8 +114,11 @@ class Personality(StrictModel):
 
 
 class AI(StrictModel):
-    provider: Literal["auto", "gemini", "groq", "ollama"] = "auto"
-    fallback: Literal["none", "gemini", "groq", "ollama"] = "ollama"
+    compact_context:bool=Field(default=True,title="Compacte context voor Oracle")
+    processing:Literal["local","hybrid","cloud"]="hybrid"
+    oracle_model:str=Field(default="",pattern=r"^[a-zA-Z0-9._:/-]{0,120}$")
+    provider: Literal["auto", "gemini", "groq", "ollama", "oracle"] = "auto"
+    fallback: Literal["none", "gemini", "groq", "ollama", "oracle"] = "ollama"
     automatic_selection: bool = True
     offline: bool = False
     gemini_model: str = Field(default="", pattern=r"^[a-zA-Z0-9._:/-]{0,120}$")
@@ -174,7 +177,7 @@ class Tasks(StrictModel):
 
 class Autonomy(StrictModel):
     profile: Literal["ask", "within_rules", "read_propose"] = "ask"
-    actions: dict[str, Literal["allow", "ask", "block",'advise']] = Field(default_factory=dict, max_length=30)
+    actions: dict[str, Literal["allow", "ask", "block",'advise']] = Field(default_factory=dict, max_length=64)
     @model_validator(mode="after")
     def known(self):
         from server.automation.models import REGISTRY
@@ -219,6 +222,7 @@ class Briefings(StrictModel):
     email:bool=True
     weather:bool=Field(default=False,title='Open-Meteo weer gebruiken')
     news:bool=Field(default=False,title='NOS-nieuwskoppen gebruiken')
+    traffic:bool=Field(default=False,title='NDW-verkeershinder in de regio gebruiken')
     location:str=Field(default='',max_length=100,title='Plaats voor weer (geen huisadres)')
     morning_channel:Literal['inbox','call']='inbox'
     evening_channel:Literal['inbox','call']='inbox'
@@ -292,7 +296,12 @@ class ActivityPlanning(StrictModel):
     search_integrations:list[Literal['none']]=Field(default_factory=list,max_length=1)
 
 
+class RoutingSettings(StrictModel):
+    windows_device:str=Field(default='',pattern=r'^(?:[0-9a-f-]{36})?$',title='Standaardcomputer voor opdrachten vanaf andere apparaten')
+
+
 class UserSettings(StrictModel):
+    routing:RoutingSettings=Field(default_factory=RoutingSettings)
     vision:Vision=Field(default_factory=Vision)
     planning:ActivityPlanning=Field(default_factory=ActivityPlanning)
     responses: ResponseSettings=Field(default_factory=ResponseSettings)
@@ -314,6 +323,8 @@ class UserSettings(StrictModel):
 
 
 class DeviceSettings(StrictModel):
+    execution_policy:dict=Field(default_factory=dict,max_length=10,title="Windows-programma’s, documentmappen en mediabediening")
+    execution_allowed:bool=Field(default=False,title="Gesloten Windows-opdrachten van uw andere apparaten ontvangen")
     input_device: int = Field(default=-1, ge=-1)
     output_device: int = Field(default=-1, ge=-1)
     muted: bool = False
@@ -330,6 +341,8 @@ class DeviceSettings(StrictModel):
     screen_allowed:bool=Field(default=False,title='Zelf geselecteerde schermafbeeldingen mogen worden geanalyseerd')
     @model_validator(mode='after')
     def packages(self):
+        from server.automation.windows import HostPolicy
+        HostPolicy.model_validate(self.execution_policy)
         import re
         if any(not re.fullmatch(r'[a-z][a-z0-9_.]{2,100}',package) for package in self.notification_packages):raise ValueError('Ongeldige apppakketnaam')
         return self

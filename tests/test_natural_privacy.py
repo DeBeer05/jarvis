@@ -41,7 +41,7 @@ def test_exact_proposal_can_be_approved_without_persisting_chat_text(tools_chat)
     router.plans=[{"tool":"CalendarCreate","input":{"summary":"Noah"}}]
     shown=call(c,"Maak morgen om 15:00 een afspraak met Noah").json()
     row=app.state.automation.store.items()[0];executed=[]
-    assert "Zeg ‘ja’" in shown["message"]
+    assert "Zal ik dit voor u uitvoeren?" in shown["message"]
     future=complete_after_decision(app,c,row,executed)
     result=call(c,"ja",shown["conversation_id"]).json();future.result(timeout=5)
     assert "afspraak is aangemaakt" in result["message"] and executed==[row["id"]]

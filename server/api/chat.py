@@ -22,7 +22,7 @@ STATIC = Path(__file__).resolve().parents[1] / "static"
 class ChatInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     message: str = Field(min_length=1, max_length=8000)
-    provider: Literal["auto", "gemini", "groq", "ollama"] | None = None
+    provider: Literal["auto", "gemini", "groq", "ollama", "oracle"] | None = None
     conversation_id: UUID | None = None
     request_id: UUID | None = None
     channel: Literal["text","voice"] = "text"

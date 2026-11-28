@@ -41,12 +41,25 @@ class DesktopCommands:
         match=re.fullmatch(r'(open|start|sluit) (?:het programma |de app |programma )?(.+)',text,re.I)
         if match:
             names={name.casefold():name for name in self.natural.automation.windows.policy().programs}
+            if self.natural.chat.settings.profile=='mini-pc-production':
+                import json
+                with self.natural.automation.store.db() as db:
+                    rows=db.execute('SELECT policy FROM device_workers WHERE seen>? LIMIT 20',(self.natural.store.clock()-90,)).fetchall()
+                for row in rows:
+                    names.update({key.casefold():key for key in json.loads(row['policy']).get('programs',{})})
             name=names.get(match[2].casefold())
             if name:return 'DesktopControl',{'action':'close_program' if match[1].casefold()=='sluit' else 'open_program','program':name}
         return None
 
     async def answer(self,run,request):
         n=self.natural;e=n.automation;tool,payload=request
+        if n.chat.settings.profile=='mini-pc-production':
+            try:
+                routed=n.devices.route(run.principal,tool,payload)
+                job=e.submit(run.principal.device_id,'DeviceQuery' if tool=='DesktopRead' else 'DeviceCommand',routed,run.request_id)
+                if job['status']=='queued':await e.tick(job_id=job['id'])
+                return address('Het voorstel voor uw computer staat bij Taken - Goedkeuringen' if job['status']=='approval' else 'De opdracht staat klaar voor uw computer. De bevestigde uitkomst verschijnt bij Taken',run.natural_context['settings'])
+            except (ValueError,AuthError):return address('Er is geen eenduidige bevoegde computer beschikbaar. Controleert u Verbonden apparaten en de toegestane bediening',run.natural_context['settings'])
         policy=e.windows.policy()
         if tool=='DesktopControl':
             if payload['action'] in ('open_program','close_program') and policy.programs_allowed:tool='DesktopPrograms'

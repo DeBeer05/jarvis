@@ -71,6 +71,8 @@ class MainWindow(QMainWindow):
         self.active_origin = None
         self.permissions = LocalAgent()
         self.presence=PresenceController(self)
+        from jarvis_client.device_worker import DeviceWorker
+        self.device_worker=DeviceWorker(self)
         self.pending_voice = None
         self.natural_refresh=0
         self.setWindowTitle("JARVIS — Desktop")
@@ -723,6 +725,7 @@ class MainWindow(QMainWindow):
 
     def clear_private(self):
         self.presence.clear()
+        self.device_worker.clear()
         if hasattr(self,"voice_session"):self.voice_session.clear()
         if hasattr(self,"automation_panel"): self.automation_panel.clear()
         if hasattr(self,"natural_settings"):self.natural_settings.clear()
@@ -802,6 +805,7 @@ class MainWindow(QMainWindow):
             return
         self.closing = True
         self.presence.clear()
+        self.device_worker.clear()
         self.voice_panel.close_voice()
         self.manager.stop()
         self.render_timer.stop()

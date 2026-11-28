@@ -40,24 +40,25 @@ class ChatApprovals:
                 c.remember(run,"pending",[])
                 return "De volledige datum en tijd ontbreken in dit voorstel. Controleer het bij Automatiseringen → Goedkeuringen."
             title = {"CalendarCreate":"Afspraak aanmaken", "CalendarUpdate":"Afspraak wijzigen", "CalendarDelete":"Afspraak verwijderen"}[tool]
-            text = "Voorstel: " + title + "\nAgenda: " + payload["calendar_id"] + "\nTitel: " + payload["summary"]
+            text = title + ': ' + payload['summary']
             for label, key in (("Van", "start"), ("Tot", "end")):
                 value = payload.get(key)
                 text += "\n" + label + ": " + (datetime.fromisoformat(value).astimezone(ZoneInfo(payload["timezone"])).strftime("%d-%m-%Y %H:%M %z") if value else "Hele dag / controleer Google")
-            text += "\nTijdzone: " + payload["timezone"] + "\nLocatie: " + (payload.get("location") or "Geen")
+            if payload.get('location'):text+='\nLocatie: '+payload['location']
             if payload.get('description'):text+='\nBeschrijving: '+payload['description']
             text += "\nGenodigden: " + (", ".join(payload.get("attendees", [])) or "Geen")
             text += "\nHerhaling: " + ("; ".join(payload.get("recurrence", [])) or "Geen")
             if tool!="CalendarDelete":text += "\nHerinnering: " + (str(payload["reminder_minutes"])+" minuten vooraf" if payload.get("reminder_minutes") is not None else "Bestaande agenda-instelling")
             if payload.get("attendees"): text += "\nGoogle Calendar stuurt updates aan de genodigden."
-        text = "Ik heb een wijzigingsvoorstel klaargezet.\n"+text
-        text += "\nVoorstel-ID: " + row["id"] + "\n\nZal ik dit uitvoeren? Zeg ‘ja’ om dit voorstel te bevestigen, of ‘nee’ om het af te wijzen."
+        if tool=='CalendarUpdate' and not payload.get('attendees') and not payload.get('recurrence'):
+            text='Zal ik de afspraak voor u wijzigen?'
+        else:text='Ik heb een wijzigingsvoorstel klaargezet.\n'+text+'\n\nZal ik dit voor u uitvoeren?'
         if c.clean(text)!=text or len(text) > min(16000, c.router.settings.max_response_chars):
             c.remember(run, "pending", [])
             return "Dit voorstel kan niet volledig in de chat worden getoond. Open Automatiseringen → Goedkeuringen voor de volledige controle."
         previous=c.memory(run).get("pending",[])
         instruction=run.message if c.write_intent(tool,run.message) else (previous[0].get("instruction","") if len(previous)==1 and previous[0]["id"]==row["id"] else "")
-        c.remember(run, "pending", [{"id":row["id"], "fingerprint":fingerprint([tool,payload]), "preview_hash":fingerprint(text), "request_id":run.request_id, "shown":c.clock(),"shown_at":c.engine.store.clock(),"device":run.principal.device_id,"session":run.principal.session_id,"instruction":instruction}])
+        c.remember_many(run,{'decision':[],"pending": [{"id":row["id"], "fingerprint":fingerprint([tool,payload]), "preview_hash":fingerprint(text), "request_id":run.request_id, "shown":c.clock(),"shown_at":c.engine.store.clock(),"device":run.principal.device_id,"session":run.principal.session_id,"instruction":instruction}]})
         return text
 
     @staticmethod
@@ -69,11 +70,12 @@ class ChatApprovals:
             if row['tool'] in ('DesktopControl','DesktopMedia','DesktopPrograms','HomeControl'):
                 result=json.loads(row.get('result') or '{}')
                 return 'De nieuwe toestand is bevestigd.' if result.get('verified') is True else 'Het verzoek is doorgegeven; de uiteindelijke toestand is niet bevestigd.'
-            return {"CalendarCreate":"De afspraak is aangemaakt.", "CalendarUpdate":"De afspraak is gewijzigd.", "CalendarDelete":"De afspraak is verwijderd.", "EmailSend":"De e-mail is verzonden."}.get(row["tool"], "De taak is uitgevoerd.")
+            return {"CalendarCreate":"Uw afspraak is aangemaakt, meneer.", "CalendarUpdate":"Uw afspraak is gewijzigd, meneer.", "CalendarDelete":"Uw afspraak is verwijderd, meneer.", "EmailSend":"Uw e-mail is verzonden, meneer."}.get(row["tool"], "De taak is uitgevoerd.")
         if state == "denied": return "Het voorstel is geweigerd. Er is niets uitgevoerd."
         if state in ("queued", "running"): return "Het voorstel is goedgekeurd en staat klaar of wordt uitgevoerd. Vraag ‘Is het voorstel klaar?’ voor de actuele status."
-        if state == "uncertain": return "De uitkomst is onzeker. Controleer Google voordat je de actie opnieuw probeert; ik herhaal hem niet automatisch."
-        return "De uitvoering is niet bevestigd. Taakstatus: " + state + ". Controleer de taak bij Automatiseringen."
+        if state == "uncertain": return "De uitvoering is niet bevestigd, meneer. Controleer de uitkomst; ik herhaal de opdracht niet automatisch."
+        if state=='cancelled':return 'De opdracht is geannuleerd, meneer.'
+        return 'De uitvoering is nog niet bevestigd, meneer. U vindt de actuele stand bij Taken.'
 
     def proposals(self):
         with self.chat.engine.store.db() as db:
@@ -88,6 +90,7 @@ class ChatApprovals:
             previous=memory['decision'][0]
             if previous.get('device')==run.principal.device_id and previous.get('session')==run.principal.session_id:
                 return self.status(c.engine.store.get(memory["decision"][0]["id"]))
+        if spoken and not decision:return "Er staat in dit gesprek geen voorstel ter bevestiging klaar, meneer."
         if STATUS.fullmatch(message):
             last = memory.get("decision", [])
             return self.status(c.engine.store.get(last[0]["id"])) if last else "Er is in dit gesprek nog geen voorstel goedgekeurd. Vraag ‘Toon mijn voorstellen’."
@@ -96,13 +99,12 @@ class ChatApprovals:
             rows = self.proposals()
             if len(rows) == 1: return self.show(run, rows[0])
             if not rows: return "Er zijn geen openstaande voorstellen."
-            return "Openstaande voorstellen:\n" + "\n".join(row["tool"] + " — " + row["id"] for row in rows[:20]) + "\nTyp ‘Toon voorstel’ gevolgd door het gewenste voorstel-ID." + ("\nLijst ingekort." if len(rows)>20 else "")
+            return 'Er staan meerdere voorstellen klaar, meneer. Kies het bedoelde voorstel bij Taken.'
         if not decision: return None
-        c.guard(run, "automation:approve")
         pending = memory.get("pending", [])
         if len(pending) != 1:
-            rows = self.proposals()
-            return self.show(run, rows[0]) if len(rows)==1 else "Vraag eerst ‘Toon mijn voorstellen’ en bekijk het exacte voorstel dat je wilt goedkeuren."
+            return "Er staat in dit gesprek geen voorstel ter bevestiging klaar, meneer."
+        c.guard(run, "automation:approve")
         shown = pending[0]; row = c.engine.store.get(shown["id"])
         if row["status"] != "approval":
             c.remember(run, "pending", [])
@@ -110,11 +112,19 @@ class ChatApprovals:
         with c.engine.store.db() as db:
             displayed=db.execute("SELECT status,assistant_text FROM chat_turns WHERE conversation_id=? AND id=?",(run.conversation_id,shown.get('request_id'))).fetchone()
         actual = fingerprint([row["tool"], json.loads(row["payload"])])
+        if actual!=shown.get('fingerprint'):
+            c.engine.control(row['id'],'cancelled',run.principal.device_id,expected_status='approval')
+            c.remember_many(run,{'pending':[],'decision':[]})
+            return 'De voorstelgegevens zijn intussen veranderd, meneer. Geef uw gewenste opdracht opnieuw; ik heb niets uitgevoerd.'
         if (not displayed or displayed['status']!='completed' or shown.get('display_hash')!=shown.get('preview_hash')
             or displayed['assistant_text'] and fingerprint(displayed['assistant_text'])!=shown.get('preview_hash')
             or shown.get('device')!=run.principal.device_id or shown.get('session')!=run.principal.session_id
-            or c.engine.store.clock()-shown.get('shown_at',0)>300 or c.clock()-shown.get('shown',0)>300 or actual!=shown.get('fingerprint')):
+            ):
             return self.show(run, row)
+        if c.engine.store.clock()-shown.get('shown_at',0)>300 or c.clock()-shown.get('shown',0)>300:
+            c.engine.control(row['id'],'cancelled',run.principal.device_id,expected_status='approval')
+            c.remember(run,'pending',[])
+            return 'Het voorstel is verlopen, meneer. Geef uw opdracht opnieuw als u die nog wilt uitvoeren.'
         # No model sees the nonce. Check the same payload again inside the decision transaction.
         challenge = c.engine.approvals.challenge(row["id"],run.principal)
         if challenge["fingerprint"]!=actual: return self.show(run,c.engine.store.get(row["id"]))
@@ -123,6 +133,9 @@ class ChatApprovals:
         result = c.engine.approvals.decide(row["id"],run.principal,challenge["token"],approved,expected_fingerprint=actual)
         c.remember(run,"pending",[]);c.remember(run,"decision",[{"id":row["id"],"device":run.principal.device_id,"session":run.principal.session_id}])
         if approved:
+            started=__import__('time').perf_counter()
+            await c.engine.tick(job_id=row['id'])
+            run.timings['tool_execution_ms']=(__import__('time').perf_counter()-started)*1000
             for _ in range(20):
                 c.guard(run,"automation:read")
                 result=c.engine.store.get(row["id"])

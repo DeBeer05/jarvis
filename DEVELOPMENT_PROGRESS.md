@@ -1,5 +1,44 @@
 # Ontwikkelvoortgang
 
+## 28 november 2026 — hybride vervolgopdracht in uitvoering
+
+Nieuwe opdracht verleent expliciet Oracle-installatie/gateway en een mini-pc-pakket;
+de oudere fasegrenzen hieronder blijven historische context. Mini-pc ontbreekt:
+geen persoonlijke migratie/cutover uitgevoerd. Geen nieuwe betaalde resources.
+
+- Bevestigingen wachten direct op geverifieerde uitvoering; korte CalendarUpdate-
+  vraag en succesmelding. Publieke weer/nieuws/NDW-reads zonder model; nieuwe
+  onderwerpen verwijderen oude ja-bindingen. Expiratie/wijziging sluit voorstellen.
+- Oracle ARM64: 2 CPU/12 GB; Ollama v0.40.19 met localhostbinding, beperkte resources,
+  systemd-herstart; vier modellen werkelijk gemeten. Qwen2.5:3B blijft standaard;
+  redeneernauwkeurigheid van kleine CPU-modellen blijft een aangetoonde beperking.
+- Caddy met geldig openbaar HTTPS-certificaat; beperkte SSH-linkgebruiker, uitsluitend
+  twee loopbackforwards. AI/databasepoorten niet publiek. Persoonlijke DB lokaal.
+- Echte HTTPS/SSH/Oracle-proef met wegwerpaccount: TLS/CSRF/cookies/login/401/SSE
+  geverifieerd. Eerste antwoord 62,74 s met volle context, 14,45 s met compacte
+  stockcontext. Zie docs/HYBRID_BENCHMARKS.md voor omvang/beperkingen.
+- SQLite v15: apparaat-heartbeats, gebonden opdrachtleases, eenmalige start,
+  onzekere uitkomsten bij verlopen gestarte leases. Windows-worker hergebruikt de
+  gesloten hostadapter en lokale receipts; ontvangst blijft expliciete owner-opt-in.
+- Windows-paneel voor toegestane programma's/mappen en verbindingsstatus; Android
+  Oracle-keuze en bijgewerkt instellingencontract. Geen nieuwe Android-grants.
+- Mini-PC-builder en lifecycle-scripts toegevoegd, inclusief DPAPI-machineopslag,
+  back-ups, herstel dat oude sessies/taakapprovals intrekt en taken pauzeert,
+  versioned updates met rollback, Nederlandse installatiegids en CI-artifact.
+- Geïsoleerde Windows PowerShell 5.1-installatie: dependencies, venv, schema,
+  DPAPI, readiness en gecontroleerd stoppen daadwerkelijk geslaagd. SYSTEM-taak,
+  fysieke mini-pc en accounts zijn hiermee nog niet bewezen. Testvariant die de
+  administratorcheck zou overslaan is door automatische review geblokkeerd;
+  die wijziging is niet uitgevoerd en controles blijven behouden.
+
+Tussenstand controles: 698 servertests + 1 Windows-skip; gerichte vervolgproeven
+42 context/spraak, 35 hybride tests en 15 aanvullende cache/queue/package-proeven
+zijn groen. Definitieve volledige herhaling/CI en artifacts worden nog gecontroleerd.
+Windows 153 tests groen. Android unit/lint/debug/release gebouwd; nog niet als
+nieuwe APK op fysieke hardware geverifieerd. Menselijke luisteracceptatie blijft open.
+De twee bestaande maildigest-eigenaarsdiffs blijven onveranderd en ongecommit.
+
+
 ## Huidige opdracht
 
 ### Acht productfases persoonlijke butler — 27 november 2026

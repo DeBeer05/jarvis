@@ -74,7 +74,7 @@ def test_selected_plan_commits_only_via_full_existing_preview(planner):
     app,c,_=planner
     first=call(c,'Ik wil zondagmiddag met Sam naar een museum.').json()
     preview=call(c,'Zet het maar in mijn agenda.',first['conversation_id']).json()
-    assert 'Voorstel-ID' in preview['message'],preview
+    assert 'wijzigingsvoorstel' in preview['message'],preview
     assert len(app.state.automation.store.items())==1
     assert app.state.automation.store.items()[0]['status']=='approval'
     denied=call(c,'Nee.',first['conversation_id']).json()
@@ -178,9 +178,11 @@ def test_repeated_commit_reuses_exact_preview_and_one_yes(planner):
     preview=call(c,'Zet het maar in mijn agenda.',first['conversation_id']).json()
     repeated=call(c,'Zet het maar in mijn agenda.',first['conversation_id']).json()
     assert len(app.state.automation.store.items())==1
-    assert 'Voorstel-ID' in repeated['message'] and 'Voorstel-ID' in preview['message']
+    assert 'wijzigingsvoorstel' in repeated['message'] and 'wijzigingsvoorstel' in preview['message']
+    async def create(*args):return {'id':'mock-calendar-event'}
+    app.state.automation.integrations.change=create
     call(c,'Ja.',first['conversation_id'])
-    assert app.state.automation.store.items()[0]['status']=='queued'
+    assert app.state.automation.store.items()[0]['status']=='completed'
 
 
 def test_changed_plan_replaces_old_preview_and_needs_new_approval(planner):

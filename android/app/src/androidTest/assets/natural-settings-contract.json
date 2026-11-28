@@ -2,6 +2,7 @@
   "schema": {
     "schema_version": 1,
     "categories": {
+      "routing": "Apparaatroutering",
       "vision": "Schermcontext en beeldanalyse",
       "planning": "Uitjes en planning",
       "responses": "Antwoordgedrag",
@@ -282,13 +283,35 @@
         "AI": {
           "additionalProperties": false,
           "properties": {
+            "compact_context": {
+              "default": true,
+              "title": "Compacte context voor Oracle",
+              "type": "boolean"
+            },
+            "processing": {
+              "default": "hybrid",
+              "enum": [
+                "local",
+                "hybrid",
+                "cloud"
+              ],
+              "title": "Processing",
+              "type": "string"
+            },
+            "oracle_model": {
+              "default": "",
+              "pattern": "^[a-zA-Z0-9._:/-]{0,120}$",
+              "title": "Oracle Model",
+              "type": "string"
+            },
             "provider": {
               "default": "auto",
               "enum": [
                 "auto",
                 "gemini",
                 "groq",
-                "ollama"
+                "ollama",
+                "oracle"
               ],
               "title": "Provider",
               "type": "string"
@@ -299,7 +322,8 @@
                 "none",
                 "gemini",
                 "groq",
-                "ollama"
+                "ollama",
+                "oracle"
               ],
               "title": "Fallback",
               "type": "string"
@@ -568,7 +592,7 @@
                 ],
                 "type": "string"
               },
-              "maxProperties": 30,
+              "maxProperties": 64,
               "title": "Actions",
               "type": "object"
             }
@@ -619,6 +643,11 @@
             "news": {
               "default": false,
               "title": "NOS-nieuwskoppen gebruiken",
+              "type": "boolean"
+            },
+            "traffic": {
+              "default": false,
+              "title": "NDW-verkeershinder in de regio gebruiken",
               "type": "boolean"
             },
             "location": {
@@ -1098,7 +1127,7 @@
           "additionalProperties": false,
           "properties": {
             "profile": {
-              "default": "friendly",
+              "default": "classic_butler",
               "enum": [
                 "classic_butler",
                 "classic",
@@ -1114,13 +1143,13 @@
               "type": "string"
             },
             "honorific": {
-              "default": "",
+              "default": "meneer",
               "maxLength": 30,
               "title": "Aanspreekvorm (leeg = uit)",
               "type": "string"
             },
             "honorific_frequency": {
-              "default": "off",
+              "default": "occasionally",
               "enum": [
                 "off",
                 "occasionally",
@@ -1137,7 +1166,7 @@
               "type": "integer"
             },
             "formality": {
-              "default": 35,
+              "default": 80,
               "maximum": 100,
               "minimum": 0,
               "title": "Formality",
@@ -1165,7 +1194,7 @@
               "type": "integer"
             },
             "brevity": {
-              "default": 75,
+              "default": 90,
               "maximum": 100,
               "minimum": 0,
               "title": "Brevity",
@@ -1454,6 +1483,19 @@
             }
           },
           "title": "ResponseSettings",
+          "type": "object"
+        },
+        "RoutingSettings": {
+          "additionalProperties": false,
+          "properties": {
+            "windows_device": {
+              "default": "",
+              "pattern": "^(?:[0-9a-f-]{36})?$",
+              "title": "Standaardcomputer voor opdrachten vanaf andere apparaten",
+              "type": "string"
+            }
+          },
+          "title": "RoutingSettings",
           "type": "object"
         },
         "Tasks": {
@@ -1850,6 +1892,9 @@
       },
       "additionalProperties": false,
       "properties": {
+        "routing": {
+          "$ref": "#/$defs/RoutingSettings"
+        },
         "vision": {
           "$ref": "#/$defs/Vision"
         },
@@ -1911,6 +1956,17 @@
     "device": {
       "additionalProperties": false,
       "properties": {
+        "execution_policy": {
+          "additionalProperties": true,
+          "maxProperties": 10,
+          "title": "Windows-programma’s, documentmappen en mediabediening",
+          "type": "object"
+        },
+        "execution_allowed": {
+          "default": false,
+          "title": "Gesloten Windows-opdrachten van uw andere apparaten ontvangen",
+          "type": "boolean"
+        },
         "input_device": {
           "default": -1,
           "minimum": -1,
@@ -2001,6 +2057,8 @@
       "DesktopMedia",
       "DesktopPrograms",
       "DesktopRead",
+      "DeviceCommand",
+      "DeviceQuery",
       "EmailCheck",
       "EmailDraft",
       "EmailRead",
@@ -2009,19 +2067,23 @@
       "HomeControl",
       "HomeRead",
       "MobileHandoff",
+      "NewsRead",
       "NotificationSend",
       "PersonalBriefing",
       "ReminderCancel",
       "ReminderCreate",
       "ReminderList",
       "RouteRead",
+      "TrafficRead",
       "WaitForReply",
+      "WeatherRead",
       "WorkflowCreate",
       "WorkflowStatus",
       "MemorySave",
       "MemoryUpdate"
     ],
     "mandatory_approval": [
+      "DeviceCommand",
       "DesktopControl",
       "MobileHandoff",
       "HomeControl",
@@ -2034,6 +2096,9 @@
   "document": {
     "revision": 0,
     "settings": {
+      "routing": {
+        "windows_device": ""
+      },
       "vision": {
         "enabled": false,
         "provider": "gemini",
@@ -2158,15 +2223,15 @@
         "unload_after_seconds": 300
       },
       "personality": {
-        "profile": "friendly",
-        "honorific": "",
-        "honorific_frequency": "off",
+        "profile": "classic_butler",
+        "honorific": "meneer",
+        "honorific_frequency": "occasionally",
         "confidence": 90,
-        "formality": 35,
+        "formality": 80,
         "humor": 35,
         "sarcasm": 5,
         "friendliness": 75,
-        "brevity": 75,
+        "brevity": 90,
         "proactivity": 30,
         "initiative": 30,
         "followup_questions": 25,
@@ -2175,6 +2240,9 @@
         "custom_instructions": ""
       },
       "ai": {
+        "compact_context": true,
+        "processing": "hybrid",
+        "oracle_model": "",
         "provider": "auto",
         "fallback": "ollama",
         "automatic_selection": true,
@@ -2261,6 +2329,7 @@
         "email": true,
         "weather": false,
         "news": false,
+        "traffic": false,
         "location": "",
         "morning_channel": "inbox",
         "evening_channel": "inbox"

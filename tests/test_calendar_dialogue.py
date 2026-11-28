@@ -78,7 +78,7 @@ def test_approval_permission_is_never_granted_by_calendar_command(calendar):
     app,c,router,events,writes=calendar
     with app.state.automation.store.db(True) as db:db.execute("DELETE FROM auth_permissions WHERE permission='automation:approve'")
     result=call(c,'Maak morgen om 14:00 een afspraak genaamd Controle.').json()
-    assert not writes and 'automation:approve' in result['message']
+    assert not writes and 'Apparaatrechten' in result['message']
 
 
 @pytest.mark.parametrize('command,summary,clock',[
@@ -134,7 +134,7 @@ def test_changed_payload_cannot_inherit_direct_request_authority(calendar):
         return original(identifier,principal)
     manager.challenge=change
     response=call(c,'Maak morgen om 14:00 een afspraak genaamd Controle.').json()
-    assert not writes and 'Voorstel-ID' in response['message']
+    assert not writes and 'gegevens' in response['message']
 
 
 @pytest.mark.parametrize('message',[

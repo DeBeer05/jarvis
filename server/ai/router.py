@@ -8,7 +8,7 @@ from server.ai.policy import current_policy
 class AIRouter:
     def __init__(self, settings: Settings, providers: dict | None = None):
         self.settings = settings
-        self.providers = providers if providers is not None else {name: TextProvider(name, settings) for name in ("gemini", "groq", "ollama")}
+        self.providers = providers if providers is not None else {name: TextProvider(name, settings) for name in ("gemini", "groq", "ollama", "oracle")}
 
     async def stream(self, messages: list[dict], mode: str):
         preferred = self.settings.preferred_provider
@@ -54,6 +54,11 @@ class AIRouter:
         values = await asyncio.gather(*(self.providers[name].availability() for name in names))
         return {"mode": self.settings.ai_provider, "preferred": self.settings.preferred_provider,
                 "profile": self.settings.profile, "providers": dict(zip(names, values))}
+
+    async def close(self):
+        for provider in self.providers.values():
+            if hasattr(provider,"close"):
+                await provider.close()
 
     async def bounded_result(self, messages, mode=None):
         import asyncio

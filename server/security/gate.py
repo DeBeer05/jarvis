@@ -64,7 +64,7 @@ class SecurityGate:
             return await self.app(scope, receive, send)
         try:
             address = scope.get("client")
-            trusted_https = self.service.settings.profile == 'oracle-production' and scope.get('jarvis.trusted_https') is True
+            trusted_https = bool(self.service.settings.public_origin) and scope.get('jarvis.trusted_https') is True
             if not trusted_https and (not address or not ipaddress.ip_address(address[0]).is_loopback):
                 raise AuthError("access_denied", "Toegang geweigerd.", 403)
             values = dict(scope.get("headers", []))

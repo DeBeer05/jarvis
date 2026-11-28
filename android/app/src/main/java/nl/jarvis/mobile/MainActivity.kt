@@ -152,7 +152,7 @@ private fun navigationTitle(screen: String, language: String): String = if(langu
         PlanningButton(state,model)
         TextButton(onClick=model::newConversation,enabled=!state.busy){Text("＋ Nieuw")}
     }
-    Row(horizontalArrangement=Arrangement.spacedBy(6.dp),modifier=Modifier.horizontalScroll(rememberScrollState())) { listOf("auto","groq","gemini","ollama").forEach {provider ->
+    Row(horizontalArrangement=Arrangement.spacedBy(6.dp),modifier=Modifier.horizontalScroll(rememberScrollState())) { listOf("auto","groq","gemini","ollama","oracle").forEach {provider ->
         FilterChip(selected=state.provider==provider,onClick={model.provider(provider)},label={Text(provider.replaceFirstChar{it.uppercase()})})
     } }
     LazyColumn(Modifier.weight(1f).fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(14.dp)) {

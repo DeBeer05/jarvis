@@ -32,7 +32,7 @@ class SpeechBridge:
     @staticmethod
     def command():
         root=Path(__file__).resolve().parents[1]
-        executable=root/".local/voice-venv/Scripts/python.exe"
+        executable=Path(os.environ.get("JARVIS_VOICE_PYTHON") or root/".local/voice-venv/Scripts/python.exe")
         if not executable.is_file():executable=root/".local/voice-venv/bin/python"
         if not executable.is_file():
             raise AuthError("speech_unavailable","De spraakruntime is niet geinstalleerd op de server.",503)

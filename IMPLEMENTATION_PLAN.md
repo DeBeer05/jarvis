@@ -1,5 +1,31 @@
 # Persoonlijke butler — uitvoeringsplan
 
+## Hybride vervolgopdracht — 28 november 2026
+
+1. Bestaande routes meten; directe publieke reads en eenmalige korte approvals,
+   gesprekswissels/afsluiting herstellen met bestaande managers en regressies.
+2. Bestaande Oracle-host pin verifiëren, hardware inspecteren, officiële ARM64-
+   inference installeren, Nederlandse modellen en werkelijk streamgedrag meten.
+3. Lokale/hybride/cloud-policy, compacte privécontext, pooling, tijdmetingen en
+   offline degradatie via de bestaande AI-router/spraakrouter integreren.
+4. Duurzame apparaatqueues met leases, opdracht-ID, timeout, actuele grants en
+   onzekere-uitkomstbescherming; Windows/Android als uitvoeringsapparaten.
+5. HTTPS-gateway op gratis hostnaam, uitgaande beveiligde hubtunnel, beperkte
+   firewall/systemd/reconnects. Geen persoonlijke hubdatabase op Oracle.
+6. Zelfstandige MiniPC-distributie met installatie/service/backup/update/rollback/
+   reparatie, Nederlands installatieboek en geautomatiseerde package-build.
+7. Regressies/E2E met mocks, echte Oracle-metingen, geïsoleerde pakketproeven,
+   clientbuilds en CI. Werkelijke mini-pc-hardware is niet beschikbaar.
+
+Voortgang: onderdelen 1–5 geïmplementeerd met gerichte regressies en werkelijke
+Oracle/gateway-proeven. Onderdeel 6 is gebouwd en geïsoleerd gestart/gestopt;
+SYSTEM/mini-pc-acceptatie blijft hardwaregebonden. Onderdeel 7: definitieve CI en
+artifactcontrole lopen. De eerdere scopebeschrijving hieronder is historisch.
+
+Beginstatus: bestaand HEAD ba9183c, 670 server-/150 Windows-/11 Android-tests;
+eigenaarmaildiffs blijven uitgesloten. SSH-inspectie: ARM64, 2 CPU/12 GB RAM,
+circa 48 GB vrij. Modelkeuze volgt werkelijke kwaliteits-/latencybenchmarks.
+
 Opdracht 27 november 2026. Dit zijn de acht nieuwe productfases, niet de eerdere
 versienummers 7/7.5. De eigenaar heeft implementatie van alle acht opgedragen.
 Geen productie-/Oracle-migratie, nieuwe apparaatgrant, echte externe mutatie of

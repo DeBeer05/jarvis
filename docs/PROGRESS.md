@@ -1,3 +1,12 @@
+## 28 november 2026 — hybride JARVIS
+
+Bevestigings-/onderwerpafhandeling, directe publieke reads, Oracle-transport,
+compacte context en apparaatleases geïmplementeerd. Echte Oracle/gateway- en
+geïsoleerde installerproeven geslaagd. Volledige details en actuele verificatie:
+[DEVELOPMENT_PROGRESS](../DEVELOPMENT_PROGRESS.md) en
+[gemeten prestaties](HYBRID_BENCHMARKS.md). Mini-pc is niet aanwezig; persoonlijke
+gegevens zijn niet naar Oracle gemigreerd. Externe accounts/grants blijven vereist.
+
 # Hervatpunt — agenda en Nederlands STT, 27 november 2026
 
 ## Actueel: acht productfases persoonlijke butler
