@@ -12,13 +12,15 @@ from jarvis_client.api import ClientError
 
 
 class ServerInferenceWorker:
-    def __init__(self,api,*,client_factory=httpx.AsyncClient):
+    def __init__(self,api,*,client_factory=httpx.AsyncClient,prefer_local_stt=False,local_factory=None,local_only=False):
         self.api=api;self.client_factory=client_factory;self.loop=None;self.thread=None;self.client=None
         self.centralized=True
         self.pcm_stream=False;self.stream_futures=set()
         from jarvis_client.voice.realtime import RealtimeSpeech
         self.realtime=RealtimeSpeech(api)
         self.warming=False
+        self.prefer_local_stt=prefer_local_stt;self.local_stt=None;self.local_factory=local_factory;self.local_retry=0.
+        self.local_only=local_only
         self.utterance_id=None;self.conversation_id=None
         self.lock=threading.RLock();self.serial=threading.Lock();self.future=None;self.closing=False;self.cleanup_threads=[]
 
@@ -106,6 +108,18 @@ class ServerInferenceWorker:
 
     def transcribe(self,audio,settings,valid):
         if not 0<len(audio)<=2_000_000:raise ValueError("Ongeldige of te grote opname.")
+        if self.prefer_local_stt and time.monotonic()>=self.local_retry:
+            from jarvis_client.voice.settings import installed_stt_models
+            if self.local_factory or settings.model in installed_stt_models(settings):
+                try:
+                    if self.local_stt is None:
+                        from jarvis_client.voice.worker import InferenceWorker
+                        self.local_stt=(self.local_factory or InferenceWorker)()
+                    return {**self.local_stt.transcribe(audio,settings,valid),'location':'windows_local'}
+                except Exception:
+                    if not valid():raise RuntimeError('Spraakopdracht geannuleerd.') from None
+                    self.local_retry=time.monotonic()+60
+        if self.local_only:raise RuntimeError('De gekozen lokale spraakruntime is niet beschikbaar. Er is geen microfoonaudio geüpload.')
         raw=self.request("/api/v1/mobile/speech/transcribe",audio=audio,valid=valid)
         try:
             result=json.loads(raw)
@@ -147,11 +161,14 @@ class ServerInferenceWorker:
         return data,{"seconds":time.perf_counter()-start,"device":"server"}
 
     def cancel(self):
+        self.cancel_pending()
+        if self.local_stt:self.local_stt.cancel()
+
+    def cancel_pending(self):
         with self.lock:
             if self.future:self.future.cancel()
             for future in tuple(self.stream_futures):future.cancel()
-
-    cancel_pending=cancel
+        if self.local_stt:self.local_stt.cancel_pending()
 
     def close(self):
         with self.lock:

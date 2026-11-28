@@ -11,5 +11,6 @@ def voice_capabilities():
         path=models/relative;voices[name]=path.is_file() and path.with_suffix(".onnx.json").is_file()
     supertonic={key:all((models/"supertonic-3/onnx"/name).is_file() for name in ("duration_predictor.onnx","text_encoder.onnx","vector_estimator.onnx","vocoder.onnx","tts.json","unicode_indexer.json")) and (models/"supertonic-3/voice_styles"/(key+".json")).is_file() for key in ("M1","M2","M3","M4","M5")}
     root=Path(__file__).resolve().parents[2]
-    runtime=any((root/path).is_file() for path in (".local/voice-venv/Scripts/python.exe",".local/voice-venv/bin/python"))
+    configured=os.environ.get('JARVIS_VOICE_PYTHON')
+    runtime=Path(configured).is_file() if configured else any((root/path).is_file() for path in (".local/voice-venv/Scripts/python.exe",".local/voice-venv/bin/python"))
     return {"runtime_installed":runtime,"stt_providers":["whisper"],"tts_providers":["auto","piper",*(["supertonic"] if any(supertonic.values()) else [])],"supertonic_voices":supertonic,"whisper_models":stt,"voices":voices,"cuda":"not_verified","speaker_verification":False}

@@ -13,7 +13,7 @@ install -d -o root -g root -m 0755 /opt/jarvis /opt/jarvis/releases "$release"
 install -d -o root -g jarvis -m 0750 /etc/jarvis
 install -d -o jarvis -g jarvis -m 0700 /var/lib/jarvis /var/lib/jarvis/secrets /var/lib/jarvis/backups /var/log/jarvis
 python3 - "$archive" "$release" "$commit" "$manifest" <<'PY'
-import sys,tarfile
+import hashlib,json,sys,tarfile
 from pathlib import Path,PurePosixPath
 archive,target,commit,expected=sys.argv[1:];root=Path(target)
 with tarfile.open(archive,'r:gz') as bundle:
@@ -23,9 +23,16 @@ with tarfile.open(archive,'r:gz') as bundle:
         path=PurePosixPath(item.name)
         if not item.isfile() or path.is_absolute() or '..' in path.parts or ':' in item.name or '\\' in item.name:raise ValueError('Unsafe archive member')
     bundle.extractall(root,filter='data')
-sys.path.insert(0,str(root))
-from scripts.release_manifest import verify
-verify(root,commit,expected)
+raw=(root/'release-manifest.json').read_bytes()
+if hashlib.sha256(raw).hexdigest()!=expected:raise ValueError('Manifest approval mismatch')
+document=json.loads(raw)
+if document.get('schema')!=1 or document.get('commit')!=commit:raise ValueError('Commit approval mismatch')
+entries=document['files']
+for name,checksum in entries.items():
+    path=PurePosixPath(name);target=root/path
+    if path.is_absolute() or '..' in path.parts or '\\' in name or ':' in name or not target.resolve(strict=True).is_relative_to(root):raise ValueError('Unsafe manifest path')
+    if hashlib.sha256(target.read_bytes()).hexdigest()!=checksum:raise ValueError('Source checksum mismatch')
+if {p.relative_to(root).as_posix() for p in root.rglob('*') if p.is_file() and p.name!='release-manifest.json'}!=set(entries):raise ValueError('Unlisted source')
 PY
 python3 -m venv "$release/.venv"
 "$release/.venv/bin/python" -m pip install --disable-pip-version-check -r "$release/requirements-server.txt"

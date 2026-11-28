@@ -65,6 +65,7 @@ class Listening(StrictModel):
 
 
 class Voice(StrictModel):
+    stt_execution:Literal['auto','windows','server']=Field(default='auto',title='Spraakherkenning op Windows',description='Automatisch kiest een beschikbare lokale runtime. Windows-only uploadt nooit microfoonaudio. Android gebruikt de beveiligde backend.')
     stt_provider: Literal["whisper"] = "whisper"
     whisper_model: Literal["whisper-small","whisper-base","whisper-tiny"] = "whisper-small"
     tts_provider: Literal["auto","piper","supertonic","elevenlabs"] = "auto"

@@ -388,11 +388,13 @@ class MainWindow(QMainWindow):
         self.presence.configure(document['settings'])
         self.voice.configure_natural(document["settings"])
         enabled=document["settings"]["conversations"]["enabled"]
+        stt=document['settings']['voice'].get('stt_execution','auto')
         worker=self.voice.next_worker or self.voice.worker
         if enabled and self.manager.api and (not isinstance(worker,ServerInferenceWorker) or worker.api is not self.manager.api):
-            self.voice.select_worker(ServerInferenceWorker(self.manager.api))
+            self.voice.select_worker(ServerInferenceWorker(self.manager.api,prefer_local_stt=stt!='server',local_only=stt=='windows'))
         elif not enabled and isinstance(worker,ServerInferenceWorker):
             self.voice.select_worker(InferenceWorker())
+        elif isinstance(worker,ServerInferenceWorker):worker.prefer_local_stt=stt!='server';worker.local_only=stt=='windows'
         self.voice_panel.set_authorized(bool(self.principal and "chat:write" in self.principal["permissions"] and self.manager.state=="online"))
 
     def update_controls(self):

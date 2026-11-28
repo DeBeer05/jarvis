@@ -46,6 +46,19 @@ hybride implementatie/PR33. Twee bestaande maildigest-eigenaarsdiffs blijven int
    uitsluitend werkelijk aanwezige geconfigureerde secrets in; healthwatchdog
    herstart geen bewust gestopte service. Package/rollback-regressies: 7 passed,
    1 POSIX-eigenaarskip. Migratie en echte services volgen na kandidaatcontrole.
+   Echte kandidaatproef op Oracle geslaagd met wegwerpaccount: geldig TLS,
+   cookie/CSRF, 401 zonder login, interne routes afgeschermd, SSE en WSS met
+   authenticated ping/cancel. Geen persoonlijke database gebruikt. CPU-Qwen
+   leverde eerste inhoud na 18,78 s; geen subsecondclaim. Speechvenv op ARM64
+   geïnstalleerd; 30 reeds goedgekeurde modelbestanden (978 MiB) over SSH
+   overgebracht en met gepind manifest per byte gecontroleerd.
+   Echte ARM64-spraakproef: Piper 1,08 s, koude Whisper Small 10,33 s, correcte
+   synthetische Nederlandse transcriptie. Gaming-pc: officiële NVIDIA-bibliotheken
+   geïsoleerd en op SHA256 gecontroleerd geïnstalleerd (~1,2 GB, geen driverwijziging).
+   Acht synthetische zinnen, GPU warm mediaan 0,19 s (zonder timestamps), 3/60
+   woordfouten, geen CPU-fallbacks; koud 2,70 s. Windows kan nu lokale STT met
+   premium server-TTS combineren; expliciet Windows-only uploadt bij uitval niets.
+   De oorspronkelijke CPU-proef had circa 2,5 s mediaan; geen microfoonacceptatie.
 6. [ ] Geheugen/Life Engine: bestaande CRUD/FTS/items/scheduler uitbreiden voor
    verplichtingen, deadlines en herleidbare prioriteiten, zonder modelpolling.
 7. [ ] Agenda/communicatie: bestaande bewijs-/approvalroutes; officiële koppelingen.

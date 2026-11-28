@@ -1614,6 +1614,17 @@
         "Voice": {
           "additionalProperties": false,
           "properties": {
+            "stt_execution": {
+              "default": "auto",
+              "description": "Automatisch kiest een beschikbare lokale runtime. Windows-only uploadt nooit microfoonaudio. Android gebruikt de beveiligde backend.",
+              "enum": [
+                "auto",
+                "windows",
+                "server"
+              ],
+              "title": "Spraakherkenning op Windows",
+              "type": "string"
+            },
             "stt_provider": {
               "const": "whisper",
               "default": "whisper",
@@ -2240,6 +2251,7 @@
         "ending_sound": false
       },
       "voice": {
+        "stt_execution": "auto",
         "stt_provider": "whisper",
         "whisper_model": "whisper-small",
         "tts_provider": "auto",
