@@ -107,7 +107,9 @@ class ChatService:
             if self.natural and principal and conversation_id:
                 await asyncio.to_thread(self.natural.authorize_conversation,principal,conversation_id)
                 await asyncio.to_thread(self.natural.check_audio,run)
+            database_started=time.perf_counter()
             run.conversation_id, run.history = await asyncio.to_thread(self.store.start, request_id, conversation_id, run.message,persist=run.persist_history)
+            run.timings['database_ms']=(time.perf_counter()-database_started)*1000
         except BaseException:
             self.active.pop(request_id, None)
             raise
@@ -165,7 +167,7 @@ class ChatService:
         planning_route=bool(self.natural and run.natural_context and run.natural_context.get('planning'))
         cancellation = asyncio.create_task(run.cancel.wait())
         try:
-            yield {"type": "meta", "request_id": run.request_id, "conversation_id": run.conversation_id, **({"speech_protocol":1} if run.channel=="voice" and self.natural else {})}
+            yield {"type": "meta", "request_id": run.request_id, "conversation_id": run.conversation_id, **({"speech_protocol":1,"pcm_stream":1} if run.channel=="voice" and self.natural else {})}
             if run.cancel.is_set():
                 raise GenerationCancelled
             if planning_route:
@@ -188,15 +190,16 @@ class ChatService:
                         while True:
                             pending = asyncio.create_task(next_with_policy(stream,run.ai_policy))
                             if run.channel=='voice' and self.natural and run.natural_context and not run.text and not run.speech_message:
-                                ready,_=await asyncio.wait((pending,cancellation),timeout=self.progress_seconds,return_when=asyncio.FIRST_COMPLETED)
+                                progress_config=run.natural_context['settings'].get('progress',{})
+                                ready,_=await asyncio.wait((pending,cancellation),timeout=progress_config.get('delay_ms',1250)/1000,return_when=asyncio.FIRST_COMPLETED)
                                 if not ready and not run.cancel.is_set():
                                     if run.session_epoch is not None:
                                         await asyncio.to_thread(self.natural.check_audio,run)
                                         await self.natural.phase(run,State.ASSISTANT_SPEAKING)
-                                    from server.natural.presence import address
-                                    notice=address('Een ogenblik',run.natural_context['settings'])
-                                    run.speech_message+=notice+' '
-                                    yield {'type':'speech','text':notice+' '}
+                                    progress=await asyncio.to_thread(self.natural.progress_audio.choose,run)
+                                    if progress:
+                                        run.speech_message+=' '
+                                        yield progress
                             done, _ = await asyncio.wait((pending, cancellation), return_when=asyncio.FIRST_COMPLETED)
                             if cancellation in done:
                                 run.status = "cancelled"

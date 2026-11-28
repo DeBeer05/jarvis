@@ -65,6 +65,7 @@ class Listening(StrictModel):
 
 
 class Voice(StrictModel):
+    stt_execution:Literal['auto','windows','server']=Field(default='auto',title='Spraakherkenning op Windows',description='Automatisch kiest een beschikbare lokale runtime. Windows-only uploadt nooit microfoonaudio. Android gebruikt de beveiligde backend.')
     stt_provider: Literal["whisper"] = "whisper"
     whisper_model: Literal["whisper-small","whisper-base","whisper-tiny"] = "whisper-small"
     tts_provider: Literal["auto","piper","supertonic","elevenlabs"] = "auto"
@@ -300,7 +301,16 @@ class RoutingSettings(StrictModel):
     windows_device:str=Field(default='',pattern=r'^(?:[0-9a-f-]{36})?$',title='Standaardcomputer voor opdrachten vanaf andere apparaten')
 
 
+class ProgressAudio(StrictModel):
+    enabled:bool=Field(default=True,title='Vooraf opgenomen tussenzinnen')
+    delay_ms:int=Field(default=500,ge=300,le=5000,title='Wachtdrempel (ms)')
+    minimum_interval_seconds:int=Field(default=45,ge=10,le=600,title='Minimumtijd tussen tussenzinnen')
+    honorific:bool=Field(default=False,title='Aanspreekvorm in tussenzinnen')
+    local_cache:bool=Field(default=True,title='Audiocache op dit apparaat gebruiken')
+
+
 class UserSettings(StrictModel):
+    progress:ProgressAudio=Field(default_factory=ProgressAudio)
     routing:RoutingSettings=Field(default_factory=RoutingSettings)
     vision:Vision=Field(default_factory=Vision)
     planning:ActivityPlanning=Field(default_factory=ActivityPlanning)

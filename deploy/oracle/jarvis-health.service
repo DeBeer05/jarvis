@@ -1,0 +1,13 @@
+[Unit]
+Description=JARVIS private readiness watchdog
+After=jarvis.service
+
+[Service]
+Type=oneshot
+RuntimeDirectory=jarvis-health
+UMask=0077
+ExecStart=/opt/jarvis/current/.venv/bin/python /opt/jarvis/current/scripts/cloud_health.py
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/run/jarvis-health

@@ -10,13 +10,14 @@ import nl.jarvis.mobile.notifications.Notifications
 import java.util.concurrent.ConcurrentHashMap
 
 class AppGraph(context: Context) {
+    private val progressDirectory=java.io.File(context.cacheDir,"progress-audio")
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     val settings = SettingsStore(context)
     val vault = SecretVault(context)
     val cache = ConversationCache(context, vault)
     val notifications = Notifications(context)
     private val clients = ConcurrentHashMap<String, JarvisApi>()
-    fun api(origin: String): JarvisApi = clients.computeIfAbsent(origin) { JarvisApi(Endpoint.parse(it, BuildConfig.DEBUG), vault) }
+    fun api(origin: String): JarvisApi = clients.computeIfAbsent(origin) { JarvisApi(Endpoint.parse(it, BuildConfig.DEBUG), vault,progressDirectory) }
 }
 class JarvisApplication: Application() {
     lateinit var graph: AppGraph

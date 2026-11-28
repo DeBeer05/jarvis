@@ -70,7 +70,7 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
         {stop()})
     private var voiceConversationActive=false;private var voiceStarted=0L;private var lastVoice=0L
     private var interruptionJob:Job?=null;private var failedBargeGeneration:Int?=null
-    private var responseClock=0L;private var firstAudioReported=false
+    private var responseClock=0L;private var firstAudioReported=false;private var pendingSpeechEnd=0L
     private fun metric(event:String,value:Double) {
         val api=currentApi ?: return
         if(!mutable.value.connection.authenticated)return
@@ -198,7 +198,12 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
     fun naturalRefresh() {
         if(!mutable.value.connection.authenticated)return
         if(mutable.value.naturalSchema.isBlank()) naturalRequest("/settings/schema") {data -> mutable.update {it.copy(naturalSchema=data.toString())}}
-        naturalRequest("/settings") {data -> mutable.update {it.copy(naturalSettings=data.toString(),naturalStatus="Gesynchroniseerd · versie ${data.getInt("revision")}")}}
+        naturalRequest("/settings") {data -> mutable.update {it.copy(naturalSettings=data.toString(),naturalStatus="Gesynchroniseerd · versie ${data.getInt("revision")}")}
+            val selected=currentApi
+            if(selected!=null && data.optJSONObject("settings")?.optJSONObject("progress")?.optBoolean("local_cache",true)!=false) {
+                viewModelScope.launch {try {selected.warmProgress {foreground && currentApi===selected && !mutable.value.busy}}catch(_:Exception){}}
+            }
+        }
     }
     fun presenceRefresh() {naturalRequest("/device-settings") {data -> presence.install(data);presence.kick()}}
     fun presenceSave(enabled:Boolean) {
@@ -425,38 +430,61 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
         if(text.isBlank() || text.length>8000 || mutable.value.busy || !mutable.value.connection.authenticated || "chat:write" !in mutable.value.connection.permissions)return
         cancelTurn(false);val api=currentApi ?: return
         val epoch=generation;val request=UUID.randomUUID().toString();requestId=request
-        responseClock=System.nanoTime();firstAudioReported=false
+        responseClock=if(speak&&pendingSpeechEnd>0)pendingSpeechEnd else System.nanoTime();pendingSpeechEnd=0;firstAudioReported=false
         val conversation=mutable.value.conversation;val narrate=speak&&mutable.value.preferences.voiceOutput
         val speed=voiceSpeed();val volume=voiceVolume();val succeeded=java.util.concurrent.atomic.AtomicBoolean(false)
         mutable.update {it.copy(busy=true,messages=it.messages+Line("JIJ",text)+Line("JARVIS",""),error="",voiceStatus="JARVIS denkt…")}
-        val queue=Channel<String>(32);val segments=SentenceBuffer()
+        data class SpeechPacket(val text:String,val progress:nl.jarvis.mobile.voice.ProgressClip?=null)
+        val queue=Channel<SpeechPacket>(32);val segments=SentenceBuffer()
+        val contentReady=java.util.concurrent.atomic.AtomicBoolean(false);val progressPlaying=java.util.concurrent.atomic.AtomicBoolean(false);val pcmStreaming=java.util.concurrent.atomic.AtomicBoolean(false)
+        var contentAudioReported=false
         val streamAudio=naturalConfig()?.optJSONObject("voice")?.optBoolean("streaming",true) ?: true
         val deferredSpeech=StringBuilder();var serverSpeech=false
         if(narrate)audioJob=viewModelScope.launch {
             try {
                 val bargeForTurn=naturalConfig()?.optJSONObject("listening")?.optBoolean("barge_in")==true
-                suspend fun playSentence(sentence:String,wav:ByteArray) {
+                suspend fun playSentence(packet:SpeechPacket,wav:ByteArray) {
+                    val sentence=packet.text;val progress=packet.progress!=null
+                    if(progress&&contentReady.get())return
+                    progressPlaying.set(progress)
                     ensureActive();if(epoch!=generation)return
                     mutable.update {it.copy(voiceStatus="JARVIS spreekt")}
                     val startedAt=responseClock
-                    audio.playbackStarted={viewModelScope.launch {if(epoch==generation&&responseClock==startedAt&&!firstAudioReported) {firstAudioReported=true;metric("native_first_audio_ms",(System.nanoTime()-startedAt)/1_000_000.0)}}}
+                    audio.playbackStarted={viewModelScope.launch {if(epoch==generation&&responseClock==startedAt) {
+                        val elapsed=(System.nanoTime()-startedAt)/1_000_000.0
+                        if(!firstAudioReported) {firstAudioReported=true;metric("native_first_audio_ms",elapsed)}
+                        if(progress)metric("native_progress_audio_ms",elapsed)
+                        else if(!contentAudioReported) {contentAudioReported=true;metric("native_content_audio_ms",elapsed)}
+                    }}}
                     val monitor=if(bargeForTurn)startInterruptionMonitor(epoch,(mutable.value.messages.lastOrNull()?.text.orEmpty()+" "+sentence).takeLast(6000)) else null
-                    try {audio.play(wav,mutable.value.preferences.outputDevice,volume)}
-                    finally {finishInterruptionMonitor(api,monitor)}
+                    try {
+                        if(wav.isEmpty()&&packet.progress==null&&pcmStreaming.get())
+                            api.streamSynthesize(sentence,speed,request,mutable.value.conversation){rate,source -> audio.playPcm(rate,source,mutable.value.preferences.outputDevice,volume)}
+                        else audio.play(wav,mutable.value.preferences.outputDevice,volume)
+                    }
+                    finally {progressPlaying.set(false);finishInterruptionMonitor(api,monitor)}
+                }
+                suspend fun prepare(packet:SpeechPacket):ByteArray? {
+                    if(packet.progress!=null) {
+                        if(contentReady.get())return null
+                        return try {api.progressAudio(packet.progress)}catch(cancel:CancellationException){throw cancel}catch(_:Exception){null}
+                    }
+                    if(pcmStreaming.get())return byteArrayOf()
+                    return api.synthesize(packet.text,speed,request,mutable.value.conversation)
                 }
                 if(bargeForTurn) {
-                    for(sentence in queue)playSentence(sentence,api.synthesize(sentence,speed,request,mutable.value.conversation))
+                    for(packet in queue)prepare(packet)?.let {playSentence(packet,it)}
                 } else coroutineScope {
                     // Rendezvous keeps exactly one prepared WAV ahead of playback.
-                    val ready=Channel<Pair<String,ByteArray>>(0)
+                    val ready=Channel<Pair<SpeechPacket,ByteArray>>(0)
                     val producer=launch {
-                        try {for(sentence in queue)ready.send(sentence to api.synthesize(sentence,speed,request,mutable.value.conversation))}
+                        try {for(packet in queue)prepare(packet)?.let {ready.send(packet to it)}}
                         finally {ready.close()}
                     }
                     try {for((sentence,wav) in ready)playSentence(sentence,wav)}
                     finally {producer.cancel();ready.cancel()}
                 }
-                if(epoch==generation) {mutable.update {it.copy(voiceStatus="Klaar om te luisteren")};if(succeeded.get())continueVoice(true)}
+                if(epoch==generation) {if(contentAudioReported)metric("native_final_audio_ms",(System.nanoTime()-responseClock)/1_000_000.0);mutable.update {it.copy(voiceStatus="Klaar om te luisteren")};if(succeeded.get())continueVoice(true)}
             }catch(error:Exception){if(epoch==generation)voiceProblem(error)}
         }
         sendJob=viewModelScope.launch {
@@ -470,28 +498,31 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
                 if(speak)body.put("channel","voice")
                 lease?.let {body.put("session_epoch",it.epoch)}
                 api.stream(body) {event -> if(epoch==generation&&currentApi===api)when(event.optString("type")) {
-                    "meta" -> {serverSpeech=event.optInt("speech_protocol",0)==1;mutable.update {it.copy(conversation=event.getString("conversation_id"))}}
+                    "meta" -> {pcmStreaming.set(event.optInt("pcm_stream",0)==1);api.realtimeEnabled=pcmStreaming.get();serverSpeech=event.optInt("speech_protocol",0)==1;mutable.update {it.copy(conversation=event.getString("conversation_id"))}}
                     "provider" -> mutable.update {it.copy(model=event.getString("provider")+" · "+event.getString("model"))}
                     "planning" -> mutable.update {it.copy(activityPlanning=event.getJSONObject("planning").toString())}
                     "delta" -> {
-                        val delta=event.getString("text")
+                        val delta=event.getString("text");contentReady.set(true);if(progressPlaying.getAndSet(false))audio.stopPlayback()
                         mutable.update {it.copy(messages=it.messages.dropLast(1)+it.messages.last().copy(text=it.messages.last().text+delta))}
                         if(narrate && !serverSpeech) {
-                            if(streamAudio)segments.add(delta).forEach {check(queue.trySend(it).isSuccess) {"Spraakbuffer vol"}}
+                            if(streamAudio)segments.add(delta).forEach {check(queue.trySend(SpeechPacket(it)).isSuccess) {"Spraakbuffer vol"}}
                             else {check(deferredSpeech.length+delta.length<=18000){"Spraakbuffer vol"};deferredSpeech.append(delta)}
                         }
                     }
+                    "progress" -> if(narrate&&!contentReady.get()&&(naturalConfig()?.optJSONObject("progress")?.optBoolean("enabled",true)!=false)) {
+                        try {val clip=nl.jarvis.mobile.voice.ProgressClip(event.getString("audio_id"),event.getString("voice_key"),event.getString("sha256"),event.getString("text"));queue.trySend(SpeechPacket(clip.text,clip))}catch(_:Exception){}
+                    }
                     "speech" -> if(narrate && serverSpeech) {
-                        val delta=event.getString("text")
+                        val delta=event.getString("text");contentReady.set(true);if(progressPlaying.getAndSet(false))audio.stopPlayback()
                         if(streamAudio) {
-                            SentenceBuffer.ready(delta).forEach {check(queue.trySend(it).isSuccess) {"Spraakbuffer vol"}}
+                            SentenceBuffer.ready(delta).forEach {check(queue.trySend(SpeechPacket(it)).isSuccess) {"Spraakbuffer vol"}}
                         }
                         else {check(deferredSpeech.length+delta.length<=18000);deferredSpeech.append(delta)}
                     }
                     "error" -> message(event.optString("message","Antwoord mislukt"))
                     "done" -> {
                         succeeded.set(event.getString("status")=="completed")
-                        if(succeeded.get()&&narrate)segments.add(if(streamAudio)"" else deferredSpeech.toString(),true).forEach {check(queue.trySend(it).isSuccess) {"Spraakbuffer vol"}}
+                        if(succeeded.get()&&narrate)segments.add(if(streamAudio)"" else deferredSpeech.toString(),true).forEach {check(queue.trySend(SpeechPacket(it)).isSuccess) {"Spraakbuffer vol"}}
                         else if(!succeeded.get()) {audioJob?.cancel();audio.stop();voiceConversationActive=false;conversationSession.end()}
                     }
                 }}
@@ -531,7 +562,7 @@ class JarvisViewModel(application: Application,val audio: AudioClient): AndroidV
                     mutable.update {it.copy(transcript=text)};audioJob=null
                     if(voiceConversationActive&&isEnding(text)) {stop();mutable.update {it.copy(voiceStatus="Standby")};return@launch}
                     if(text.isBlank()) {if(continuousVoice())continueVoice();return@launch}
-                    lastVoice=System.nanoTime();send(text,true)
+                    pendingSpeechEnd=audio.lastVoiceNanos;lastVoice=System.nanoTime();send(text,true)
                 }
             }catch(error:Exception){if(epoch==generation)voiceProblem(error)}
         }

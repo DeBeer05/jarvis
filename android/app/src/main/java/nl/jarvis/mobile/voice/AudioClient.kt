@@ -60,6 +60,11 @@ open class AudioClient(private val context: Context) {
     var incrementalStt=false
     var normalSilenceMs=900
     @Volatile var lastTranscript:String?=null;private set
+    @Volatile var lastVoiceNanos:Long=0;private set
+    fun stopPlayback() {
+        playing.set(false);paused.set(false)
+        try {track?.pause();track?.flush()}catch(_:IllegalStateException){}
+    }
     open fun supportsBargeIn()=AcousticEchoCanceler.isAvailable()
     open fun echoReady()=echoActive
     open fun pausePlayback() {paused.set(true);try{track?.pause()}catch(_:IllegalStateException){}}
@@ -91,7 +96,7 @@ open class AudioClient(private val context: Context) {
     open suspend fun record(device: Int,threshold: Float=.015f,silenceMs: Int=1200,maximumSeconds: Int=60,echo: Boolean=false,noise: Boolean=false,level: (Float) -> Unit): ByteArray = recordLock.withLock {withContext(Dispatchers.IO) {
         val recognize=turnRecognizer;val normal=normalSilenceMs.coerceIn(200,silenceMs.coerceAtLeast(200))
         val incremental=if(incrementalStt && recognize!=null)IncrementalTranscript() else null
-        lastTranscript=null
+        lastTranscript=null;lastVoiceNanos=0
         var revision=0;var tried=-1;var pendingRevision=-1;var pending:Deferred<String?>?=null
         check(context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) { "Microfoontoestemming nodig" }
         val minimum = AudioRecord.getMinBufferSize(16000, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
@@ -113,7 +118,7 @@ open class AudioClient(private val context: Context) {
                 var energy=0.0;for(index in 0 until read) {val sample=block[index].toDouble()/32768;energy+=sample*sample}
                 val rms = sqrt(energy/read).toFloat()
                 level((rms * 8).coerceIn(0f, 1f))
-                if (rms > threshold.coerceIn(.001f,.2f)) { speech += read; quiet = 0;revision++ } else quiet += read
+                if (rms > threshold.coerceIn(.001f,.2f)) { speech += read; quiet = 0;revision++;lastVoiceNanos=System.nanoTime() } else quiet += read
                 val bytes = ByteBuffer.allocate(read * 2).order(ByteOrder.LITTLE_ENDIAN)
                 repeat(read) { bytes.putShort(block[it]) }; data.write(bytes.array()); count += read
                 if(recognize!=null && speech>=3360 && (quiet>=16*normal || incremental!=null && data.size()-incremental.end>=256000) && tried!=revision && pending?.isActive!=true) {
@@ -143,9 +148,13 @@ open class AudioClient(private val context: Context) {
             aec?.release();suppression?.release();echoActive=false;noiseActive=false
         }
     }}
-    open suspend fun play(wav: ByteArray, device: Int,volume: Float=1f) = playbackLock.withLock {withContext(Dispatchers.IO) {
+    open suspend fun play(wav: ByteArray,device:Int,volume:Float=1f) {
+        val (rate,pcm)=Wav.decode(wav)
+        playPcm(rate,java.io.ByteArrayInputStream(pcm),device,volume)
+    }
+    open suspend fun playPcm(rate:Int,source:java.io.InputStream,device:Int,volume:Float=1f)=playbackLock.withLock {withContext(Dispatchers.IO) {
+        require(rate in 8000..48000)
         val startedCallback=playbackStarted
-        val (rate, pcm) = Wav.decode(wav)
         val manager=context.getSystemService(AudioManager::class.java)
         val focus=AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
             .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ASSISTANT).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
@@ -158,18 +167,27 @@ open class AudioClient(private val context: Context) {
         try {
             if (device != 0) context.getSystemService(AudioManager::class.java).getDevices(AudioManager.GET_DEVICES_OUTPUTS).firstOrNull { it.id == device }?.let { audio.setPreferredDevice(it) }
             track = audio; playing.set(true);audio.setVolume(volume.coerceIn(0f,1f)); audio.play()
-            var offset = 0
-            var reported=false
-            while (offset < pcm.size && playing.get()) {
+            var total=0;var reported=false;var carry=-1;val block=ByteArray(1920)
+            while(playing.get()) {
                 coroutineContext.ensureActive()
-                while(paused.get() && playing.get()) {coroutineContext.ensureActive();kotlinx.coroutines.delay(10)}
+                while(paused.get()&&playing.get()) {coroutineContext.ensureActive();kotlinx.coroutines.delay(10)}
                 if(!playing.get())break
-                val wrote = audio.write(pcm, offset, minOf(1024, pcm.size - offset), AudioTrack.WRITE_BLOCKING)
-                if (wrote <= 0 && !playing.get()) break
-                check(wrote > 0) { "Luidspreker niet beschikbaar" }; offset += wrote
-                if(!reported) {reported=true;startedCallback?.invoke()}
+                val offset=if(carry>=0){block[0]=carry.toByte();1}else 0
+                val read=source.read(block,offset,block.size-offset)
+                if(read<0){check(carry<0){"Onvolledige PCM-audio"};break}
+                val count=read+offset;val size=count-count%2
+                carry=if(count%2==1)block[count-1].toInt() and 255 else -1
+                var sent=0
+                while(sent<size&&playing.get()) {
+                    coroutineContext.ensureActive()
+                    val wrote=audio.write(block,sent,size-sent,AudioTrack.WRITE_BLOCKING)
+                    if(wrote<=0&&!playing.get())break
+                    check(wrote>0){"Luidspreker niet beschikbaar"};sent+=wrote;total+=wrote
+                    check(total<=5_760_000){"Audiolimiet bereikt"}
+                    if(!reported){reported=true;startedCallback?.invoke()}
+                }
             }
-            while(playing.get() && audio.playbackHeadPosition < pcm.size/2) { coroutineContext.ensureActive(); kotlinx.coroutines.delay(10) }
+            while(playing.get()&&audio.playbackHeadPosition<total/2){coroutineContext.ensureActive();kotlinx.coroutines.delay(10)}
         } finally { playing.set(false); track = null; audio.release(); manager.abandonAudioFocusRequest(focus) }
     }}
 }

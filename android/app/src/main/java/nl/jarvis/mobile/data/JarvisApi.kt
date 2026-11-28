@@ -14,7 +14,8 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.coroutineContext
 
-class JarvisApi(val endpoint: Endpoint, private val vault: SecretVault) {
+class JarvisApi(val endpoint: Endpoint, private val vault: SecretVault,progressDirectory:java.io.File?=null) {
+    private val progressCache=progressDirectory?.let {nl.jarvis.mobile.voice.ProgressCache(it)}
     private class SendTrace { val sent = AtomicBoolean(false) }
     private val http = OkHttpClient.Builder().connectTimeout(5, TimeUnit.SECONDS).readTimeout(110, TimeUnit.SECONDS)
         .connectionPool(ConnectionPool(3, 2, TimeUnit.SECONDS)) // below Uvicorn's 5-second idle timeout
@@ -30,6 +31,8 @@ class JarvisApi(val endpoint: Endpoint, private val vault: SecretVault) {
     @Volatile private var imageCall:Call?=null
     @Volatile private var transcriptionCall: Call? = null
     @Volatile private var synthesisCall: Call? = null
+    @Volatile var realtimeEnabled=false
+    private val realtime by lazy {RealtimeSpeech(http,endpoint.origin)}
     private fun make(path: String, method: String, body: RequestBody?, bearer: String? = null): Call {
         require(path.startsWith("/api/") || path == "/health")
         val request = Request.Builder().url(endpoint.origin + path).method(method, body).tag(SendTrace::class.java, SendTrace())
@@ -114,6 +117,12 @@ class JarvisApi(val endpoint: Endpoint, private val vault: SecretVault) {
         } } finally { streamCall = null }
     }
     suspend fun transcribe(wav: ByteArray,speculative:Boolean=false): String = withContext(Dispatchers.IO) {
+        if(realtimeEnabled) {
+            try {return@withContext kotlinx.coroutines.withTimeout(if(speculative)8000 else 110000){realtime.transcribe(wav,bearer())}}
+            catch(timeout:kotlinx.coroutines.TimeoutCancellationException){throw MobileError("speech_timeout",message="Spraakherkenning duurde te lang")}
+            catch(cancel:kotlinx.coroutines.CancellationException){throw cancel}
+            catch(_:Exception){ /* Read-only recognition falls back once, never a chat action. */ }
+        }
         val call = make("/api/v1/mobile/speech/transcribe", "POST", wav.toRequestBody("audio/wav".toMediaType()), bearer()); transcriptionCall = call
         if(speculative)call.timeout().timeout(8,TimeUnit.SECONDS)
         try { call.execute().use { JSONObject(read(it).toString(Charsets.UTF_8)).getString("text") } } finally { if(transcriptionCall===call)transcriptionCall = null }
@@ -128,6 +137,34 @@ class JarvisApi(val endpoint: Endpoint, private val vault: SecretVault) {
         conversation?.let {body.put("conversation_id",it)}
         val call = make("/api/v1/mobile/speech/synthesize", "POST", body.toString().toRequestBody("application/json".toMediaType()), bearer()); synthesisCall = call
         try { call.execute().use { read(it, 8_000_000) } } finally { if(synthesisCall===call)synthesisCall = null }
+    }
+    suspend fun progressAudio(clip:nl.jarvis.mobile.voice.ProgressClip):ByteArray=withContext(Dispatchers.IO) {
+        progressCache?.get(endpoint.origin,clip)?.let {return@withContext it}
+        val call=make("/api/v1/natural/progress-audio/"+clip.id,"GET",null,bearer())
+        call.execute().use {response ->
+            val raw=read(response,800000);progressCache?.put(endpoint.origin,clip,raw);raw
+        }
+    }
+    suspend fun warmProgress(valid:()->Boolean) {
+        val manifest=json("/api/v1/natural/progress-audio")
+        val items=manifest.optJSONArray("items") ?: return
+        for(index in 0 until minOf(items.length(),100)) {
+            if(!valid())return
+            val item=items.getJSONObject(index)
+            progressAudio(nl.jarvis.mobile.voice.ProgressClip(item.getString("id"),manifest.getString("version"),item.getString("sha256"),item.getString("text")))
+        }
+    }
+    suspend fun streamSynthesize(text:String,speed:Float,utterance:String?,conversation:String?,play:suspend(Int,java.io.InputStream)->Unit)=withContext(Dispatchers.IO) {
+        val body=JSONObject().put("text",text)
+        if(utterance==null)body.put("speed",speed) else body.put("utterance_id",utterance)
+        conversation?.let {body.put("conversation_id",it)}
+        val call=make("/api/v1/mobile/speech/stream","POST",body.toString().toRequestBody("application/json".toMediaType()),bearer());synthesisCall=call
+        try {call.execute().use {response ->
+            if(!response.isSuccessful){read(response);error("Spraakdienst niet beschikbaar")}
+            val rate=response.header("X-JARVIS-Audio-Rate")?.toIntOrNull() ?: error("Audioformaat ontbreekt")
+            require(rate in 8000..48000)
+            play(rate,response.body?.byteStream() ?: error("Audio ontbreekt"))
+        }}finally{if(synthesisCall===call)synthesisCall=null}
     }
     fun cancelTranscription() {transcriptionCall?.cancel()}
     suspend fun analyzeImage(body:JSONObject):JSONObject=withContext(Dispatchers.IO) {
@@ -146,7 +183,7 @@ class JarvisApi(val endpoint: Endpoint, private val vault: SecretVault) {
             }
         }finally{if(imageCall===call)imageCall=null}
     }
-    fun stop() { streamCall?.cancel(); transcriptionCall?.cancel();synthesisCall?.cancel();imageCall?.cancel() }
+    fun stop() { streamCall?.cancel(); transcriptionCall?.cancel();synthesisCall?.cancel();imageCall?.cancel();realtime.close() }
     fun invalidatePendingAuth() = synchronized(credentialState) { generation++ }
     fun forget() {
         synchronized(credentialState) { generation++; access = ""; vault.drop(endpoint.origin) }

@@ -2,11 +2,13 @@
 import asyncio
 import base64
 from contextlib import aclosing
+from contextlib import asynccontextmanager
 import io
 import json
 import math
 import time
 import wave
+from typing import Any
 
 import httpx
 
@@ -21,11 +23,22 @@ CONTROLS['eleven_flash_v2_5']=['elevenlabs_stability','elevenlabs_similarity','s
 class ElevenLabs:
     def __init__(self,settings,usage,*,client_factory=None):
         self.settings,self.usage=settings,usage;self.client_factory=client_factory or httpx.AsyncClient
+        self._client=None;self._pooled=client_factory is None
         self.metadata=None;self.checked=0.;self.lock=asyncio.Lock();self.slot=asyncio.Lock()
 
-    def client(self):
+    @asynccontextmanager
+    async def client(self):
         if not self.settings.elevenlabs_api_key:raise AuthError('tts_not_configured','ElevenLabs-sleutel ontbreekt op de backend.',503)
-        return self.client_factory(base_url='https://api.elevenlabs.io',headers={'xi-api-key':self.settings.elevenlabs_api_key},verify=True,trust_env=False,follow_redirects=False,timeout=httpx.Timeout(20,connect=4))
+        options:dict[str,Any]=dict(base_url='https://api.elevenlabs.io',headers={'xi-api-key':self.settings.elevenlabs_api_key},verify=True,trust_env=False,follow_redirects=False,timeout=httpx.Timeout(20,connect=4))
+        if not self._pooled:
+            async with self.client_factory(**options) as client:yield client
+        else:
+            if self._client is None:self._client=self.client_factory(**options,limits=httpx.Limits(max_connections=4,max_keepalive_connections=2,keepalive_expiry=60))
+            yield self._client
+
+    async def close(self):
+        if self._client is not None:
+            await self._client.aclose();self._client=None
 
     @staticmethod
     def check(response):

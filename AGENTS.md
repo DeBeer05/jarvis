@@ -1,5 +1,17 @@
 # Rules for coding agents working on JARVIS
 
+## Actuele Master Upgrade — 28 november 2026
+
+De nieuwste eigenaaropdracht vervangt de lokale-hubverdeling: de centrale backend,
+database, geheugen en scheduler gaan naar de bestaande Oracle-VM, met beveiligde
+back-up en rollback. De mini-pc blijft een lichte lokale/Home Assistant-gateway;
+de gaming-pc is optionele compute, nooit een beschikbaarheidsvereiste. Hergebruik
+alle bestaande managers en grants. Deze opdracht staat streaming, lokale
+stemgebonden voortgangsaudio en deployment toe, maar verhoogt geen kostenlimiet
+en verleent geen ontbrekende account-, telefoon- of apparaatmachtiging.
+Voortgang/bewijs: MASTER_UPGRADE_PROGRESS.md. Historische fasegrenzen hieronder
+blijven alleen gelden waar de nieuwste concrete opdracht ze niet vervangt.
+
 ## Actuele vervolgopdracht 28 november 2026: hybride systeem
 
 De eigenaar heeft nu expliciet installatie/configuratie/deployment op de bestaande

@@ -76,7 +76,8 @@ def main() -> int:
             )
             configuration = uvicorn.Config(
                 app, host=settings.host, port=settings.port, workers=1,
-                loop="asyncio", http="h11", ws="none", lifespan="on",
+                loop="asyncio", http="h11", ws="websockets-sansio", lifespan="on",
+                ws_max_size=65536,ws_max_queue=4,ws_ping_interval=20,ws_ping_timeout=20,
                 log_config=None, access_log=False, proxy_headers=False,
                 server_header=False, timeout_graceful_shutdown=5,
                 limit_concurrency=32,

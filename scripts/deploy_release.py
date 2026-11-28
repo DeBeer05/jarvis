@@ -48,8 +48,12 @@ def approved_release(ticket,base=BASE):
             raise ValueError('Unexpected external release symlink')
         if target.stat().st_uid!=0 or target.stat().st_mode&0o022:
             raise ValueError('Release contents must be root-controlled')
-    if run('git','-C',str(release),'rev-parse','HEAD')!=commit:raise ValueError('Commit differs from approval')
-    if run('git','-C',str(release),'status','--porcelain','--untracked-files=normal'):raise ValueError('Candidate contains changes')
+    if (release/'.git').exists():
+        if run('git','-C',str(release),'rev-parse','HEAD')!=commit:raise ValueError('Commit differs from approval')
+        if run('git','-C',str(release),'status','--porcelain','--untracked-files=normal'):raise ValueError('Candidate contains changes')
+    else:
+        from scripts.release_manifest import verify
+        verify(release,commit,value.get('manifest_sha256',''))
     return release,commit
 
 

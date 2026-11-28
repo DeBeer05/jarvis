@@ -1,0 +1,5 @@
+# Optional Windows gaming-PC runtime only; ~1.2 GB, no models or driver changes.
+# Official NVIDIA Windows wheels, pinned by version and SHA256.
+nvidia-cublas-cu12==12.9.2.10 --hash=sha256:623f43027d40d44ceadf0043f002bd25cf353e8f13ce90b9a87057019f560661
+nvidia-cudnn-cu12==9.28.1.4 --hash=sha256:3467aafa9b260e6adf5fbbfc0e21d180133305b42032aa1160be2d3142bb8b09
+nvidia-cuda-runtime-cu12==12.9.79 --hash=sha256:8e018af8fa02363876860388bd10ccb89eb9ab8fb0aa749aaf58430a9f7c4891

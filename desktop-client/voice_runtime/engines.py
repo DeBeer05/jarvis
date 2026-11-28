@@ -19,6 +19,7 @@ class SpeechToTextProvider:
         self.key = None
         self.cuda_device = None
         self.fallback_reason = None
+        self.cuda_directories=[]
 
     def unload(self):
         if self.model is not None:
@@ -36,8 +37,23 @@ class SpeechToTextProvider:
                     # Probe once per helper lifetime; missing native libraries
                     # can abort rather than raise inside CTranslate2 inference.
                     loader=ctypes.WinDLL if sys.platform=='win32' else ctypes.CDLL
-                    loader('cublas64_12.dll' if sys.platform=='win32' else 'libcublas.so.12')
-                    loader('cudnn64_9.dll' if sys.platform=='win32' else 'libcudnn.so.9')
+                    directories=[]
+                    if sys.platform=='win32':
+                        base=Path(sys.prefix)/'Lib/site-packages/nvidia'
+                        for name in ('cuda_runtime','cublas','cudnn'):
+                            directory=base/name/'bin'
+                            if directory.is_dir():
+                                directories.append(directory)
+                                directories.extend(child for child in directory.iterdir() if child.is_dir())
+                        optional=Path(sys.executable).parent/'optional-cuda'
+                        if optional.is_dir():
+                            directories.append(optional)
+                            directories.extend(child for child in optional.iterdir() if child.is_dir())
+                        for directory in directories:self.cuda_directories.append(os.add_dll_directory(str(directory)))
+                        if directories:os.environ['PATH']=os.pathsep.join(map(str,directories))+os.pathsep+os.environ.get('PATH','')
+                    for library in (('cublas64_12.dll','cudnn64_9.dll') if sys.platform=='win32' else ('libcublas.so.12','libcudnn.so.9')):
+                        target=next((directory/library for directory in directories if (directory/library).is_file()),None)
+                        loader(str(target) if target else library)
                     self.cuda_device='cuda'
             except OSError:
                 self.cuda_device='cpu';self.fallback_reason='cuda_libraries_missing'
@@ -91,7 +107,7 @@ class SpeechToTextProvider:
             # assignment would otherwise keep both alive while factory runs.
             self.unload()
             self.model = factory(str(directory), device=device, compute_type="int8" if device == "cpu" else "float16",
-                                 cpu_threads=4, num_workers=1, local_files_only=True)
+                                 cpu_threads=min(4,os.cpu_count() or 2), num_workers=1, local_files_only=True)
             self.key = key
         segments, _ = self.model.transcribe(audio, language="nl", task='transcribe',temperature=0.0,beam_size=beam, vad_filter=True,
                                             initial_prompt="Nederlandse spraak over agenda en afspraken. Woorden: titel, locatie, overleg, teamoverleg. Datum en tijd: vandaag, morgen, vanmorgen, overmorgen, 's middags, half, kwart.",

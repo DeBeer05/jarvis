@@ -103,7 +103,7 @@ def test_capabilities_are_server_facts_and_open_tasks_use_local_route(settings):
     app.state.automation.integrations.status=lambda:{"connected":True,"features":["calendar_read","calendar_write","gmail_read","gmail_compose"]}
     with client(app) as c:
         response=c.post("/api/v1/chat",json={"message":"Wat kan je allemaal doen?","provider":"ollama"}).json()
-        assert response["status"]=="completed" and "je agenda opvragen" in response["message"] and "afspraken voorbereiden" in response["message"]
+        assert response["status"]=="completed" and "uw agenda opvragen" in response["message"] and "afspraken voorbereiden" in response["message"]
         assert not router.planning_calls
         tasks=c.post("/api/v1/chat",json={"message":"Welke taken staan nog open?","provider":"ollama"}).json()
         assert "geen openstaande" in tasks["message"] and not router.planning_calls

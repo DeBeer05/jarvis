@@ -215,7 +215,7 @@ class SummaryUpdate(StrictModel):
 
 
 class Metric(StrictModel):
-    event:Literal["native_first_audio_ms","native_stt_ms","native_total_ms","interruption","rejected_interruption","wake_miss"]
+    event:Literal["native_first_audio_ms","native_content_audio_ms","native_final_audio_ms","native_progress_audio_ms","network_ms","native_stt_ms","native_total_ms","interruption","rejected_interruption","wake_miss"]
     value:float=Field(ge=0,le=3_600_000,strict=True)
 
 

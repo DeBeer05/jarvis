@@ -388,11 +388,13 @@ class MainWindow(QMainWindow):
         self.presence.configure(document['settings'])
         self.voice.configure_natural(document["settings"])
         enabled=document["settings"]["conversations"]["enabled"]
+        stt=document['settings']['voice'].get('stt_execution','auto')
         worker=self.voice.next_worker or self.voice.worker
         if enabled and self.manager.api and (not isinstance(worker,ServerInferenceWorker) or worker.api is not self.manager.api):
-            self.voice.select_worker(ServerInferenceWorker(self.manager.api))
+            self.voice.select_worker(ServerInferenceWorker(self.manager.api,prefer_local_stt=stt!='server',local_only=stt=='windows'))
         elif not enabled and isinstance(worker,ServerInferenceWorker):
             self.voice.select_worker(InferenceWorker())
+        elif isinstance(worker,ServerInferenceWorker):worker.prefer_local_stt=stt!='server';worker.local_only=stt=='windows'
         self.voice_panel.set_authorized(bool(self.principal and "chat:write" in self.principal["permissions"] and self.manager.state=="online"))
 
     def update_controls(self):
@@ -623,7 +625,7 @@ class MainWindow(QMainWindow):
     def voice_metrics(self,measurements):
         if not self.principal or self.manager.state!="online":return
         items=[]
-        for key,event in (("first_audio_seconds","native_first_audio_ms"),("stt_seconds","native_stt_ms"),("total_seconds","native_total_ms")):
+        for key,event in (("first_audio_seconds","native_first_audio_ms"),("content_audio_seconds","native_content_audio_ms"),("progress_audio_seconds","native_progress_audio_ms"),("final_audio_seconds","native_final_audio_ms"),("stt_seconds","native_stt_ms"),("total_seconds","native_total_ms")):
             if key in measurements:items.append({"event":event,"value":float(measurements[key])*1000})
         for event in ("interruption","rejected_interruption","wake_miss"):
             if event in measurements:items.append({"event":event,"value":float(measurements[event])})
@@ -659,6 +661,7 @@ class MainWindow(QMainWindow):
         kind = event["type"]
         if kind == "meta":
             self.server_speech=bool(event.get("speech_protocol"))
+            if hasattr(self.voice.worker,'pcm_stream'):self.voice.worker.pcm_stream=bool(event.get('pcm_stream'))
             self.conversation = event["conversation_id"]
             if hasattr(self.voice.worker,"begin_utterance"):self.voice.worker.begin_utterance(event["request_id"],self.conversation)
         elif kind == "provider":
@@ -672,6 +675,8 @@ class MainWindow(QMainWindow):
             self.rows[-1] = ("JARVIS", self.reply)
             if not self.render_timer.isActive():
                 self.render_timer.start(40)
+        elif kind == 'progress':
+            self.voice.progress(event)
         elif kind == "speech":
             if getattr(self,"server_speech",False):
                 self.voice.delta(event["text"],ready=True)

@@ -1,5 +1,9 @@
 # Persoonlijke butler — uitvoeringsplan
 
+Actuele opvolgende opdracht: [Master Upgrade](MASTER_UPGRADE_PROGRESS.md).
+Deze nieuwe opdracht plaatst de centrale backend op Oracle; de eerdere verdeling
+hieronder blijft als implementatiegeschiedenis behouden.
+
 ## Hybride vervolgopdracht — 28 november 2026
 
 1. Bestaande routes meten; directe publieke reads en eenmalige korte approvals,

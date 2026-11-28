@@ -44,13 +44,14 @@ def main():
     parser.add_argument('--run-local',action='store_true')
     parser.add_argument('--rounds',type=int,default=2,choices=range(1,5))
     parser.add_argument('--candidate',choices=('greedy','text-only'),default='text-only')
+    parser.add_argument('--device',choices=('cpu','cuda','auto'),default='cpu')
     parser.add_argument('--output',type=Path,default=ROOT/'.local/voice-latency/stt.json')
     args=parser.parse_args()
     if not args.run_local:parser.error('--run-local required; no inference started')
     models=Path(os.environ.get('LOCALAPPDATA',str(Path.home()/'.local/share')))/'JARVIS/Desktop/models'
     worker=OwnedVoicePipe([str(ROOT/'.local/voice-venv/Scripts/python.exe'),str(ROOT/'desktop-client/voice_worker.py')])
     def request(operation,**values):
-        result=worker.exchange({'operation':operation,'models':str(models),'device':'cpu','model':'whisper-small','profile':'desktop',**values},timeout=100)
+        result=worker.exchange({'operation':operation,'models':str(models),'device':args.device,'model':'whisper-small','profile':'desktop',**values},timeout=100)
         if not result.get('ok'):raise RuntimeError('Synthetic benchmark failed: '+result.get('code','unknown'))
         return result['result']
     records=[]
@@ -64,14 +65,14 @@ def main():
                     started=time.perf_counter();result=request('stt',audio=clip,beam_size=beam,without_timestamps=mode=='candidate' and args.candidate=='text-only')
                     expected=normalized(TEXTS[index]);actual=normalized(result['text'])
                     record={'round':round_index,'clip':index,'beam':beam,'mode':mode,'seconds':result['seconds'],
-                        'wall_seconds':time.perf_counter()-started,'text':result['text'],
+                        'wall_seconds':time.perf_counter()-started,'text':result['text'],'device':result.get('device'),'cpu_fallback':result.get('cpu_fallback',False),
                         'word_errors':distance(expected,actual),'reference_words':len(expected),'runtime':result.get('runtime_stats',{})}
                     records.append(record);print(json.dumps({key:record[key] for key in ('round','clip','beam','mode','seconds','word_errors')}),flush=True)
         summary={mode:{'median_seconds':statistics.median(r['seconds'] for r in records if r['mode']==mode),
             'word_errors':sum(r['word_errors'] for r in records if r['mode']==mode),
             'reference_words':sum(r['reference_words'] for r in records if r['mode']==mode),
             'peak_ram_bytes':max(r['runtime'].get('peak_ram_bytes',0) for r in records if r['mode']==mode)} for mode in ('baseline','candidate')}
-        report={'synthetic_cpu_only':True,'human_accuracy_tested':False,'microphone_used':False,'cold_stt_seconds':cold['seconds'],
+        report={'synthetic_cpu_only':args.device=='cpu','requested_device':args.device,'actual_device':cold.get('device'),'human_accuracy_tested':False,'microphone_used':False,'cold_stt_seconds':cold['seconds'],
             'candidate':args.candidate,'texts':TEXTS,'summary':summary,'records':records}
         args.output.parent.mkdir(parents=True,exist_ok=True)
         args.output.write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
