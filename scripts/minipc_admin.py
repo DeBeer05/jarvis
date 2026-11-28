@@ -46,9 +46,18 @@ def configure_voice(root):
     print('Sleutel beveiligd opgeslagen. Herstart JARVIS en kies Premium bij Spraak. Kostenlimieten blijven gelden.')
 
 
+def generate_link_key(path):
+    import subprocess
+    path=Path(path)
+    if path.exists() or path.with_suffix('.pub').exists():raise ValueError('Existing link key must be preserved')
+    subprocess.run(['ssh-keygen','-t','ed25519','-N','','-C','jarvis-minipc-link','-f',str(path)],capture_output=True,check=True)
+    if not path.is_file() or not path.with_suffix('.pub').is_file():raise ValueError('Link key creation not confirmed')
+
+
 def main():
     if len(sys.argv)==4 and sys.argv[1]=='restore-vault':
         restore_vault(sys.argv[2],sys.argv[3])
+    elif len(sys.argv)==3 and sys.argv[1]=='generate-link-key':generate_link_key(sys.argv[2])
     elif len(sys.argv)==3 and sys.argv[1]=='configure-voice':configure_voice(sys.argv[2])
     elif len(sys.argv)==3 and sys.argv[1]=='prepare-restore':prepare_restore(sys.argv[2])
     elif len(sys.argv)==3 and sys.argv[1]=='keygen-machine':

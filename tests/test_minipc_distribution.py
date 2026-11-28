@@ -50,3 +50,16 @@ def test_restored_vault_key_is_protected_and_temporary_plaintext_is_removed(tmp_
     value=Fernet.generate_key().decode();source.write_text(value)
     restore_vault(source,target)
     assert not source.exists() and read_secret(target)==value
+
+
+def test_link_key_is_noninteractive_and_existing_keys_are_preserved(tmp_path):
+    import shutil,subprocess
+    from scripts.minipc_admin import generate_link_key
+    if not shutil.which('ssh-keygen'):pytest.skip('OpenSSH key tool unavailable')
+    folder=tmp_path/'space in key path';folder.mkdir();key=folder/'link'
+    generate_link_key(key)
+    response=subprocess.run(['ssh-keygen','-y','-P','','-f',str(key)],capture_output=True,check=True)
+    assert response.stdout.startswith(b'ssh-ed25519 ')
+    before=key.read_bytes()
+    with pytest.raises(ValueError):generate_link_key(key)
+    assert key.read_bytes()==before

@@ -45,8 +45,9 @@ interne controleroutes en voltooide SSE-uitvoer zijn werkelijk gecontroleerd.
 
 - Volledige context: eerste antwoord 62.74 s; totale respons 64.50 s.
 - Compacte Oracle-context: eerste antwoord 14.45 s; totale respons 16.43 s.
+- Aanvullende releaseproef met 4096 contextreservering: eerste antwoord 19.95 s; totale respons 24.07 s.
 
-Dit zijn twee afzonderlijke live proeven, geen statistische garantie voor ieder
+Dit zijn afzonderlijke live proeven, geen statistische garantie voor ieder
 gesprek. De verkorte stockinstructies behouden serverbewijs, privacy, aanspreekvorm
 en onbetrouwbare contextgrenzen. Eigen systeeminstructies worden volledig bewaard.
 
@@ -76,3 +77,7 @@ Externe broninformatie: [NDW-incidenten](https://docs.ndw.nu/faq/incidenten/),
 Het versie-endpoint op Oracle had over de bestaande SSH-tunnel in drie proeven
 een mediane HTTP-rondreis van 61,0 ms. Dit omvat ook de korte remote handler;
 het is geen losse pakket-/netwerkmeting.
+
+De actieve vernieuwde backend gebruikte na gecontroleerde herstart circa 70,6 MiB
+resident geheugen op de ontwikkeldesktop, zonder geladen spraakmodel of lokale LLM.
+Dit is geen piek-/mini-pc-meting.

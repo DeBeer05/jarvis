@@ -22,8 +22,8 @@ $key=Join-Path $secrets 'oracle-link'
 $known=Join-Path $secrets 'oracle-known-hosts'
 Set-Content -LiteralPath $known -Value "$HostName $HostPublicKey" -Encoding ascii
 if(-not(Test-Path -LiteralPath $key)){
- & ssh-keygen -t ed25519 -N '""' -C 'jarvis-minipc-link' -f $key
- if($LASTEXITCODE -ne 0){throw 'Aanmaken van de lokale tunnelsleutel mislukt.'}
+ $release=Current-Release $InstallRoot
+ Invoke-Python "$release\.venv\Scripts\python.exe" @("$release\scripts\minipc_admin.py",'generate-link-key',$key)
 }
 & icacls $key /inheritance:r /grant:r '*S-1-5-18:F' '*S-1-5-32-544:F' /setowner '*S-1-5-18' | Out-Null
 if($LASTEXITCODE -ne 0){throw 'De tunnelsleutel kon niet met SYSTEM worden beveiligd.'}

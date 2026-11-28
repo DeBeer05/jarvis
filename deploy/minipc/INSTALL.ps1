@@ -9,7 +9,7 @@ $principal=if($NoService){[Security.Principal.WindowsIdentity]::GetCurrent().Nam
 & icacls $InstallRoot /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' "${principal}:(OI)(CI)F" | Out-Null
 if($LASTEXITCODE -ne 0){throw 'Beveiligde maprechten konden niet worden ingesteld.'}
 $python=Get-Command python.exe -ErrorAction SilentlyContinue
-if(-not $python -or (& $python.Source -c 'import sys; print(sys.version_info >= (3,12) and sys.version_info < (3,14))') -ne 'True'){
+if(-not $python -or $python.Source -like '*\WindowsApps\*' -or (& $python.Source -c 'import sys; print(sys.version_info >= (3,12) and sys.version_info < (3,14))') -ne 'True'){
  $installer=Join-Path $env:TEMP ('jarvis-python-'+[guid]::NewGuid()+'.exe')
  Invoke-WebRequest 'https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe' -OutFile $installer
  $signature=Get-AuthenticodeSignature -LiteralPath $installer

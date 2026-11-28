@@ -19,8 +19,8 @@
 
 Voortgang: onderdelen 1–5 geïmplementeerd met gerichte regressies en werkelijke
 Oracle/gateway-proeven. Onderdeel 6 is gebouwd en geïsoleerd gestart/gestopt;
-SYSTEM/mini-pc-acceptatie blijft hardwaregebonden. Onderdeel 7: definitieve CI en
-artifactcontrole lopen. De eerdere scopebeschrijving hieronder is historisch.
+SYSTEM/mini-pc-acceptatie blijft hardwaregebonden. Onderdeel 7: regressies, echte gateway-/inferenceproeven en CI-builds zijn
+uitgevoerd; de actuele definitieve jobuitkomsten staan op PR33. De eerdere scopebeschrijving hieronder is historisch.
 
 Beginstatus: bestaand HEAD ba9183c, 670 server-/150 Windows-/11 Android-tests;
 eigenaarmaildiffs blijven uitgesloten. SSH-inspectie: ARM64, 2 CPU/12 GB RAM,

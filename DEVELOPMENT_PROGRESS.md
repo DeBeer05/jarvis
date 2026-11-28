@@ -36,11 +36,17 @@ geen persoonlijke migratie/cutover uitgevoerd. Geen nieuwe betaalde resources.
 Tussenstand controles: 698 servertests + 1 Windows-skip; gerichte vervolgproeven
 42 context/spraak, 35 hybride tests en 15 aanvullende cache/queue/package-proeven
 zijn groen. CI-installatiepakket en Windows-build slagen. CI vond drie focus-/leesvraagregressies;
-98 gerichte tests slagen na het herstel. Definitieve CI-herhaling en artifacts
-worden nog gecontroleerd.
+98 gerichte tests slagen na het herstel. De actuele volledige CI-uitkomsten en geteste artifacts staan bij
+https://github.com/DeBeer05/jarvis/pull/33. Linux/ARM, Windows-client en de
+geïsoleerde package-installatie hebben inmiddels echte geslaagde runs.
 Windows 153 tests groen. Android unit/lint/debug/release gebouwd; nog niet als
 nieuwe APK op fysieke hardware geverifieerd. Menselijke luisteracceptatie blijft open.
-De twee bestaande maildigest-eigenaarsdiffs blijven onveranderd en ongecommit.
+Backend op de ontwikkeldesktop gecontroleerd herstart op 8765: schema v15,
+quick_check ok en automatische pre-v15-snapshot geverifieerd. Originele stem,
+accountinstellingen en grants behouden. Gemeten backend-idle-RSS circa 70,6 MiB.
+De herhaalde echte compacte HTTPS-proef varieerde van 14,45 tot 19,95 s; geen
+algemene subsecond-claim voor vrije modelgesprekken. De twee bestaande
+maildigest-eigenaarsdiffs blijven onveranderd en ongecommit.
 
 
 ## Huidige opdracht
