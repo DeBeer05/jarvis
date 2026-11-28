@@ -40,6 +40,12 @@ hybride implementatie/PR33. Twee bestaande maildigest-eigenaarsdiffs blijven int
    in de functie-uitleg. Configuratie en stem blijven per eigenaar synchroniseren.
 5. [ ] Infrastructuur: Oracle-backend, back-up/restore/rollback, systemd, TLS;
    mini-pc-gatewaypakket, optionele beschikbare Windows-compute.
+   Kandidaatinstaller hergebruikt de headless-payloadbuilder; bronbestanden zijn
+   exact aan een gecontroleerd manifest gebonden. Bestaande deploymentcoördinator
+   ondersteunt nu ook zulke artifacts, zonder productie-Git-clone. Back-up sluit
+   uitsluitend werkelijk aanwezige geconfigureerde secrets in; healthwatchdog
+   herstart geen bewust gestopte service. Package/rollback-regressies: 7 passed,
+   1 POSIX-eigenaarskip. Migratie en echte services volgen na kandidaatcontrole.
 6. [ ] Geheugen/Life Engine: bestaande CRUD/FTS/items/scheduler uitbreiden voor
    verplichtingen, deadlines en herleidbare prioriteiten, zonder modelpolling.
 7. [ ] Agenda/communicatie: bestaande bewijs-/approvalroutes; officiële koppelingen.

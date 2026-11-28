@@ -1,4 +1,16 @@
-# Oracle ARM64 — reviewbaar voorstel, nog niet uitgevoerd
+# Oracle ARM64 — Master Upgrade
+
+Actueel: de eigenaar vraagt op 28 november de centrale backend, database en Life
+Engine op de bestaande VM. Inference en de HTTPS-gateway zijn al geïnstalleerd;
+de backendmigratie wordt nu met back-up, kandidaatcontrole en rollback uitgevoerd.
+`install-backend.sh` bereidt alleen een controleerbare release voor en start geen
+persoonlijke backend. `scripts/build_oracle.py` hergebruikt de headless allowlist.
+Voortgang en echte verificatie staan in `MASTER_UPGRADE_PROGRESS.md`.
+
+De volgende tekst is de historische voorbereiding; uitspraken over "nog niet"
+beschrijven 27 november en vervangen de actuele voortgang niet.
+
+## Historische voorbereiding
 
 Status 27 november 2026: uitsluitend read-only SSH-inspectie uitgevoerd. Ubuntu
 24.04.5 ARM64, 2 OCPU/12 GB, circa 48 GB vrij; geen swap, git, Docker, Ollama of

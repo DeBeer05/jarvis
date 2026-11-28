@@ -1,6 +1,6 @@
 [Unit]
 Description=JARVIS private backend
-After=network-online.target ollama.service
+After=network-online.target jarvis-inference.service
 Wants=network-online.target
 
 [Service]
