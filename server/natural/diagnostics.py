@@ -4,13 +4,28 @@ import threading
 import time
 import shutil
 import subprocess
+import math
 from pathlib import Path
 
 from server.natural.capabilities import voice_capabilities
 
 EVENTS=frozenset({"ai_first_token_ms","response_total_ms","stt_ms","tts_ms","native_first_audio_ms",
-                  "native_stt_ms","native_total_ms","context_ms","intent_ms","tool_execution_ms","source_fetch_ms","context_tokens","interruption","rejected_interruption","wake_miss","error"})
+                  "native_stt_ms","native_total_ms","native_content_audio_ms","native_final_audio_ms","native_progress_audio_ms","database_ms","memory_ms","network_ms","tts_first_chunk_ms","context_ms","intent_ms","tool_execution_ms","source_fetch_ms","context_tokens","interruption","rejected_interruption","wake_miss","error"})
 CODES=frozenset({"timeout","unavailable","cancelled","permission_denied","internal_error","invalid_audio","invalid_parameters"})
+
+
+def distributions(events):
+    """Nearest-rank tails, with counts: a small sample is never a latency SLA."""
+    groups:dict[str,list[float]]={}
+    for row in events:
+        value=row.get('metric')
+        if row['event'] in EVENTS and isinstance(value,(int,float)) and math.isfinite(value):
+            groups.setdefault(row['event'],[]).append(value)
+    result={}
+    for name,values in groups.items():
+        values.sort()
+        result[name]={'count':len(values),**{f'p{p}':values[max(0,math.ceil(len(values)*p/100)-1)] for p in (50,95,99)}}
+    return result
 
 
 def resident_bytes(pid):
@@ -102,6 +117,7 @@ class DiagnosticsManager:
         return {"schema_version":1,"sampled_at":now,"enabled":config["diagnostics"]["enabled"],"server":"online","database":"read_write_ok",
                 "active_provider":latest["provider"] if latest and latest["provider"] in ("gemini","groq","ollama","oracle","local","jarvis") else None,
                 "voice":{"capabilities":capabilities,"inference_busy":inference_busy},"websocket":"not_configured","microphone":"device_local",
-                "sessions":sessions,"memory_counts":counts,"latency":latency,"events":events,
+                "sessions":sessions,"memory_counts":counts,"latency":latency,"distributions":distributions(events),"events":events,
+                "measurement_notes":{"native_first_audio_ms":"includes progress audio","native_content_audio_ms":"first substantive audio; excludes progress","native_final_audio_ms":"last substantive playback completed","tails":"nearest rank; inspect count; missing is not zero"},
                 "resources":self.resources(helper) if config["diagnostics"]["enabled"] and config["diagnostics"]["resources"] else None,
                 "contains_conversation_content":False}

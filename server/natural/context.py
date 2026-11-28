@@ -1,5 +1,6 @@
 """Bounded, source-aware context and extractive summaries in the same SQLite DB."""
 import uuid
+import time
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -55,10 +56,12 @@ class ContextManager:
         policy=RequestPolicy.from_document(document)
         order=policy.order(run.mode,self.bootstrap.preferred_provider) if policy else ([run.mode] if run.mode!="auto" else [self.bootstrap.preferred_provider,"gemini" if self.bootstrap.preferred_provider=="ollama" else "ollama"])
         local=order==["ollama"]
+        memory_started=time.perf_counter()
         memories=[]
         if config["memory"]["long_term"] and (local or config["privacy"]["cloud_memories"]):
             memories=self.memory.retrieve(run.principal,run.message,limit=config["memory"]["context_items"],include_sensitive=local and config["memory"]["sensitive"])
         episodes=self.episodes.retrieve(run.principal,run.conversation_id,run.message,config,local=local) if run.persist_history else []
+        run.timings['memory_ms']=(time.perf_counter()-memory_started)*1000
         self.episodes.record(run.principal,run.request_id,episodes)
         turns=(self.turns(run.principal,run.conversation_id) if run.persist_history else self.private_turns(run.principal,run.conversation_id,config)) if config["memory"]["short_term"] else []
         if not local:

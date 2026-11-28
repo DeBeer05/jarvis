@@ -15,7 +15,12 @@ hybride implementatie/PR33. Twee bestaande maildigest-eigenaarsdiffs blijven int
    Gaming-pc RTX 4060/8 GB VRAM bevestigd. Bestaande centrale managers behouden.
    Drie HTTP/mockproeven: bevestiging mediaan 286,87 ms, weer 133,95 ms,
    nul modelcalls voor weer. Geen claim over microfoon/eerste hoorbare audio.
-2. [ ] Snelheid: stage-timings, p50/p95/p99, pooling en begrensde concurrency.
+2. [x] Snelheid: stage-timings, p50/p95/p99, pooling en begrensde concurrency.
+   Bestaande stage-timings uitgebreid met database-start/relevante geheugenlookup.
+   Afzonderlijke voortgangs-/inhoudelijke-/finale audiometingen; ontbrekende samples
+   blijven ontbrekend. ElevenLabs hergebruikt nu begrensde TLS-connecties en sluit
+   ze bij shutdown. Twintig gerichte latency/diagnostiek/premium-regressies groen.
+   Audiostreaming/clientinstrumentatie volgen in fase 3; doelwaarden niet geclaimd.
 3. [ ] Realtime/tussenzinnen: 100 unieke Nederlandse zinnen, vooraf genereren,
    stemgebonden cache, clients, prioriteit/annulering, afzonderlijke audiometingen.
 4. [ ] Persoonlijkheid: korte gedeelde butlerstijl zonder interne uitvoerdetails.

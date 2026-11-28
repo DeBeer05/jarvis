@@ -107,7 +107,9 @@ class ChatService:
             if self.natural and principal and conversation_id:
                 await asyncio.to_thread(self.natural.authorize_conversation,principal,conversation_id)
                 await asyncio.to_thread(self.natural.check_audio,run)
+            database_started=time.perf_counter()
             run.conversation_id, run.history = await asyncio.to_thread(self.store.start, request_id, conversation_id, run.message,persist=run.persist_history)
+            run.timings['database_ms']=(time.perf_counter()-database_started)*1000
         except BaseException:
             self.active.pop(request_id, None)
             raise
