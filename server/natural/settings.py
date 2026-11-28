@@ -1,23 +1,33 @@
 """Revisioned, synchronized personal preferences, never a credential store."""
 from copy import deepcopy
+from typing import Any
 
 from server.natural.models import UserSettings, DeviceSettings
 from server.natural.store import Conflict, encode
 
 SCHEMA_VERSION=1
 CATEGORIES={
+    "routing":"Apparaatroutering",
+    'vision':'Schermcontext en beeldanalyse',
     "planning":"Uitjes en planning",
     "responses":"Antwoordgedrag",
     "general":"Algemeen", "conversations":"Gesprekken", "listening":"Luisteren",
     "voice":"Spraak en stem", "personality":"Persoonlijkheid", "ai":"AI en prestaties",
     "memory":"Geheugen", "calendar":"Agenda", "tasks":"Taken en automatiseringen",
     "autonomy":"Zelfstandigheid en machtigingen", "notifications":"Meldingen",
-    "privacy":"Privacy", "diagnostics":"Diagnostiek",
+    "privacy":"Privacy", "diagnostics":"Diagnostiek", "presence":"Aanwezigheid en modi", "briefings":"Briefings en informatiebronnen",
 }
 
 
 class SettingsManager:
-    def __init__(self, store):self.store=store
+    def __init__(self, store):
+        self.store=store
+        self.presence:Any=None
+
+    def runtime(self,principal):
+        document=self.get(principal)
+        presence=getattr(self,'presence',None)
+        return presence.runtime(principal,document) if presence else document
 
     @staticmethod
     def model(scope):

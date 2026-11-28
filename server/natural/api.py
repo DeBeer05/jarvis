@@ -7,6 +7,9 @@ from pydantic import Field, ValidationError
 
 from server.natural.models import StrictModel, MemoryInput, Personality, Voice
 from server.natural.store import Conflict
+from server.natural.presence import Signal as PresenceSignal
+from server.natural.life_items import ItemInput
+from server.natural.vision import AnalyzeImage
 
 router=APIRouter(prefix="/api/v1/natural")
 
@@ -23,6 +26,156 @@ def result(call):
 class SettingPatch(StrictModel):
     revision:int=Field(ge=0)
     changes:dict
+
+
+class ModeChange(StrictModel):
+    mode:Literal['normal','work','gaming','away','sleeping','travelling','private','emergency']
+
+
+@router.post('/vision')
+async def analyze_image(request:Request,body:AnalyzeImage):
+    from server.ai.providers import ProviderError
+    from server.security.types import AuthError
+    try:return await service(request).vision.analyze(request,body)
+    except ProviderError as error:raise AuthError(error.code,error.message,503) from None
+    except TimeoutError:raise AuthError('vision_timeout','De beeldvraag duurde te lang; zij wordt niet automatisch opnieuw verstuurd.',504) from None
+    except ValueError:raise AuthError('vision_invalid','Controleer de afbeelding, de gekozen provider en de actuele beeldinstellingen. Er is geen actie uitgevoerd.',400) from None
+
+
+@router.get('/vision/usage')
+def vision_usage(request:Request):
+    natural=service(request);document=natural.settings.get(request.state.principal)
+    return natural.vision.usage(request.state.principal,document['settings'])
+
+
+@router.get('/mobile-handoffs')
+def phone_handoffs(request:Request):return service(request).handoffs.list(request.state.principal)
+
+
+class HandoffResult(StrictModel):
+    state:Literal['handed_off','dismissed']
+
+
+@router.get('/device-status')
+def device_snapshots(request:Request):return service(request).device_status.list(request.state.principal)
+
+
+from server.natural.device_status import Snapshot
+
+
+@router.post('/device-status')
+def device_snapshot(request:Request,body:Snapshot):
+    natural=service(request);principal=request.state.principal
+    natural.security.store.rate('device-status:'+principal.device_id,12)
+    try:return natural.device_status.save(principal,body)
+    except PermissionError:raise HTTPException(403,'Apparaatstatus delen is niet toegestaan') from None
+
+
+@router.post('/mobile-handoffs/{identifier}/result')
+def phone_handoff_result(request:Request,identifier:UUID,body:HandoffResult):
+    return service(request).handoffs.result(request.state.principal,str(identifier),body.state)
+
+
+@router.get('/briefings/capabilities')
+def briefing_capabilities(request:Request):
+    service(request).settings.get(request.state.principal)
+    return {'inbox':True,'scheduled_calls':False,'call_reason':'Phone Link biedt geen ondersteunde publieke oproep-API; een apart oproepkanaal ontbreekt.',
+            'traffic':True,'traffic_reason':'Actuele NDW-meldingen in de regio; geen geverifieerde routevertraging.'}
+
+
+@router.get('/briefings/{kind}')
+async def personal_briefing(request:Request,kind:Literal['morning','evening','return']):
+    natural=service(request);principal=request.state.principal
+    natural.security.store.rate('briefing:'+principal.device_id,10)
+    natural.settings.get(principal)
+    bundle=await natural.briefings.build(principal.device_id,kind)
+    natural.settings.get(principal)
+    bundle.pop('user_id',None)
+    return bundle
+
+
+@router.post('/briefings/schedule')
+def schedule_briefings(request:Request):return service(request).briefings.schedule(request.state.principal)
+
+
+@router.get('/life-items')
+def personal_items(request:Request,kind:Literal['shopping','subscription','occasion','routine','application']|None=None):
+    return service(request).life.list(request.state.principal,kind)
+
+
+@router.get('/life-items/schema')
+def personal_item_schema(request:Request):
+    service(request).settings.get(request.state.principal)
+    from server.natural.life_items import KINDS
+    return {'kinds':{kind:model.model_json_schema() for kind,model in KINDS.items()},
+            'labels':{'shopping':'Boodschappen','subscription':'Abonnementskosten','occasion':'Verjaardagen en jubilea','routine':'Persoonlijke routines','application':'Sollicitaties en opvolging'}}
+
+
+@router.post('/life-items')
+def create_personal_item(request:Request,body:ItemInput):
+    return result(lambda:service(request).life.save(request.state.principal,body))
+
+
+@router.put('/life-items/{identifier}')
+def update_personal_item(request:Request,identifier:UUID,body:ItemInput):
+    return result(lambda:service(request).life.save(request.state.principal,body,str(identifier)))
+
+
+@router.delete('/life-items/{identifier}')
+def delete_personal_item(request:Request,identifier:UUID,revision:int):
+    return result(lambda:service(request).life.delete(request.state.principal,str(identifier),revision))
+
+
+class ItemRevision(StrictModel):
+    revision:int=Field(ge=1)
+
+
+class LinkApplicationMail(ItemRevision):
+    message_id:str=Field(pattern=r'^[a-zA-Z0-9_-]{1,256}$')
+
+
+@router.post('/life-items/{identifier}/link-mail')
+async def link_application_mail(request:Request,identifier:UUID,body:LinkApplicationMail):
+    return await service(request).life.link_mail(request.state.principal,str(identifier),body.revision,body.message_id)
+
+
+@router.post('/life-items/{identifier}/reminder')
+def schedule_personal_reminder(request:Request,identifier:UUID,body:ItemRevision):
+    return result(lambda:service(request).automation.store.public(service(request).life.reminder(request.state.principal,str(identifier),body.revision)))
+
+
+@router.get('/financial-overview')
+def personal_costs(request:Request):return service(request).life.financial_overview(request.state.principal)
+
+
+@router.get('/presence')
+def presence_state(request:Request):
+    return service(request).presence.state(request.state.principal)
+
+
+@router.post('/presence/signals')
+def presence_signal(request:Request,body:PresenceSignal):
+    natural=service(request);principal=request.state.principal
+    natural.security.store.rate('presence:'+principal.device_id,60)
+    try:return natural.presence.signal(principal,body)
+    except PermissionError:raise HTTPException(403,'Aanwezigheid delen is niet toegestaan of tijdelijk gepauzeerd') from None
+
+
+@router.post('/presence/mode')
+def presence_mode(request:Request,body:ModeChange):
+    return service(request).presence.set_mode(request.state.principal,body.mode)
+
+
+@router.get('/events')
+def personal_events(request:Request,history:bool=False):
+    natural=service(request);state=natural.presence.snapshot(request.state.principal)
+    notifications=natural.settings.get(request.state.principal)['settings']['notifications']
+    return natural.events.list(request.state.principal,history=history,control_only=not notifications['enabled'] and not history,urgent_only=not history and (notifications['proactivity']=='off' or state['mode'] in ('away','sleeping','private','gaming','emergency')))
+
+
+@router.post('/events/{identifier}/ack')
+def acknowledge_event(request:Request,identifier:UUID):
+    return service(request).events.ack(request.state.principal,str(identifier))
 
 
 class SettingDocument(StrictModel):
@@ -311,3 +464,32 @@ async def voice_preview(request:Request,body:VoicePreview):
     raw=base64.b64decode(audio["audio"],validate=True)
     if len(raw)>5_000_000:raise HTTPException(413,"Stemvoorbeeld te groot; gebruik een kortere tekst")
     return {"audio":audio["audio"],"provider":audio["selected_provider"],"voice":audio["selected_voice"],"seconds":time.perf_counter()-started,"runtime_stats":audio.get("runtime_stats",{}),"saved":False,"microphone_used":False}
+
+
+from server.natural.device_broker import Heartbeat,Lease,Outcome
+
+@router.get('/devices')
+def connected_devices(request:Request):return service(request).devices.list(request.state.principal)
+
+@router.post('/devices/heartbeat')
+def device_heartbeat(request:Request,body:Heartbeat):return service(request).devices.heartbeat(request.state.principal,body)
+
+@router.post('/devices/claim')
+def claim_device_command(request:Request):return service(request).devices.claim(request.state.principal)
+
+@router.post('/devices/commands/{identifier}/start')
+def start_device_command(request:Request,identifier:UUID,body:Lease):return service(request).devices.transition(request.state.principal,str(identifier),body,start=True)
+
+@router.post('/devices/commands/{identifier}/result')
+def finish_device_command(request:Request,identifier:UUID,body:Outcome):return service(request).devices.transition(request.state.principal,str(identifier),body)
+
+
+@router.get('/hybrid/status')
+async def hybrid_status(request:Request):
+    natural=service(request);principal=request.state.principal
+    natural.settings.get(principal)
+    natural.security.store.rate('hybrid-status:'+principal.device_id,20)
+    provider=natural.chat.router.providers.get('oracle')
+    status=await provider.availability() if provider else {'available':False,'state':'not_configured'}
+    natural.settings.get(principal)
+    return {'hub':natural.chat.settings.profile,'oracle':status,'devices':natural.devices.list(principal),'gateway_configured':bool(natural.chat.settings.public_origin),'local_heavy_model_required':False}

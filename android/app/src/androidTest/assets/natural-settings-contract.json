@@ -2,6 +2,8 @@
   "schema": {
     "schema_version": 1,
     "categories": {
+      "routing": "Apparaatroutering",
+      "vision": "Schermcontext en beeldanalyse",
       "planning": "Uitjes en planning",
       "responses": "Antwoordgedrag",
       "general": "Algemeen",
@@ -16,7 +18,9 @@
       "autonomy": "Zelfstandigheid en machtigingen",
       "notifications": "Meldingen",
       "privacy": "Privacy",
-      "diagnostics": "Diagnostiek"
+      "diagnostics": "Diagnostiek",
+      "presence": "Aanwezigheid en modi",
+      "briefings": "Briefings en informatiebronnen"
     },
     "labels": {
       "actions": "Regels per actie",
@@ -157,7 +161,27 @@
       "confidence": "Zelfverzekerde spreekstijl",
       "supertonic_voice": "Supertonic-mannenstem",
       "steps": "Supertonic kwaliteitsstappen",
-      "pause_ms": "Pauze tussen tekstblokken (ms)"
+      "pause_ms": "Pauze tussen tekstblokken (ms)",
+      "incremental_stt": "Tijdens spreken alvast herkennen (extra korte STT-verzoeken)",
+      "briefings": "Briefings",
+      "morning_channel": "Ochtendbriefing ontvangen via",
+      "evening_channel": "Avondbriefing ontvangen via",
+      "location": "Plaats voor weer en routevertrek",
+      "DesktopControl": "Windows: eenmalig gecontroleerd voorstel",
+      "DesktopMedia": "Volume en media binnen hostvrijgave",
+      "DesktopPrograms": "Toegestane programma’s binnen hostvrijgave",
+      "DesktopRead": "Windows-status en bestanden lezen",
+      "HomeRead": "Home Assistant-status lezen",
+      "HomeControl": "Home Assistant bedienen",
+      "RouteRead": "Route opvragen",
+      "MobileHandoff": "Opdracht in telefoonapp klaarzetten",
+      "PersonalBriefing": "Persoonlijke briefing",
+      "MemorySave": "Voorkeuren en feiten onthouden",
+      "MemoryUpdate": "Bestaande herinneringen aanpassen",
+      "episodes": "Eerdere gesprekken gericht terugvinden",
+      "presence": "Aanwezigheid en modi",
+      "presence_allowed": "Aanwezigheidsstatus delen op dit apparaat",
+      "application_allowed": "Werk-/gameherkenning op dit apparaat"
     },
     "values": {
       "allow": "Automatisch toestaan",
@@ -205,6 +229,16 @@
       "technical": "Technische uitleg",
       "briefing": "Korte briefing",
       "always": "Ieder antwoord",
+      "advise": "Alleen adviseren",
+      "inbox": "In JARVIS",
+      "call": "Telefonisch (oproepdienst ontbreekt)",
+      "work": "Werk",
+      "gaming": "Gaming",
+      "away": "Afwezig",
+      "sleeping": "Slapen",
+      "travelling": "Onderweg",
+      "private": "Privé",
+      "emergency": "Noodgeval",
       "together": "Samen plannen",
       "surprise": "Verrassingsmodus",
       "budget": "Budgetmodus",
@@ -249,13 +283,35 @@
         "AI": {
           "additionalProperties": false,
           "properties": {
+            "compact_context": {
+              "default": true,
+              "title": "Compacte context voor Oracle",
+              "type": "boolean"
+            },
+            "processing": {
+              "default": "hybrid",
+              "enum": [
+                "local",
+                "hybrid",
+                "cloud"
+              ],
+              "title": "Processing",
+              "type": "string"
+            },
+            "oracle_model": {
+              "default": "",
+              "pattern": "^[a-zA-Z0-9._:/-]{0,120}$",
+              "title": "Oracle Model",
+              "type": "string"
+            },
             "provider": {
               "default": "auto",
               "enum": [
                 "auto",
                 "gemini",
                 "groq",
-                "ollama"
+                "ollama",
+                "oracle"
               ],
               "title": "Provider",
               "type": "string"
@@ -266,7 +322,8 @@
                 "none",
                 "gemini",
                 "groq",
-                "ollama"
+                "ollama",
+                "oracle"
               ],
               "title": "Fallback",
               "type": "string"
@@ -530,16 +587,95 @@
                 "enum": [
                   "allow",
                   "ask",
-                  "block"
+                  "block",
+                  "advise"
                 ],
                 "type": "string"
               },
-              "maxProperties": 30,
+              "maxProperties": 64,
               "title": "Actions",
               "type": "object"
             }
           },
           "title": "Autonomy",
+          "type": "object"
+        },
+        "Briefings": {
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "default": false,
+              "title": "Geplande briefings inschakelen",
+              "type": "boolean"
+            },
+            "morning": {
+              "default": "08:00",
+              "pattern": "^(?:[01]\\d|2[0-3]):[0-5]\\d$",
+              "title": "Ochtendbriefing",
+              "type": "string"
+            },
+            "evening": {
+              "default": "22:00",
+              "pattern": "^(?:[01]\\d|2[0-3]):[0-5]\\d$",
+              "title": "Avondbriefing",
+              "type": "string"
+            },
+            "on_return": {
+              "default": true,
+              "title": "Briefing bij terugkomst voorbereiden",
+              "type": "boolean"
+            },
+            "calendar": {
+              "default": true,
+              "title": "Calendar",
+              "type": "boolean"
+            },
+            "email": {
+              "default": true,
+              "title": "Email",
+              "type": "boolean"
+            },
+            "weather": {
+              "default": false,
+              "title": "Open-Meteo weer gebruiken",
+              "type": "boolean"
+            },
+            "news": {
+              "default": false,
+              "title": "NOS-nieuwskoppen gebruiken",
+              "type": "boolean"
+            },
+            "traffic": {
+              "default": false,
+              "title": "NDW-verkeershinder in de regio gebruiken",
+              "type": "boolean"
+            },
+            "location": {
+              "default": "",
+              "maxLength": 100,
+              "title": "Plaats voor weer (geen huisadres)",
+              "type": "string"
+            },
+            "morning_channel": {
+              "default": "inbox",
+              "enum": [
+                "inbox",
+                "call"
+              ],
+              "title": "Morning Channel",
+              "type": "string"
+            },
+            "evening_channel": {
+              "default": "inbox",
+              "enum": [
+                "inbox",
+                "call"
+              ],
+              "title": "Evening Channel",
+              "type": "string"
+            }
+          },
+          "title": "Briefings",
           "type": "object"
         },
         "Calendar": {
@@ -805,6 +941,12 @@
               "title": "Adaptieve spreekbeurten",
               "type": "boolean"
             },
+            "incremental_stt": {
+              "default": false,
+              "description": "Verwerkt lange uitspraken in delen met overlap; voorlopig resultaat voert nooit een opdracht uit. Vereist adaptieve spreekbeurten.",
+              "title": "Spraakherkenning tijdens het spreken",
+              "type": "boolean"
+            },
             "maximum_listen_seconds": {
               "default": 60,
               "maximum": 60,
@@ -889,6 +1031,12 @@
             "summaries": {
               "default": true,
               "title": "Summaries",
+              "type": "boolean"
+            },
+            "episodes": {
+              "default": false,
+              "description": "Lokale FTS5-zoekfunctie in opgeslagen gebruikersuitspraken; volgt geschiedenis-, synchronisatie-, cloud- en vergeetbeleid.",
+              "title": "Eerdere gesprekken gericht terugvinden",
               "type": "boolean"
             },
             "retention_days": {
@@ -979,7 +1127,7 @@
           "additionalProperties": false,
           "properties": {
             "profile": {
-              "default": "friendly",
+              "default": "classic_butler",
               "enum": [
                 "classic_butler",
                 "classic",
@@ -995,13 +1143,13 @@
               "type": "string"
             },
             "honorific": {
-              "default": "",
+              "default": "meneer",
               "maxLength": 30,
               "title": "Aanspreekvorm (leeg = uit)",
               "type": "string"
             },
             "honorific_frequency": {
-              "default": "off",
+              "default": "occasionally",
               "enum": [
                 "off",
                 "occasionally",
@@ -1018,7 +1166,7 @@
               "type": "integer"
             },
             "formality": {
-              "default": 35,
+              "default": 80,
               "maximum": 100,
               "minimum": 0,
               "title": "Formality",
@@ -1046,7 +1194,7 @@
               "type": "integer"
             },
             "brevity": {
-              "default": 75,
+              "default": 90,
               "maximum": 100,
               "minimum": 0,
               "title": "Brevity",
@@ -1094,6 +1242,80 @@
             }
           },
           "title": "Personality",
+          "type": "object"
+        },
+        "Presence": {
+          "additionalProperties": false,
+          "properties": {
+            "mode": {
+              "default": "normal",
+              "enum": [
+                "normal",
+                "work",
+                "gaming",
+                "away",
+                "sleeping",
+                "travelling",
+                "private",
+                "emergency"
+              ],
+              "title": "Mode",
+              "type": "string"
+            },
+            "automatic": {
+              "default": false,
+              "title": "Automatisch omschakelen met toegestane apparaatsignalen",
+              "type": "boolean"
+            },
+            "idle_seconds": {
+              "default": 300,
+              "maximum": 7200,
+              "minimum": 60,
+              "title": "Afwezig na inactiviteit (s)",
+              "type": "integer"
+            },
+            "greetings": {
+              "default": true,
+              "title": "Eenmalige terugkomstbegroeting",
+              "type": "boolean"
+            },
+            "sleep_schedule": {
+              "default": false,
+              "title": "Slapen vermoeden wanneer alle apparaten afwezig zijn",
+              "type": "boolean"
+            },
+            "sleep_start": {
+              "default": 23,
+              "maximum": 23,
+              "minimum": 0,
+              "title": "Sleep Start",
+              "type": "integer"
+            },
+            "sleep_end": {
+              "default": 7,
+              "maximum": 23,
+              "minimum": 0,
+              "title": "Sleep End",
+              "type": "integer"
+            },
+            "work_apps": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 20,
+              "title": "Werkprogramma’s (alleen procesnamen, lokaal vergelijken)",
+              "type": "array"
+            },
+            "gaming_apps": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 20,
+              "title": "Games (alleen procesnamen, lokaal vergelijken)",
+              "type": "array"
+            }
+          },
+          "title": "Presence",
           "type": "object"
         },
         "Privacy": {
@@ -1263,6 +1485,19 @@
           "title": "ResponseSettings",
           "type": "object"
         },
+        "RoutingSettings": {
+          "additionalProperties": false,
+          "properties": {
+            "windows_device": {
+              "default": "",
+              "pattern": "^(?:[0-9a-f-]{36})?$",
+              "title": "Standaardcomputer voor opdrachten vanaf andere apparaten",
+              "type": "string"
+            }
+          },
+          "title": "RoutingSettings",
+          "type": "object"
+        },
         "Tasks": {
           "additionalProperties": false,
           "properties": {
@@ -1297,6 +1532,46 @@
             }
           },
           "title": "Tasks",
+          "type": "object"
+        },
+        "Vision": {
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "default": false,
+              "title": "Beeldanalyse inschakelen",
+              "type": "boolean"
+            },
+            "provider": {
+              "default": "gemini",
+              "enum": [
+                "gemini",
+                "groq",
+                "ollama"
+              ],
+              "title": "Provider",
+              "type": "string"
+            },
+            "model": {
+              "default": "",
+              "maxLength": 128,
+              "title": "Bestaand beeldmodel (leeg gebruikt het ingestelde model)",
+              "type": "string"
+            },
+            "cloud_allowed": {
+              "default": false,
+              "title": "Geselecteerde beelden mogen naar de gekozen cloudprovider",
+              "type": "boolean"
+            },
+            "daily_requests": {
+              "default": 10,
+              "maximum": 50,
+              "minimum": 0,
+              "title": "Maximale beeldvragen per dag",
+              "type": "integer"
+            }
+          },
+          "title": "Vision",
           "type": "object"
         },
         "Voice": {
@@ -1617,6 +1892,12 @@
       },
       "additionalProperties": false,
       "properties": {
+        "routing": {
+          "$ref": "#/$defs/RoutingSettings"
+        },
+        "vision": {
+          "$ref": "#/$defs/Vision"
+        },
         "planning": {
           "$ref": "#/$defs/ActivityPlanning"
         },
@@ -1656,6 +1937,12 @@
         "notifications": {
           "$ref": "#/$defs/Notifications"
         },
+        "presence": {
+          "$ref": "#/$defs/Presence"
+        },
+        "briefings": {
+          "$ref": "#/$defs/Briefings"
+        },
         "privacy": {
           "$ref": "#/$defs/Privacy"
         },
@@ -1669,6 +1956,17 @@
     "device": {
       "additionalProperties": false,
       "properties": {
+        "execution_policy": {
+          "additionalProperties": true,
+          "maxProperties": 10,
+          "title": "Windows-programma’s, documentmappen en mediabediening",
+          "type": "object"
+        },
+        "execution_allowed": {
+          "default": false,
+          "title": "Gesloten Windows-opdrachten van uw andere apparaten ontvangen",
+          "type": "boolean"
+        },
         "input_device": {
           "default": -1,
           "minimum": -1,
@@ -1700,6 +1998,49 @@
           "default": false,
           "title": "Keep Awake",
           "type": "boolean"
+        },
+        "presence_allowed": {
+          "default": false,
+          "title": "Aanwezigheidsstatus van dit apparaat delen",
+          "type": "boolean"
+        },
+        "application_allowed": {
+          "default": false,
+          "title": "Actief programma lokaal met werk-/gamelijst vergelijken",
+          "type": "boolean"
+        },
+        "handoff_allowed": {
+          "default": false,
+          "title": "Goedgekeurde opdrachten in telefoonapps klaarzetten",
+          "type": "boolean"
+        },
+        "status_allowed": {
+          "default": false,
+          "title": "Batterijstatus met uw andere apparaten delen",
+          "type": "boolean"
+        },
+        "notification_allowed": {
+          "default": false,
+          "title": "Aantallen meldingen delen (geen inhoud)",
+          "type": "boolean"
+        },
+        "notification_packages": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Toegestane apppakketnamen voor meldingsaantallen",
+          "type": "array"
+        },
+        "location_allowed": {
+          "default": false,
+          "title": "Optionele laatst bekende locatie delen (maximaal 24 uur bewaard)",
+          "type": "boolean"
+        },
+        "screen_allowed": {
+          "default": false,
+          "title": "Zelf geselecteerde schermafbeeldingen mogen worden geanalyseerd",
+          "type": "boolean"
         }
       },
       "title": "DeviceSettings",
@@ -1712,22 +2053,40 @@
       "CalendarRead",
       "CalendarSummary",
       "CalendarUpdate",
+      "DesktopControl",
+      "DesktopMedia",
+      "DesktopPrograms",
+      "DesktopRead",
+      "DeviceCommand",
+      "DeviceQuery",
       "EmailCheck",
       "EmailDraft",
       "EmailRead",
       "EmailSearch",
       "EmailSend",
+      "HomeControl",
+      "HomeRead",
+      "MobileHandoff",
+      "NewsRead",
       "NotificationSend",
+      "PersonalBriefing",
       "ReminderCancel",
       "ReminderCreate",
       "ReminderList",
+      "RouteRead",
+      "TrafficRead",
       "WaitForReply",
+      "WeatherRead",
       "WorkflowCreate",
       "WorkflowStatus",
       "MemorySave",
       "MemoryUpdate"
     ],
     "mandatory_approval": [
+      "DeviceCommand",
+      "DesktopControl",
+      "MobileHandoff",
+      "HomeControl",
       "CalendarCreate",
       "CalendarUpdate",
       "CalendarDelete",
@@ -1737,6 +2096,16 @@
   "document": {
     "revision": 0,
     "settings": {
+      "routing": {
+        "windows_device": ""
+      },
+      "vision": {
+        "enabled": false,
+        "provider": "gemini",
+        "model": "",
+        "cloud_allowed": false,
+        "daily_requests": 10
+      },
       "planning": {
         "enabled": true,
         "mode": "together",
@@ -1811,6 +2180,7 @@
         "normal_silence_ms": 900,
         "thinking_pause_ms": 2500,
         "adaptive": true,
+        "incremental_stt": false,
         "maximum_listen_seconds": 60,
         "barge_in": false,
         "barge_in_sensitivity": 0.7,
@@ -1853,15 +2223,15 @@
         "unload_after_seconds": 300
       },
       "personality": {
-        "profile": "friendly",
-        "honorific": "",
-        "honorific_frequency": "off",
+        "profile": "classic_butler",
+        "honorific": "meneer",
+        "honorific_frequency": "occasionally",
         "confidence": 90,
-        "formality": 35,
+        "formality": 80,
         "humor": 35,
         "sarcasm": 5,
         "friendliness": 75,
-        "brevity": 75,
+        "brevity": 90,
         "proactivity": 30,
         "initiative": 30,
         "followup_questions": 25,
@@ -1870,6 +2240,9 @@
         "custom_instructions": ""
       },
       "ai": {
+        "compact_context": true,
+        "processing": "hybrid",
+        "oracle_model": "",
         "provider": "auto",
         "fallback": "ollama",
         "automatic_selection": true,
@@ -1890,6 +2263,7 @@
         "automatic": false,
         "history": true,
         "summaries": true,
+        "episodes": false,
         "retention_days": 365,
         "semantic_search": false,
         "synchronize": true,
@@ -1934,6 +2308,31 @@
         "suggestions_per_hour": 3,
         "quiet_start": 22,
         "quiet_end": 7
+      },
+      "presence": {
+        "mode": "normal",
+        "automatic": false,
+        "idle_seconds": 300,
+        "greetings": true,
+        "sleep_schedule": false,
+        "sleep_start": 23,
+        "sleep_end": 7,
+        "work_apps": [],
+        "gaming_apps": []
+      },
+      "briefings": {
+        "enabled": false,
+        "morning": "08:00",
+        "evening": "22:00",
+        "on_return": true,
+        "calendar": true,
+        "email": true,
+        "weather": false,
+        "news": false,
+        "traffic": false,
+        "location": "",
+        "morning_channel": "inbox",
+        "evening_channel": "inbox"
       },
       "privacy": {
         "cloud_memories": false,

@@ -46,6 +46,7 @@ class Listening(StrictModel):
     normal_silence_ms: int = Field(default=900, ge=300, le=4000, title="Normale stilte (ms)")
     thinking_pause_ms: int = Field(default=2500, ge=500, le=8000, title="Denkpauze (ms)")
     adaptive: bool = Field(default=True, title="Adaptieve spreekbeurten")
+    incremental_stt: bool = Field(default=False,title="Spraakherkenning tijdens het spreken",description="Verwerkt lange uitspraken in delen met overlap; voorlopig resultaat voert nooit een opdracht uit. Vereist adaptieve spreekbeurten.")
     maximum_listen_seconds: int = Field(default=60, ge=5, le=60, title="Maximale opname (s)")
     barge_in: bool = Field(default=False, title="Onderbreken met spraak")
     barge_in_sensitivity: float = Field(default=.7, ge=.1, le=1)
@@ -95,15 +96,15 @@ class Voice(StrictModel):
 
 
 class Personality(StrictModel):
-    profile: Literal["classic_butler", "classic", "professional", "friendly", "informal", "humorous", "concise", "informative", "custom"] = "friendly"
-    honorific: str=Field(default="",max_length=30,title="Aanspreekvorm (leeg = uit)")
-    honorific_frequency: Literal["off","occasionally","always"]="off"
+    profile: Literal["classic_butler", "classic", "professional", "friendly", "informal", "humorous", "concise", "informative", "custom"] = "classic_butler"
+    honorific: str=Field(default="meneer",max_length=30,title="Aanspreekvorm (leeg = uit)")
+    honorific_frequency: Literal["off","occasionally","always"]="occasionally"
     confidence:int=Field(default=90,ge=0,le=100,title="Zelfverzekerde spreekstijl")
-    formality: int = Field(default=35, ge=0, le=100)
+    formality: int = Field(default=80, ge=0, le=100)
     humor: int = Field(default=35, ge=0, le=100)
     sarcasm: int = Field(default=5, ge=0, le=100)
     friendliness: int = Field(default=75, ge=0, le=100)
-    brevity: int = Field(default=75, ge=0, le=100)
+    brevity: int = Field(default=90, ge=0, le=100)
     proactivity: int = Field(default=30, ge=0, le=100)
     initiative: int = Field(default=30, ge=0, le=100)
     followup_questions: int = Field(default=25, ge=0, le=100)
@@ -113,8 +114,11 @@ class Personality(StrictModel):
 
 
 class AI(StrictModel):
-    provider: Literal["auto", "gemini", "groq", "ollama"] = "auto"
-    fallback: Literal["none", "gemini", "groq", "ollama"] = "ollama"
+    compact_context:bool=Field(default=True,title="Compacte context voor Oracle")
+    processing:Literal["local","hybrid","cloud"]="hybrid"
+    oracle_model:str=Field(default="",pattern=r"^[a-zA-Z0-9._:/-]{0,120}$")
+    provider: Literal["auto", "gemini", "groq", "ollama", "oracle"] = "auto"
+    fallback: Literal["none", "gemini", "groq", "ollama", "oracle"] = "ollama"
     automatic_selection: bool = True
     offline: bool = False
     gemini_model: str = Field(default="", pattern=r"^[a-zA-Z0-9._:/-]{0,120}$")
@@ -134,6 +138,7 @@ class Memory(StrictModel):
     automatic: bool = False
     history: bool = True
     summaries: bool = True
+    episodes: bool = Field(default=False,title="Eerdere gesprekken gericht terugvinden",description="Lokale FTS5-zoekfunctie in opgeslagen gebruikersuitspraken; volgt geschiedenis-, synchronisatie-, cloud- en vergeetbeleid.")
     retention_days: int = Field(default=365, ge=1, le=3650)
     semantic_search: bool = Field(default=False,description="Breidt FTS5 uit met een kleine Nederlandse woordenlijst. Geen embeddings of algemeen semantisch model.")
     synchronize: bool = True
@@ -172,7 +177,7 @@ class Tasks(StrictModel):
 
 class Autonomy(StrictModel):
     profile: Literal["ask", "within_rules", "read_propose"] = "ask"
-    actions: dict[str, Literal["allow", "ask", "block"]] = Field(default_factory=dict, max_length=30)
+    actions: dict[str, Literal["allow", "ask", "block",'advise']] = Field(default_factory=dict, max_length=64)
     @model_validator(mode="after")
     def known(self):
         from server.automation.models import REGISTRY
@@ -190,12 +195,53 @@ class Notifications(StrictModel):
     quiet_end: int = Field(default=7, ge=0, le=23)
 
 
+class Presence(StrictModel):
+    mode: Literal['normal','work','gaming','away','sleeping','travelling','private','emergency'] = 'normal'
+    automatic: bool = Field(default=False,title='Automatisch omschakelen met toegestane apparaatsignalen')
+    idle_seconds: int = Field(default=300,ge=60,le=7200,title='Afwezig na inactiviteit (s)')
+    greetings: bool = Field(default=True,title='Eenmalige terugkomstbegroeting')
+    sleep_schedule: bool = Field(default=False,title='Slapen vermoeden wanneer alle apparaten afwezig zijn')
+    sleep_start: int = Field(default=23,ge=0,le=23)
+    sleep_end: int = Field(default=7,ge=0,le=23)
+    work_apps: list[str] = Field(default_factory=list,max_length=20,title='Werkprogramma’s (alleen procesnamen, lokaal vergelijken)')
+    gaming_apps: list[str] = Field(default_factory=list,max_length=20,title='Games (alleen procesnamen, lokaal vergelijken)')
+    @model_validator(mode='after')
+    def apps(self):
+        import re
+        if any(not re.fullmatch(r'[\w .-]{1,70}\.exe',name,re.I) for name in self.work_apps+self.gaming_apps):
+            raise ValueError('Gebruik alleen Windows-procesnamen, geen paden of opdrachten')
+        return self
+
+
+class Briefings(StrictModel):
+    enabled:bool=Field(default=False,title='Geplande briefings inschakelen')
+    morning:str=Field(default='08:00',pattern=r'^(?:[01]\d|2[0-3]):[0-5]\d$',title='Ochtendbriefing')
+    evening:str=Field(default='22:00',pattern=r'^(?:[01]\d|2[0-3]):[0-5]\d$',title='Avondbriefing')
+    on_return:bool=Field(default=True,title='Briefing bij terugkomst voorbereiden')
+    calendar:bool=True
+    email:bool=True
+    weather:bool=Field(default=False,title='Open-Meteo weer gebruiken')
+    news:bool=Field(default=False,title='NOS-nieuwskoppen gebruiken')
+    traffic:bool=Field(default=False,title='NDW-verkeershinder in de regio gebruiken')
+    location:str=Field(default='',max_length=100,title='Plaats voor weer (geen huisadres)')
+    morning_channel:Literal['inbox','call']='inbox'
+    evening_channel:Literal['inbox','call']='inbox'
+
+
 class Privacy(StrictModel):
     cloud_memories: bool = False
     cloud_sensitive: Literal[False] = False
     retain_raw_audio: Literal[False] = False
     history_days: int = Field(default=365, ge=1, le=3650)
     diagnostic_days: int = Field(default=7, ge=1, le=30)
+
+
+class Vision(StrictModel):
+    enabled:bool=Field(default=False,title='Beeldanalyse inschakelen')
+    provider:Literal['gemini','groq','ollama']='gemini'
+    model:str=Field(default='',max_length=128,title='Bestaand beeldmodel (leeg gebruikt het ingestelde model)')
+    cloud_allowed:bool=Field(default=False,title='Geselecteerde beelden mogen naar de gekozen cloudprovider')
+    daily_requests:int=Field(default=10,ge=0,le=50,title='Maximale beeldvragen per dag')
 
 
 class Diagnostics(StrictModel):
@@ -250,7 +296,13 @@ class ActivityPlanning(StrictModel):
     search_integrations:list[Literal['none']]=Field(default_factory=list,max_length=1)
 
 
+class RoutingSettings(StrictModel):
+    windows_device:str=Field(default='',pattern=r'^(?:[0-9a-f-]{36})?$',title='Standaardcomputer voor opdrachten vanaf andere apparaten')
+
+
 class UserSettings(StrictModel):
+    routing:RoutingSettings=Field(default_factory=RoutingSettings)
+    vision:Vision=Field(default_factory=Vision)
     planning:ActivityPlanning=Field(default_factory=ActivityPlanning)
     responses: ResponseSettings=Field(default_factory=ResponseSettings)
     general: General = Field(default_factory=General)
@@ -264,17 +316,36 @@ class UserSettings(StrictModel):
     tasks: Tasks = Field(default_factory=Tasks)
     autonomy: Autonomy = Field(default_factory=Autonomy)
     notifications: Notifications = Field(default_factory=Notifications)
+    presence: Presence = Field(default_factory=Presence)
+    briefings: Briefings = Field(default_factory=Briefings)
     privacy: Privacy = Field(default_factory=Privacy)
     diagnostics: Diagnostics = Field(default_factory=Diagnostics)
 
 
 class DeviceSettings(StrictModel):
+    execution_policy:dict=Field(default_factory=dict,max_length=10,title="Windows-programma’s, documentmappen en mediabediening")
+    execution_allowed:bool=Field(default=False,title="Gesloten Windows-opdrachten van uw andere apparaten ontvangen")
     input_device: int = Field(default=-1, ge=-1)
     output_device: int = Field(default=-1, ge=-1)
     muted: bool = False
     microphone_allowed: bool = False
     wake_enabled: bool = False
     keep_awake: bool = False
+    presence_allowed: bool = Field(default=False,title='Aanwezigheidsstatus van dit apparaat delen')
+    application_allowed: bool = Field(default=False,title='Actief programma lokaal met werk-/gamelijst vergelijken')
+    handoff_allowed:bool=Field(default=False,title='Goedgekeurde opdrachten in telefoonapps klaarzetten')
+    status_allowed:bool=Field(default=False,title='Batterijstatus met uw andere apparaten delen')
+    notification_allowed:bool=Field(default=False,title='Aantallen meldingen delen (geen inhoud)')
+    notification_packages:list[str]=Field(default_factory=list,max_length=20,title='Toegestane apppakketnamen voor meldingsaantallen')
+    location_allowed:bool=Field(default=False,title='Optionele laatst bekende locatie delen (maximaal 24 uur bewaard)')
+    screen_allowed:bool=Field(default=False,title='Zelf geselecteerde schermafbeeldingen mogen worden geanalyseerd')
+    @model_validator(mode='after')
+    def packages(self):
+        from server.automation.windows import HostPolicy
+        HostPolicy.model_validate(self.execution_policy)
+        import re
+        if any(not re.fullmatch(r'[a-z][a-z0-9_.]{2,100}',package) for package in self.notification_packages):raise ValueError('Ongeldige apppakketnaam')
+        return self
 
 
 class MemoryInput(StrictModel):

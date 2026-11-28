@@ -46,3 +46,11 @@ jobs:
           if ($result.version -ne '0.7.5' -or $result.pages -ne 8 -or $result.network_started -or $result.microphone_active -or $result.voice_worker_started) { throw 'Unexpected client startup' }
       - name: Smoke test packaged speech helper without models
         run: ./.local/client-venv/Scripts/python.exe scripts/check-voice-bundle.py .local/client-build/dist/JARVIS/voice-runtime/JARVIS-Voice.exe
+      - name: Retain tested portable Windows bundle
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: JARVIS-Windows-portable
+          path: .local/client-build/JARVIS-Windows-*-x64.zip
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7

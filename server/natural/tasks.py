@@ -6,7 +6,7 @@ from server.natural.store import encode
 
 # Persist references, never approval nonces. The manager revalidates session,
 # device, expiry, completed preview and the current payload before each decision.
-FIELDS=("write_question","read_question","jobs","recent","calendar_query","calendars","events","messages","drafts","reminders","calendar_action","last_calendar","pending","decision")
+FIELDS=("write_question","read_question","jobs","recent","calendar_query","calendars","events","messages","drafts","reminders","calendar_action","last_calendar","pending","decision","public_question")
 
 
 class TaskMemory:

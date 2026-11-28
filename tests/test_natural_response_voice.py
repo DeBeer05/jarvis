@@ -32,6 +32,8 @@ def test_response_modes_and_critical_information_are_not_word_truncation():
     assert 'deadline' in result and 'kosten' in result and 'Achtergrond' not in result
     config['personality']['profile']='classic_butler'
     assert 'butler' in response_prompt(config,'Vraag',True)
+    assert 'hooguit af en toe' in response_prompt(config,'Vraag',True)
+    config['personality']['honorific_frequency']='off'
     assert 'Gebruik geen aanspreekvorm' in response_prompt(config,'Vraag',True)
 
 

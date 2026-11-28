@@ -168,6 +168,7 @@ def main() -> int:
         "JARVIS_PROFILE": "desktop-development", "JARVIS_AI_PREFERRED_PROVIDER": "gemini",
         "GROQ_API_KEY": "", "GROQ_MODEL": "openai/gpt-oss-120b",
         "GEMINI_MODEL": "gemini-3.8-flash", "OLLAMA_BASE_URL": "http://127.0.0.1:11434",
+        "JARVIS_ORACLE_BASE_URL": "http://127.0.0.1:11435", "JARVIS_ORACLE_MODEL": "qwen2.5:3b",
         "OLLAMA_MODEL": "qwen2.5:3b", "JARVIS_SYSTEM_PROMPT_FILE": "config/jarvis-system-prompt.txt",
         "JARVIS_AI_TIMEOUT_SECONDS": "60", "JARVIS_PROVIDER_TIMEOUT_SECONDS": "25",
         "JARVIS_AI_MAX_CONCURRENT": "2", "JARVIS_CHAT_MAX_MESSAGE_CHARS": "8000",
@@ -201,7 +202,7 @@ def main() -> int:
                     errors.append("Invalid or duplicate example configuration entry")
                 actual[key] = value
     if actual != expected:
-        errors.append("Example must contain only the approved local phase-7 defaults and empty secrets")
+        errors.append("Example must contain only the approved loopback defaults and empty secrets")
 
     errors.extend(staged_secret_findings())
     result = git("ls-files", "--cached", "--others", "--exclude-standard", "-z")

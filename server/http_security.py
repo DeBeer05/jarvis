@@ -45,6 +45,7 @@ class RequestGuard:
                 return await JSONResponse({"error": {"code": "origin_forbidden", "message": "Alleen dezelfde lokale webchat mag dit verzoek doen."}}, status_code=403)(scope, receive, send)
         if writing:
             audio = scope["path"] == "/api/v1/mobile/speech/transcribe" and scope["method"] == "POST"
+            image = scope['path']=='/api/v1/natural/vision' and scope['method']=='POST'
             accepted = (b"audio/wav",) if audio else (b"application/json", b"")
             if scope["path"].startswith("/api/") and scope["method"] != "DELETE" and headers.get(b"content-type", b"").split(b";")[0].strip().lower() not in accepted:
                 return await JSONResponse({"error": {"code": "invalid_content_type", "message": "Gebruik JSON voor dit verzoek."}}, status_code=415)(scope, receive, send)
@@ -54,7 +55,7 @@ class RequestGuard:
                 if message["type"] == "http.disconnect":
                     return
                 piece = message.get("body", b"")
-                if len(content) + len(piece) > (2_000_000 if audio else 65536):
+                if len(content) + len(piece) > (2_000_000 if audio else 2_450_000 if image else 65536):
                     return await JSONResponse({"error": {"code": "body_too_large", "message": "Het verzoek is te groot."}}, status_code=413)(scope, receive, send)
                 content.extend(piece)
                 if not message.get("more_body", False):

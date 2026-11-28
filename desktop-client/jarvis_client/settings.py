@@ -42,8 +42,14 @@ class Preferences:
     language: str = "nl"
     provider: str = "auto"
     log_level: str = "warning"
+    presence_seen: list[str] = field(default_factory=list)
 
     def validate(self):
+        if not isinstance(self.presence_seen,list) or len(self.presence_seen)>200 or any(not isinstance(item,str) for item in self.presence_seen):
+            raise ValueError('Ongeldige meldingsontvangstbewijzen.')
+        for item in self.presence_seen:
+            try:UUID(item)
+            except ValueError:raise ValueError('Ongeldig meldingsontvangstbewijs.') from None
         try:
             UUID(self.installation_id)
         except (ValueError, TypeError, AttributeError):

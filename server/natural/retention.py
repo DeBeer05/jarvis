@@ -39,6 +39,8 @@ class RetentionManager:
             users=db.execute("SELECT id FROM auth_users").fetchall()
             for user_row in users:
                 user=user_row["id"]
+                if getattr(natural,'device_status',None):natural.device_status.prune(db,user,now)
+                db.execute("UPDATE automation_jobs SET status='uncertain',result=?,updated=? WHERE tool='MobileHandoff' AND status='waiting' AND EXISTS(SELECT 1 FROM natural_events e WHERE e.user_id=? AND e.kind='device.handoff' AND json_extract(e.payload,'$.job_id')=automation_jobs.id AND e.expires<=?)",(json.dumps({'handoff':'expired_unconfirmed','called':False,'sent':False}),now,user,now))
                 saved=db.execute("SELECT payload FROM natural_settings WHERE user_id=? AND scope='user' AND device_id=''",(user,)).fetchone()
                 config=UserSettings.model_validate_json(saved["payload"]).model_dump(mode="json") if saved else UserSettings().model_dump(mode="json")
                 if config["memory"]["prune_expired"]:
@@ -48,6 +50,9 @@ class RetentionManager:
                         db.execute("DELETE FROM natural_memory_fts WHERE id=? AND user_id=?",(memory["id"],user))
                         db.execute("DELETE FROM natural_memories WHERE id=? AND user_id=?",(memory["id"],user))
                     if expired:store.audit(db,user,"system","memory_expired")
+                natural.devices.recover(db)
+                db.execute("UPDATE device_commands SET payload='{}',result=NULL,lease_hash=NULL WHERE user_id=? AND expires<? AND state NOT IN ('queued','leased','running')",(user,now-config['privacy']['history_days']*86400))
+                db.execute('DELETE FROM device_workers WHERE user_id=? AND seen<?',(user,now-7*86400))
                 cutoff=datetime.fromtimestamp(now-config["privacy"]["history_days"]*86400,UTC).isoformat()
                 rows=db.execute("SELECT t.id,t.conversation_id FROM chat_turns t JOIN natural_conversation_owners o ON o.conversation_id=t.conversation_id WHERE o.user_id=? AND t.created_at<? AND t.status!='running' AND (t.user_text!='' OR t.assistant_text!='') AND NOT EXISTS(SELECT 1 FROM natural_sessions s WHERE s.conversation_id=t.conversation_id AND s.lease_until>?) LIMIT 200",(user,cutoff,now)).fetchall()
                 changed=False

@@ -7,6 +7,7 @@ from contextvars import ContextVar
 from email.message import EmailMessage
 from pathlib import Path
 from urllib.parse import quote, urlencode
+from typing import Callable
 
 import httpx
 
@@ -21,7 +22,7 @@ SCOPES = {
     "gmail_compose": "https://www.googleapis.com/auth/gmail.compose",
 }
 WRITE_GUARD=ContextVar("automation_write_guard",default=None)
-REQUEST_GUARD=ContextVar("automation_request_guard",default=None)
+REQUEST_GUARD:ContextVar[Callable[[],None]|None]=ContextVar("automation_request_guard",default=None)
 
 
 class IntegrationManager:

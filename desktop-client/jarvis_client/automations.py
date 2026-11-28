@@ -40,7 +40,7 @@ class AutomationPanel(QWidget):
         self.jobs=QListWidget();self.jobs.currentRowChanged.connect(self.show_selected);layout.addWidget(self.jobs)
         self.details=QPlainTextEdit(); self.details.setReadOnly(True);self.details.setMaximumHeight(140);layout.addWidget(self.details)
         actions=QHBoxLayout()
-        for title,callback in (("Vernieuwen",self.refresh),("Goedkeuren",lambda:self.decide(True)),("Weigeren",lambda:self.decide(False)),("Pauzeren",lambda:self.control("paused")),("Hervatten",lambda:self.control("queued")),("Annuleren",lambda:self.control("cancelled"))):
+        for title,callback in (("Vernieuwen",self.refresh),("Goedkeuren",lambda:self.decide(True)),("Weigeren",lambda:self.decide(False)),("Pauzeren",lambda:self.control("paused")),("Hervatten",lambda:self.control("queued")),("Annuleren",lambda:self.control("cancelled")),('Herstelvoorstel',self.undo)):
             b=QPushButton(title);b.clicked.connect(callback);actions.addWidget(b)
         self.job_actions=QWidget();self.job_actions.setLayout(actions);layout.addWidget(self.job_actions)
         self.text=QLineEdit();self.text.setPlaceholderText("Waar wil je aan herinnerd worden?");layout.addWidget(self.text)
@@ -49,6 +49,13 @@ class AutomationPanel(QWidget):
         self.at.setDateTime(QDateTime.currentDateTime().addSecs(3600));reminder.addWidget(self.at)
         self.repeat=QComboBox();self.repeat.addItems(["once","daily","weekly"]);reminder.addWidget(self.repeat)
         b=QPushButton("Herinnering instellen");b.clicked.connect(self.remind);reminder.addWidget(b);layout.addWidget(self.reminder_bar)
+        self.priority_bar=QWidget();schedule=QHBoxLayout(self.priority_bar);schedule.setContentsMargins(0,0,0,0);layout.addWidget(self.priority_bar)
+        self.priority=QComboBox()
+        for value,title in enumerate(('Laag','Normaal','Belangrijk','Urgent')):self.priority.addItem(title,value)
+        self.priority.setCurrentIndex(1);schedule.addWidget(self.priority)
+        self.deadline_enabled=QCheckBox('Deadline');schedule.addWidget(self.deadline_enabled)
+        self.deadline=QDateTimeEdit();self.deadline.setCalendarPopup(True);self.deadline.setDateTime(QDateTime.currentDateTime().addDays(1));schedule.addWidget(self.deadline)
+        self.deadline.setEnabled(False);self.deadline_enabled.toggled.connect(self.deadline.setEnabled)
         self.instruction=QLineEdit();self.instruction.setPlaceholderText("Beschrijf de taak die je wilt voorbereiden");layout.addWidget(self.instruction)
         self.plan_button=QPushButton("Voorstel voorbereiden");self.plan_button.clicked.connect(self.plan);layout.addWidget(self.plan_button)
         self.advanced=QCheckBox("Geavanceerde actiegegevens bekijken en bewerken");layout.addWidget(self.advanced)
@@ -123,6 +130,10 @@ class AutomationPanel(QWidget):
         index=self.jobs.currentRow()
         return self.items[index] if 0<=index<len(self.items) else None
 
+    def undo(self):
+        row=self.selected()
+        if row:self.call('/jobs/'+row['id']+'/undo','POST',{},lambda _:self.refresh())
+
     def filter_jobs(self,*_):
         section=self.tabs.currentIndex();rows=getattr(self,"all_items",[])
         if hasattr(self,"account"):
@@ -130,6 +141,7 @@ class AutomationPanel(QWidget):
             for widget in (self.jobs,self.details,self.job_actions):widget.setVisible(section not in (0,1))
             self.tabs.setMaximumHeight(16777215 if section in (0,1) else 120)
             for widget in (self.text,self.reminder_bar):widget.setVisible(section==2)
+            self.priority_bar.setVisible(section in (2,3))
             for widget in (self.instruction,self.plan_button,self.advanced):widget.setVisible(section==3)
             for widget in (self.tool,self.payload,self.submit_button):widget.setVisible(section==3 and self.advanced.isChecked())
             self.policy_bar.setVisible(section==6);self.account.setVisible(section==7)
@@ -177,13 +189,13 @@ class AutomationPanel(QWidget):
         text=self.text.text().strip()
         if not text:return
         local=self.at.dateTime().toPython().astimezone()
-        self.call("/jobs","POST",{"tool":"ReminderCreate","input":{"text":text,"at":local.isoformat(),"repeat":self.repeat.currentText(),"timezone":"Europe/Amsterdam"},"idempotency_key":str(uuid4())})
+        self.call("/jobs","POST",{"tool":"ReminderCreate","input":{"text":text,"at":local.isoformat(),"repeat":self.repeat.currentText(),"timezone":"Europe/Amsterdam"},"idempotency_key":str(uuid4()),'priority':self.priority.currentData(),**({'deadline':self.deadline.dateTime().toPython().astimezone().isoformat()} if self.deadline_enabled.isChecked() else {})})
 
     def submit(self):
         try: payload=json.loads(self.payload.toPlainText())
         except ValueError:return self.window.show_notice("Vul geldige JSON-actiegegevens in.")
         if QMessageBox.question(self,"Actie indienen",self.tool.currentText()+"\n"+json.dumps(payload,ensure_ascii=False,indent=2))!=QMessageBox.StandardButton.Yes:return
-        self.call("/jobs","POST",{"tool":self.tool.currentText(),"input":payload,"idempotency_key":str(uuid4())})
+        self.call("/jobs","POST",{"tool":self.tool.currentText(),"input":payload,"idempotency_key":str(uuid4()),'priority':self.priority.currentData(),**({'deadline':self.deadline.dateTime().toPython().astimezone().isoformat()} if self.deadline_enabled.isChecked() else {})})
 
     def open_web(self):
         if self.window.manager.api:QDesktopServices.openUrl(QUrl(self.window.manager.api.origin+"/automations"))

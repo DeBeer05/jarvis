@@ -24,6 +24,13 @@ class NaturalService:
         self.security,self.chat,self.automation=security,chat,automation
         self.store=NaturalStore(database,security,chat.store.clean)
         self.settings=SettingsManager(self.store)
+        from server.natural.events import EventInbox
+        from server.natural.presence import PresenceManager
+        self.events=EventInbox(self.store,automation.permissions)
+        automation.safety.natural=self
+        automation.store.event_sink=self.task_event
+        self.presence=PresenceManager(self)
+        self.settings.presence=self.presence
         self.memory=MemoryManager(self.store)
         from server.natural.tts import TTSRouter
         self.tts=TTSRouter(self)
@@ -37,7 +44,35 @@ class NaturalService:
         self.retention=RetentionManager(self)
         from server.natural.planning import ActivityPlanningManager
         self.planning=ActivityPlanningManager(self)
+        from server.natural.life_items import LifeItems
+        from server.natural.briefings import BriefingManager
+        self.life=LifeItems(self);automation.life=self.life
+        self.briefings=BriefingManager(self);automation.briefings=self.briefings
+        from server.natural.public_reads import PublicReads
+        self.public_reads=PublicReads(self)
+        from server.natural.handoffs import Handoffs
+        self.handoffs=Handoffs(self);automation.handoffs=self.handoffs
+        from server.natural.device_status import DeviceStatus
+        self.device_status=DeviceStatus(self)
+        from server.natural.device_broker import DeviceBroker
+        self.devices=DeviceBroker(self);automation.devices=self.devices
+        from server.natural.desktop_commands import DesktopCommands
+        self.desktop_commands=DesktopCommands(self)
+        from server.natural.vision import VisionService
+        self.vision=VisionService(self)
+        from server.natural.environment import EnvironmentCommands
+        self.environment=EnvironmentCommands(self)
+        automation.desktop_monitor=self.desktop_commands.monitor
         chat.natural=self
+
+    def task_event(self,db,identifier,event,job,device):
+        labels={'completed':'afgerond','failed':'mislukt','uncertain':'uitkomst onzeker','deadline_expired':'deadline verstreken','blocked':'geblokkeerd'}
+        if event not in labels or not device:return
+        row=db.execute('SELECT status,tool FROM automation_jobs WHERE id=?',(job,)).fetchone()
+        if not row or row['tool'] in ('PersonalBriefing','MobileHandoff','WaitForReply') or event=='completed' and row['status']!='completed':return
+        owner=db.execute('SELECT user_id FROM auth_devices WHERE id=? AND revoked_at IS NULL',(device,)).fetchone()
+        if not owner:return
+        self.events.publish(db,owner[0],device,'task.changed',{'text':'Taakstatus: '+labels[event]+'. Bekijk Taken voor de bevestigde uitkomst.','job_id':job},'task-event:'+str(identifier),priority=2 if event in ('uncertain','failed') else 1)
 
     def authorize_conversation(self,principal,conversation):
         with self.store.transaction(principal,write=True) as (db,user):
@@ -81,6 +116,10 @@ class NaturalService:
     def command(self,run):
         response=self.responses.command(run)
         if response is not None:return response
+        response=self.presence.command(run)
+        if response is not None:return response
+        response=self.life.command(run)
+        if response is not None:return response
         """Explicit memory commands are executed locally, never by generated code."""
         message=run.message.strip();config=run.natural_context["settings"]
         if CAPABILITIES.fullmatch(message):
@@ -114,12 +153,13 @@ class NaturalService:
                 if not previous or "?" in previous["user_text"] or not re.match(r"(?:ik|mijn)\b",previous["user_text"],re.I):return "Wat wil je precies dat ik onthoud? Noem de voorkeur of het feit."
                 content=previous["user_text"];source=previous["id"]
             value=preference(content) or {"content":content,"kind":"preference" if re.search(r"\b(liever|voorkeur|liefst)\b",content,re.I) else "fact"}
+            if config['autonomy']['actions'].get('MemorySave')=='advise':value['status']='proposed'
             try:
                 saved=self.memory.save(run.principal,value,source="conversation",source_turn=source)
                 self.remember_memory_refs(run,[saved])
             except ValueError:
                 return "Dit kan ik niet als gewone herinnering opslaan. Gevoelige gegevens vereisen expliciete toestemming via geheugenbeheer; geheimen sla ik niet op."
-            return "Ik heb dit onthouden. Je kunt het later bekijken, aanpassen of verwijderen in geheugenbeheer."
+            return 'Ik heb dit als geheugenvoorstel klaargezet, meneer.' if saved['status']=='proposed' else 'Ik heb dit onthouden, meneer. U kunt het beheren bij Geheugen.'
         if re.fullmatch(r"(?:jarvis[, ]+)?wat (?:weet|onthoud) je (?:nog )?(?:over|van) mij[?.!]*",message,re.I):
             items=self.memory.list(run.principal,status="active",include_sensitive=False,limit=20)["items"]
             items=[item for item in items if item["expires"] is None or item["expires"]>self.store.clock()]
@@ -173,17 +213,37 @@ class NaturalService:
         if value is None:return
         existing=self.memory.list(run.principal,query=value["content"],limit=100)["items"]
         if any(row["content"]==value["content"] for row in existing):return
-        if value["key"] and autonomy["actions"].get("MemoryUpdate")=="block":value["status"]="proposed"
-        else:value["status"]="active" if autonomy["profile"]=="within_rules" and autonomy["actions"].get("MemorySave")!="ask" else "proposed"
+        if value["key"] and autonomy["actions"].get("MemoryUpdate") in ('block','ask','advise'):value["status"]="proposed"
+        else:value["status"]="active" if autonomy["profile"]=="within_rules" and autonomy["actions"].get("MemorySave") not in ('ask','advise') else "proposed"
         self.memory.save(run.principal,value,source="automatic_preference",source_turn=run.request_id,explicit=False)
 
     async def stream_command(self,run):
         import asyncio
-        reply=await asyncio.to_thread(self.command,run)
+        from server.natural.briefings import REQUEST as BRIEFING_REQUEST
+        desktop=self.desktop_commands.parse(run.message)
+        environment=self.environment.parse(run.message)
+        public=self.public_reads.parse(run)
+        if public:reply=await self.public_reads.answer(run,public)
+        elif self.stop_command(run.message):
+            await self.automation.safety.set(run.principal,True,exclude_request=run.request_id)
+            self.chat.automation_chat.remember(run,'pending',[])
+            reply='De noodstop is actief, meneer. Openstaande taken zijn gepauzeerd. Reeds verzonden opdrachten kunnen niet worden teruggehaald.'
+        elif desktop and environment:
+            from server.natural.presence import address
+            reply=address('Bedoelt u het Windows-programma of de Home Assistant-koppeling?',run.natural_context['settings'])
+        elif desktop:reply=await self.desktop_commands.answer(run,desktop)
+        elif environment:reply=await self.environment.answer(run,environment)
+        elif BRIEFING_REQUEST.fullmatch(run.message.strip()):reply=await self.briefings.answer(run)
+        else:reply=await asyncio.to_thread(self.command,run)
         if reply is not None:
             yield {"type":"provider","provider":"local","model":"memory"}
             yield {"type":"delta","text":reply}
 
+    def is_command(self,run):
+        from server.natural.briefings import REQUEST as BRIEFING_REQUEST
+        if self.public_reads.parse(run) or self.stop_command(run.message) or BRIEFING_REQUEST.fullmatch(run.message.strip()) or self.life.intent(run.message) or self.desktop_commands.parse(run.message) or self.environment.parse(run.message):return True
+        return bool(self.presence.intent(run.message) or (run.natural_context and IntelligentResponseManager.preference(run.message,run.natural_context["settings"])) or CAPABILITIES.fullmatch(run.message.strip()) or OPEN_TASKS.fullmatch(run.message.strip()) or re.match(r"^(?:jarvis[, ]+)?(?:onthou(?:d)?\b|vergeet\b|wat (?:weet|onthoud) je (?:nog )?(?:over|van) mij[?.!]*$)",run.message.strip(),re.I))
+
     @staticmethod
-    def is_command(run):
-        return bool((run.natural_context and IntelligentResponseManager.preference(run.message,run.natural_context["settings"])) or CAPABILITIES.fullmatch(run.message.strip()) or OPEN_TASKS.fullmatch(run.message.strip()) or re.match(r"^(?:jarvis[, ]+)?(?:onthou(?:d)?\b|vergeet\b|wat (?:weet|onthoud) je (?:nog )?(?:over|van) mij[?.!]*$)",run.message.strip(),re.I))
+    def stop_command(message):
+        return bool(re.fullmatch(r'(?:jarvis[, ]+)?(?:noodstop|stop alle (?:acties|taken|automatiseringen))[.!?]*',message.strip(),re.I))

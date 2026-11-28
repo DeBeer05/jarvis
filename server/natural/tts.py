@@ -108,9 +108,12 @@ class TTSRouter:
             if selected not in self.providers:raise AuthError('speech_unavailable','Deze spraakprovider is niet beschikbaar.',503)
             if selected!='elevenlabs':return await self.providers[selected].synthesize(request,text,voice,config)
             work=asyncio.create_task(self.providers[selected].synthesize(request,text,voice,config))
+            safety=self.natural.automation.safety if self.natural else None
+            epoch=safety.state(principal.device_id)['epoch'] if safety else None
             async def watch():
                 while True:
                     if await request.is_disconnected():return
+                    if safety and safety.state(principal.device_id)['epoch']!=epoch:return
                     if not await asyncio.to_thread(request.app.state.security.store.live,principal):return
                     await asyncio.sleep(.15)
             monitor=asyncio.create_task(watch())

@@ -18,6 +18,8 @@ class RequestPolicy:
     timeout_seconds: float
     streaming: bool = True
     context_tokens: int = 6000
+    oracle_model: str = ""
+    processing: str = "hybrid"
 
     @classmethod
     def from_document(cls, document):
@@ -26,12 +28,14 @@ class RequestPolicy:
             return None
         values = document["settings"]["ai"]
         if document['settings'].get('voice',{}).get('mode')=='offline':values={**values,'offline':True}
-        return cls(**{name: values[name] for name in cls.__dataclass_fields__})
+        return cls(**{name: values.get(name,field.default) for name,field in cls.__dataclass_fields__.items()})
 
     def order(self, mode, preferred):
         if self.offline:
             return ["ollama"]
         selected = self.provider if mode == "auto" else mode
+        if mode=="auto" and self.processing=="local":return ["ollama"]
+        if mode=="auto" and self.processing=="cloud":return ["oracle"]
         if selected == "auto":
             selected = preferred
         result = [selected]

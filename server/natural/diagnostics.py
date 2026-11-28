@@ -9,7 +9,7 @@ from pathlib import Path
 from server.natural.capabilities import voice_capabilities
 
 EVENTS=frozenset({"ai_first_token_ms","response_total_ms","stt_ms","tts_ms","native_first_audio_ms",
-                  "native_stt_ms","native_total_ms","context_tokens","interruption","rejected_interruption","wake_miss","error"})
+                  "native_stt_ms","native_total_ms","context_ms","intent_ms","tool_execution_ms","source_fetch_ms","context_tokens","interruption","rejected_interruption","wake_miss","error"})
 CODES=frozenset({"timeout","unavailable","cancelled","permission_denied","internal_error","invalid_audio","invalid_parameters"})
 
 
@@ -82,6 +82,8 @@ class DiagnosticsManager:
                 "gpu_devices":gpu,"gpu_status":"available_system_wide" if gpu else "not_measured"}
 
     def response(self,run):
+        for event,value in run.timings.items():
+            if event in EVENTS:self.record(run.principal,event,value)
         self.record(run.principal,"response_total_ms",(time.perf_counter()-run.started_at)*1000)
         if run.first_token_seconds is not None:self.record(run.principal,"ai_first_token_ms",run.first_token_seconds*1000)
         if run.context_metrics.get("estimated_tokens") is not None:self.record(run.principal,"context_tokens",run.context_metrics["estimated_tokens"])
@@ -98,7 +100,7 @@ class DiagnosticsManager:
         latency={event:next((row["metric"] for row in events if row["event"]==event),None) for event in EVENTS if event.endswith("_ms") or event=="context_tokens"}
         capabilities=voice_capabilities()
         return {"schema_version":1,"sampled_at":now,"enabled":config["diagnostics"]["enabled"],"server":"online","database":"read_write_ok",
-                "active_provider":latest["provider"] if latest and latest["provider"] in ("gemini","groq","ollama","local","jarvis") else None,
+                "active_provider":latest["provider"] if latest and latest["provider"] in ("gemini","groq","ollama","oracle","local","jarvis") else None,
                 "voice":{"capabilities":capabilities,"inference_busy":inference_busy},"websocket":"not_configured","microphone":"device_local",
                 "sessions":sessions,"memory_counts":counts,"latency":latency,"events":events,
                 "resources":self.resources(helper) if config["diagnostics"]["enabled"] and config["diagnostics"]["resources"] else None,

@@ -50,6 +50,7 @@ class MainActivity: ComponentActivity() {
         intent?.getStringExtra("screen")?.let(model::navigate)
     }
     override fun onStart() { super.onStart(); model.active(true) }
+    override fun onUserInteraction() {super.onUserInteraction();model.presenceInteraction()}
     override fun onStop() { model.active(false); super.onStop() }
     override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); intent.getStringExtra("screen")?.let(model::navigate) }
 }
@@ -78,6 +79,20 @@ private fun navigationTitle(screen: String, language: String): String = if(langu
         Scaffold(topBar={ TopAppBar(title={ Text("JARVIS · ${navigationTitle(state.screen,state.preferences.language)}", fontWeight=FontWeight.SemiBold) }, navigationIcon={ TextButton(onClick={scope.launch {drawer.open()}}) {Text("☰", style=MaterialTheme.typography.headlineSmall)} },
             actions={ TextButton(onClick=model::reconnect) { Text(if(state.connection.authenticated) "● Online" else if(state.connection.online) "○ Inloggen" else "○ Offline") } }) }) { padding ->
             Column(Modifier.fillMaxSize().padding(padding).imePadding().widthIn(max=1100.dp).padding(horizontal=20.dp, vertical=8.dp)) {
+                if(state.butlerMessage.isNotBlank()) Surface(color=MaterialTheme.colorScheme.secondaryContainer,shape=MaterialTheme.shapes.medium,modifier=Modifier.fillMaxWidth().padding(bottom=12.dp)) {
+                    Column(Modifier.padding(14.dp)) {Text(state.butlerMessage);TextButton(onClick=model::dismissButlerMessage){Text("Begrepen")}}
+                }
+                if(state.phoneHandoff.isNotBlank()) {
+                    val context=androidx.compose.ui.platform.LocalContext.current
+                    val action=runCatching {org.json.JSONObject(state.phoneHandoff).getJSONObject("request")}.getOrNull()
+                    if(action!=null) Surface(color=MaterialTheme.colorScheme.secondaryContainer,modifier=Modifier.fillMaxWidth().padding(bottom=12.dp)) {
+                        Column(Modifier.padding(14.dp)) {
+                            Text("${nl.jarvis.mobile.device.PhoneHandoff.label(action.optString("action"))} · ${action.optString("target")}")
+                            Text("Open de betreffende app om zelf de laatste stap uit te voeren.")
+                            TextButton(onClick={model.phoneAction {request -> runCatching {context.startActivity(nl.jarvis.mobile.device.PhoneHandoff.intent(request));true}.getOrDefault(false)}}){Text("Open telefoonapp")}
+                        }
+                    }
+                }
                 if(state.error.isNotBlank()) Surface(color=MaterialTheme.colorScheme.errorContainer, shape=MaterialTheme.shapes.medium, modifier=Modifier.fillMaxWidth().padding(bottom=12.dp)) {
                     Text(state.error, Modifier.padding(14.dp), color=MaterialTheme.colorScheme.onErrorContainer)
                 }
@@ -137,7 +152,7 @@ private fun navigationTitle(screen: String, language: String): String = if(langu
         PlanningButton(state,model)
         TextButton(onClick=model::newConversation,enabled=!state.busy){Text("＋ Nieuw")}
     }
-    Row(horizontalArrangement=Arrangement.spacedBy(6.dp),modifier=Modifier.horizontalScroll(rememberScrollState())) { listOf("auto","groq","gemini","ollama").forEach {provider ->
+    Row(horizontalArrangement=Arrangement.spacedBy(6.dp),modifier=Modifier.horizontalScroll(rememberScrollState())) { listOf("auto","groq","gemini","ollama","oracle").forEach {provider ->
         FilterChip(selected=state.provider==provider,onClick={model.provider(provider)},label={Text(provider.replaceFirstChar{it.uppercase()})})
     } }
     LazyColumn(Modifier.weight(1f).fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(14.dp)) {
@@ -200,7 +215,8 @@ private fun navigationTitle(screen: String, language: String): String = if(langu
         Row(verticalAlignment=Alignment.CenterVertically) {Checkbox(checked=category in pref.categories,onCheckedChange={checked ->model.save(pref.copy(categories=if(checked) pref.categories+category else pref.categories-category))});Text(category,Modifier.weight(1f));TextButton(onClick={model.testNotification(category)}){Text("Test")}}
     } }
     Row(verticalAlignment=Alignment.CenterVertically) {Switch(checked=state.preferences.firebaseEnabled,onCheckedChange=model::firebase);Text("FCM inschakelen",Modifier.padding(start=12.dp))}
-    Text("Zonder eigen Firebase-configuratie zijn alleen lokale voorbeeldmeldingen beschikbaar. Externe bezorging is nog niet geverifieerd.",style=MaterialTheme.typography.bodySmall)
+    Row(verticalAlignment=Alignment.CenterVertically) {Switch(checked=state.preferences.backgroundSync,onCheckedChange={model.save(state.preferences.copy(backgroundSync=it))});Text("Briefings op de achtergrond ophalen",Modifier.padding(start=12.dp))}
+    Text("Achtergrondophalen is optioneel en ongeveer iedere 15 minuten mogelijk; Android kan dit uitstellen. Hiervoor is geen Firebase nodig. FCM vereist eigen configuratie en is nog niet geverifieerd.",style=MaterialTheme.typography.bodySmall)
 }
 @Composable private fun Account(state: ScreenState,model: JarvisViewModel) {
     var confirm by remember {mutableStateOf(false)}

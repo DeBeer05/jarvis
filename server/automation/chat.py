@@ -70,16 +70,26 @@ class AutomationChat:
         return memory
 
     def remember(self, run, kind, values):
+        self.remember_many(run,{kind:values})
+
+    def remember_many(self,run,updates):
         memory = dict(self.memory(run))
-        if kind=="jobs":values=values+[item for item in memory.get("jobs",[]) if item["id"] not in {value["id"] for value in values}]
-        memory[kind] = values[:20]
-        if kind in ("events","calendars","messages","drafts","reminders"):
-            memory.pop("read_question",None)
-        if kind in ("events","calendars","messages","drafts","reminders"):memory["recent"]=[{"kind":kind}]
+        for kind,values in updates.items():
+            if kind=='jobs':values=values+[item for item in memory.get('jobs',[]) if item['id'] not in {value['id'] for value in values}]
+            memory[kind]=values[:20]
+            if kind in ('events','calendars','messages','drafts','reminders'):
+                memory.pop('read_question',None);memory['recent']=[{'kind':kind}]
         if len(self.references) >= 100:
             self.references.pop(next(iter(self.references)))
         self.references[self.key(run)] = (self.clock(), memory)
         if self.task_memory:self.task_memory.save(run,memory)
+
+    def suspend_read_question(self,run):
+        # A normal conversation is an explicit focus change. Keep write actions
+        # independently bound, but do not interpret a later casual yes as the
+        # answer to an older read clarification.
+        if self.memory(run).get('read_question') and not self.task_question(self.memory(run)):
+            self.remember(run,'read_question',[])
 
     def candidate(self, run):
         if self.calendar.candidate(run):return True
@@ -100,7 +110,7 @@ class AutomationChat:
         if re.search(r"\buitje\b",run.message,re.I) and self.write_intent("CalendarCreate",run.message):return True
         memory=self.memory(run)
         if self.slot_answer(run,memory):return True
-        if (memory.get("pending") or memory.get("decision")) and self.approvals.is_answer(run.message):return True
+        if self.approvals.is_answer(run.message):return True
         if memory.get("pending") and re.match(r"\s*(?:nee[, ]+toch|pas eerst|toch maar|verander)\b",run.message,re.I):return True
         if memory.get("write_question") and (CONTINUE_WRITE.match(run.message) or re.fullmatch(r"\s*(nee|laat maar|annuleer)[.!\s]*",run.message,re.I)):return True
         day_followup=memory.get("recent")==[{"kind":"events"}] and re.fullmatch(r"\s*(?:en\s+)?(?:vandaag|morgen|overmorgen)(?:\s+dan)?\s*[?.!]*",run.message,re.I)
@@ -290,16 +300,16 @@ class AutomationChat:
             if compound_candidate(self.calendar.routing_text(run.message)):result,provider=await self.compound(run)
             else:result, provider = await self.answer(run)
         except AuthError:
-            result = "Dit apparaat heeft geen geldige toegang tot deze functie. Laat de eigenaar bij Automatiseringen de rechten controleren: automation:read voor lezen, automation:write voor taken en automation:approve voor goedkeuren."
+            result = 'Dit apparaat heeft voor deze functie geen geldige toegang, meneer. U kunt de benodigde rechten bij Apparaatrechten controleren.'
             provider = None
         except AmbiguousTime as error:
             result=str(error)
             provider=None
         except (ValueError, KeyError, TypeError):
-            result = "Ik kon geen veilige, eenduidige actie afronden. Geef de afspraak, ontvanger of het tijdstip concreter aan en controleer bij een leesfout je Google-koppeling en rechten. Ik heb geen bevestigde externe wijziging uitgevoerd."
+            result = "Ik kan hiervoor geen veilige opdracht bepalen, meneer. De uitvoering is niet bevestigd."
             provider = None
         except httpx.TransportError:
-            result = "De Google-verbinding is onderbroken. Ik kan je gegevens nu niet betrouwbaar ophalen. Controleer de verbinding en de accountkoppeling."
+            result = "De verbinding met uw account is onderbroken, meneer. Ik kan uw gegevens nu niet betrouwbaar ophalen."
             provider = None
         if result is None:
             # A planner may decline a tool. Rejoin the exact same bounded,
@@ -605,6 +615,8 @@ class AutomationChat:
         finally:REQUEST_GUARD.reset(guard)
 
     async def read(self, run, tool, payload):
+        if not any(self.write_intent(action,run.message) for action in TOOLS-READ):
+            self.remember_many(run,{key:[] for key in ('pending','decision','calendar_action')})
         if run.allowed_tools is not None and tool not in run.allowed_tools:raise ValueError("Tool buiten deze intentie")
         self.engine.permissions.check_tool(run.principal.device_id,tool)
         guard=REQUEST_GUARD.set(lambda:self.guard(run,"automation:read"))

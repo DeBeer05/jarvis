@@ -1,4 +1,120 @@
+## 28 november 2026 — hybride JARVIS
+
+Bevestigings-/onderwerpafhandeling, directe publieke reads, Oracle-transport,
+compacte context en apparaatleases geïmplementeerd. Echte Oracle/gateway- en
+geïsoleerde installerproeven geslaagd. Volledige details en actuele verificatie:
+[DEVELOPMENT_PROGRESS](../DEVELOPMENT_PROGRESS.md) en
+[gemeten prestaties](HYBRID_BENCHMARKS.md). Mini-pc is niet aanwezig; persoonlijke
+gegevens zijn niet naar Oracle gemigreerd. Externe accounts/grants blijven vereist.
+
 # Hervatpunt — agenda en Nederlands STT, 27 november 2026
+
+## Actueel: acht productfases persoonlijke butler
+
+- Technische implementatie acht fases afgerond. Finale volledige lokale reeks:
+  **670 server passed / 1 POSIX-skip**, **150 client passed**. Android 11 unit/lint/
+  debug/release, contract, Ruff/mypy/pip/repository/whitespace/gitleaks groen.
+- Backend live op bestaande loopback:8765, SQLite v14 + backup/integriteit. Twee
+  dagelijkse inboxbriefings met de expliciet opgegeven lokale voorkeuren ingesteld;
+  stem behouden. Geen nieuwe grants, externe testmutaties, calls of deployment.
+- Rechtstreekse bronstart hersteld en offscreen gesmoked. Lokale exe-packager blijft
+  PermissionError geven; CI-build op 806d421 slaagde. Windows-workflow bewaart nu
+  geteste portable bundles. Definitieve HEAD-checks: PR33. Snelkoppeling naar bron-
+  client geverifieerd. Geen UI-acties na gebruikers-Escape; menselijke acceptatie open.
+- APK gereed, adb geen apparaat. Externe configuratie-/API-grenzen en praktische
+  acceptatie: docs/PERSONAL_BUTLER_TEST_GUIDE.md. Eigenaarmaildiffs niet meenemen.
+
+- Fase 8 geïmplementeerd/getest: Butler/lijsten/beeldpreview/apparaatinstellingen
+  Windows/Android, eigenaarformulieren, echte autonomiekeuzes en taakcontrole.
+  Windows 148 passed + laatste core/query/window 41 passed; Android 11/lint/builds
+  groen. Server 665 passed/1 skip/4 inmiddels herstelde browserregressies; finale
+  web/interface 12 passed. Eind-CI en lokale activatie nog te verifiëren.
+- Lokale exe-packager PermissionError; geen security-aanpassing. Gebruik bestaande
+  Python-client als ontwikkelstart. APK gereed; op dit moment geen adb-apparaat.
+- Uitvoerbare acceptatie en echte integratiegrenzen in PERSONAL_BUTLER_TEST_GUIDE.md.
+
+- Fase 7 gereed: v14, persistente noodstop, epochs, prioriteiten/deadlines,
+  adviesregels en aparte lokale hostgrants. Geen ongecontroleerde externe acties.
+  Herstel is een nieuw exact voorstel; onzekere writes nooit blind herhalen.
+- Brede reeks 662 passed/1 POSIX-skip/1 herstelde handoffmelding; 14 finale
+  regressies passed, 17 beleid/geheugen en 60 chat passed. Windows 143 passed;
+  Android unit/lint/debug/release groen. Kwaliteits-/repository/pipchecks groen.
+- Alle 12 checks op fase-6-head 8507202 groen. Nu fase 8: UI, finale suite en builds.
+
+- Fase 6 technisch afgerond: HA/HTTPS, ORS/geocodering/ritkosten, gesloten adapters
+  via bestaande registry/vault. Beeldanalyse opt-in, quota/revisie/PNG-validatie,
+  geen opslag/tools; SQLite v13. Windows-preview en Android-selectiecomponenten
+  gereed; daadwerkelijke UI-wiring volgt fase 8. Geen publieke Hi-API geverifieerd.
+- Testbewijs: 654 servertests passed/1 POSIX-skip; na laatste wijzigingen 33
+  gerichte tests passed. Windows 142 passed + 3 previewtests, synthetische Qt-PNG
+  werkelijk door serverparser gevalideerd. Android 11 tests/lint/beide builds groen.
+- Geen echte externe account-/schermafbeeldingtest; nog niet live. Externe config
+  in docs/EXTERNAL_INTEGRATIONS.md. Volgende fase 7: autonomie/reliability, daarna
+  fase 8 UI, finale builds/activatie en praktische acceptatie.
+- Laatst gecontroleerde CI: alle 12 checks op 1ce31cb groen. Eigenaarmaildiffs apart.
+
+- Fase 5 technisch afgerond: Windows-hostadapter (gesloten acties,
+  specifieke programma-/documentrechten, policyfingerprint, workerthreads),
+  Android-apphandoff met doelapparaatconsent/eenmalige approval en aparte
+  ready/handed-off-status. Geen oproep of verzending geclaimd. Lokale Windows-
+  en automationreeks 28 passed; laatste SDK/handoff/privacyreeks 13 passed.
+- Nieuw: opt-in WorkManager-achtergrondophalen (15 min, OS mag uitstellen), geen
+  permanente microfoon/LLM/service. Server-inbox blijft ongelezen tot voorgrond;
+  aparte opaque notificationreceipt voorkomt herhaling. Android 11 tests, lint en
+  debug/release geslaagd. Meldingsmetadata/batterij/optionele locatie: SQLite v12,
+  actuele grants, ouderdomslabel en bestaande 24-uursmaintenance.
+- Volledige serverreeks 642 passed/1 POSIX-skip; na laatste SDK/expiry/parent-stop-
+  wijzigingen 13 gerichte tests passed. Logs .local/butler-phase5-*.log. Geen
+  nieuwe functies live of echte telefoonacceptatie. Formulieren volgen fase 8.
+- Volgende fase: 6, ondersteunde externe adapters en schermcontext. Geen Oracle-
+  installatie/cutover, geen betaalde diensten of nieuwe werkelijke apparaatgrant.
+- Fase-4-head 096b87a heeft alle 12 echte CI-checks groen. Eigenaarmaildiffs apart.
+
+- Fase 4 technisch gereed: opt-in incrementele STT op Windows/Android, 500 ms
+  overlap, restaudio en achtsecondenlimiet voor voorlopige herkenning. Alleen
+  afgeronde uitspraak naar tools. 140 clienttests, 28 server/ElevenLabs-tests,
+  Android unit/lint/debug/release en kwaliteit groen; nog niet live geactiveerd.
+  Logs .local/butler-phase4-*.log. Eerstvolgend: fase 5 OS-/Android-integratie.
+
+- Fase 3 technisch: brongebonden briefings, Open-Meteo/NOS-cache, lijsten/routines/
+  gelegenheden/sollicitaties, bestaande reminders en reply-watches; SQLite v11.
+  Brede reeks 629 passed/1 skip, finale 37 automation/briefingtests en 60 kalender-
+  briefingtests geslaagd. Kwaliteit/contract/dependencies groen. Nog niet live.
+- Eigenaar kiest ochtendbriefing voorlopig in app; geen oproepkanaal. Live verkeer,
+  bankkoppeling en locatiegrant ontbreken. Geen fictieve ETA of externe mutatie.
+- Fase-2-head 98fcc29 had alle 12 echte CI-checks groen. Fase 4 volgt; eigenaars-
+  maildiffs nog steeds apart, geen reset/stash/ongewenste stage.
+
+- Fase 1 checkpoint 25410ad. Fase 2 technisch gereed: acht modi, opt-in Windows
+  WTS/idle/lokale procesclassificatie en Android foreground lock/idle. SQLite v10
+  bevat persistente status en een begrensde, apparaatgebonden event-inbox.
+- Privé: nieuwe chattekst niet opslaan, lokale AI/TTS, geen impliciete cloudfallback;
+  ruwe voorkeuren blijven behouden. Meldingen volgen modus/opt-in, geen grantwijziging.
+- Fase-2-checks: 617 servertests passed/1 skip, 15 finale gerichte tests, 136 client-
+  tests; Android 8 tests + lint + debug/release-build geslaagd. Geen echte apparaat-
+  of microfoonacceptatie. Logs .local/butler-phase2-*.log. Volgende: fase 3.
+- Gevraagde locatie/tijden/koppelingen ontvangen in chat; niet als persoonlijke
+  gegevens in Git vastleggen. Scheduled bellen vereist aantoonbare echte route.
+- PR 33 is gestapeld op PR 32. Fase-1-CI 11 groen/1 bekende Qt-testabort;
+  laatste clientreeks lokaal groen, nieuwe head volgen na push. Geen CI-bypass.
+
+- Nieuwe expliciete opdracht staat acht productfases toe; plan in
+  IMPLEMENTATION_PLAN.md. Branch feature/personal-butler vanaf ea09cb6/PR 32;
+  develop mist nog deze basis. Nieuwe branch zonder stash/reset; eigenaarmail
+  blijft apart. Oracle/productie en echte externe proefacties niet geautoriseerd.
+- Fase 1 delta: opt-in episodische FTS5-retrieval in bestaande SQLite-database,
+  migratie v9 met backup, alleen gebruikersuitspraken, maximaal 3 x 480 tekens.
+  History/cloud/sensitive/sync/expiry en bronvergeten blijven leidend; afgeleide
+  episodecontext wordt transitief uitgesloten bij vergeten. Geen extra LLM-call.
+- 28 gerichte geheugen/spraak/instellingentests en 12 migratie/episodetests
+  geslaagd; eerdere brede 76 tests geslaagd na twee herstelde testfixturepaden.
+  Ruff/mypy (39 modules), dependency-, contract- en structuurcheck geslaagd.
+  Brede regressie: 608 passed/1 skip plus één oude backupbestandsnaamtest,
+  hersteld en afzonderlijk geslaagd; finale gerichte reeks 24 passed. Logs .local/butler-phase1-*.log.
+- Nieuwe handleiding docs/PERSONAL_BUTLER_TEST_GUIDE.md; echte menselijke
+  persoonlijkheids-/microfoonacceptatie blijft apart. Volgende fase: modi en
+  aanwezigheid; fase 1 technisch afgerond. Locatie/connectorinformatie gevraagd;
+  zonder antwoord blijft die specifieke externe configuratie geblokkeerd.
 
 ## Vervolg: blijvende butlerpersoonlijkheid
 

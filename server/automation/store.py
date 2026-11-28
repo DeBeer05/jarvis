@@ -41,26 +41,32 @@ class Store:
             yield db
 
     def event(self, db, event, job=None, device=None):
-        db.execute("INSERT INTO automation_events(at,job_id,device_id,event) VALUES (?,?,?,?)", (self.clock(), job, device, event))
+        identifier=db.execute("INSERT INTO automation_events(at,job_id,device_id,event) VALUES (?,?,?,?)", (self.clock(), job, device, event)).lastrowid
+        if getattr(self,'event_sink',None):self.event_sink(db,identifier,event,job,device)
         db.execute("DELETE FROM automation_events WHERE id IN (SELECT id FROM automation_events ORDER BY id DESC LIMIT -1 OFFSET 10000)")
 
     def recover(self):
         # A crash after an external HTTP request has an unknown outcome. Never replay it.
         with self.db(True) as db:
-            db.execute("UPDATE automation_jobs SET status=CASE WHEN tool IN ('CalendarCreate','CalendarUpdate','CalendarDelete','EmailDraft','EmailSend') THEN 'uncertain' ELSE 'queued' END,approval_hash=NULL WHERE status='running'")
+            from server.automation.models import SIDE_EFFECT_TOOLS
+            tools=sorted(SIDE_EFFECT_TOOLS)
+            db.execute("UPDATE automation_jobs SET status=CASE WHEN tool IN ("+','.join('?' for _ in tools)+") THEN 'uncertain' ELSE 'queued' END,approval_hash=NULL WHERE status='running'",tools)
             # Keep idempotency tombstones, remove old sensitive action bodies.
-            db.execute("UPDATE automation_jobs SET payload='{}',result=NULL,status='deleted' WHERE status IN ('completed','denied','cancelled','failed') AND updated<?",(self.clock()-30*86400,))
+            db.execute("UPDATE automation_jobs SET payload='{}',result=NULL,status='deleted' WHERE status IN ('completed','denied','cancelled','failed','expired','advisory') AND updated<?",(self.clock()-30*86400,))
 
-    def create(self, device, tool, payload, key, due, repeat="once", timezone="Europe/Amsterdam", approval=False, parent=None, step=0):
+    def create(self, device, tool, payload, key, due, repeat="once", timezone="Europe/Amsterdam", approval=False, parent=None, step=0,*,priority=1,deadline=None,advisory=False):
         now = self.clock()
-        value = (str(uuid.uuid4()), key, device, tool, encode(payload), "approval" if approval else "queued", due, repeat, timezone, now, now, parent, step)
+        value = (str(uuid.uuid4()), key, device, tool, encode(payload), 'advisory' if advisory else "approval" if approval else "queued", due, repeat, timezone, now, now, parent, step,priority,deadline,int(approval))
         with self.db(True) as db:
+            if db.execute('SELECT 1 FROM automation_control c JOIN auth_devices d ON d.user_id=c.user_id WHERE d.id=? AND c.stopped=1',(device,)).fetchone():
+                from server.security.types import AuthError
+                raise AuthError('automation_stopped','De noodstop is actief.',409)
             old = db.execute("SELECT * FROM automation_jobs WHERE key=?", (key,)).fetchone()
             if old:
-                if old["device_id"] != device or old["tool"] != tool or old["payload"] != encode(payload): raise ValueError("Idempotency conflict")
+                if old["device_id"] != device or old["tool"] != tool or old["payload"] != encode(payload) or old['priority']!=priority or old['deadline']!=deadline or old['repeat']!=repeat or old['timezone']!=timezone: raise ValueError("Idempotency conflict")
                 return dict(old)
             if db.execute("SELECT COUNT(*) FROM automation_jobs WHERE status!='deleted'").fetchone()[0] >= 5000: raise ValueError("Job limit reached")
-            db.execute("INSERT INTO automation_jobs(id,key,device_id,tool,payload,status,due,repeat,timezone,created,updated,parent_id,step) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", value)
+            db.execute("INSERT INTO automation_jobs(id,key,device_id,tool,payload,status,due,repeat,timezone,created,updated,parent_id,step,priority,deadline,approval_required) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", value)
             self.event(db, "proposed" if approval else "scheduled", value[0], device)
         return self.get(value[0])
 

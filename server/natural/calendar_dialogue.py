@@ -166,8 +166,8 @@ class CalendarDialogue:
         config=run.natural_context['settings'] if run.natural_context else {}
         policy=config.get('autonomy',{}).get('actions',{}).get(tool)
         # Invitations, series and explicitly ask-only policies keep exact previews.
-        direct=not payload['attendees'] and not payload['recurrence'] and policy!='ask'
-        c.guard(run,'automation:approve')
+        direct=not payload['attendees'] and not payload['recurrence'] and policy not in ('ask','advise')
+        if direct:c.guard(run,'automation:approve')
         row=c.engine.submit(run.principal.device_id,tool,payload,'chat-calendar:'+run.principal.device_id+':'+run.request_id+run.tool_operation)
         c.remember(run,'write_question',[]);c.remember(run,'calendar_action',[])
         c.remember(run,'jobs',[{'id':row['id'],'tool':tool,'status':row['status']}])
@@ -176,7 +176,10 @@ class CalendarDialogue:
         if row['status']=='approval':
             challenge=c.engine.approvals.challenge(row['id'],run.principal)
             expected=fingerprint([tool,payload])
-            if challenge['fingerprint']!=expected:return c.approvals.show(run,c.engine.store.get(row['id']))
+            if challenge['fingerprint']!=expected:
+                c.engine.control(row['id'],'cancelled',run.principal.device_id,expected_status='approval')
+                c.remember_many(run,{'pending':[],'decision':[],'calendar_action':[]})
+                return 'De afspraakgegevens zijn tijdens het klaarzetten veranderd, meneer. Er is niets uitgevoerd.'
             c.guard(run,'automation:approve')
             c.engine.approvals.decide(row['id'],run.principal,challenge['token'],True,expected_fingerprint=expected)
             c.engine.audit.record('explicit_calendar_request',row['id'],run.principal.device_id)
@@ -197,9 +200,7 @@ class CalendarDialogue:
         c.remember(run,'calendar_action',[]);c.remember(run,'decision',[{'id':row['id'],'device':run.principal.device_id,'session':run.principal.session_id}])
         start=datetime.fromisoformat(event['start']['dateTime']).astimezone(ZoneInfo(payload['timezone']))
         if tool=='CalendarUpdate':
-            if re.fullmatch(r'\s*zet\s+.+\s+erbij[.!?\s]*',run.message,re.I):return 'Locatie aangepast naar '+event.get('location',payload['location'])+'.'
-            if re.match(r'\s*(?:maak|zet|verander|wijzig)\s+(?:daar|dat|die|hem|de tijd)\b',run.message,re.I):return f'Aangepast naar {start:%H:%M} uur.'
-            return f'Aangepast naar {start:%d-%m-%Y om %H:%M} uur.'
+            return 'Uw afspraak is gewijzigd, meneer.'
         today=datetime.fromtimestamp(c.engine.store.clock(),ZoneInfo(payload['timezone'])).date()
         label='morgen' if start.date()==today+timedelta(days=1) else 'vandaag' if start.date()==today else start.strftime('%d-%m-%Y')
         return f"{event.get('summary',payload['summary'])} staat {label} om {start:%H:%M} uur in uw agenda, meneer."

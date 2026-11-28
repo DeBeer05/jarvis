@@ -4,6 +4,60 @@ Wijzigingen van deze fork; oorspronkelijke geschiedenis en licentie blijven beho
 
 ## Unreleased
 
+- Hybride hub/Oracle-router met compacte private context, HTTP-pooling en offline
+  degradatie; echte model-/gatewaymetingen gedocumenteerd.
+- Directe geautoriseerde weer-, nieuws- en regionale NDW-reads zonder LLM;
+  bevestigde agenda-acties wachten op uitvoering, korte Nederlandse butlerteksten.
+- Duurzame apparaatqueues/leases en Windows-receipts voorkomen opnieuw uitvoeren
+  na een onzekere netwerkfout. Expliciete ontvangst-/programmarechten in de client.
+- Standalone MiniPC-distributie met beveiligde SSH/HTTPS-link, installatie,
+  back-up/herstel, update/rollback en afzonderlijke CI-build.
+
+- Bronstart van de Windows-client hersteld voor de gedeelde lichte spraakformatter;
+  geteste portable Windows-bundles worden zeven dagen in CI als artifact bewaard.
+
+- Windows/Android: Butler-bediening voor briefings, recente meldingen, getypeerde
+  lijsten/routines/sollicitaties, kosten, apparaten, routes en beeldpreview.
+- Zichtbare afzonderlijke Android-consents en opt-in achtergrondophalen;
+  eigenaarformulieren voor HA/Windows-hostvrijgave. Geen grants bij openen.
+- Autonomiekeuzes herkennen enum-maps correct, onderscheiden profielregels van
+  een expliciete vraagplicht, en bieden Alleen adviseren. Taakprioriteit,
+  optionele deadline en herstelvoorstel vanuit de bestaande interfaces.
+
+- Persistente eigenaarnoodstop, uitvoeringsversies, pauzeren en intrekken van
+  approvals. Hervatten uitsluitend door eigenaar, nooit automatisch.
+- Prioriteiten/deadlines, begrensde leesretries, adviesniveau per functie en
+  afzonderlijk vrijgegeven media-/programma-autonomie. Hoogrisicoacties behouden
+  exacte goedkeuring. Gecontroleerde herstelvoorstellen en taak-health.
+- Bestaande audit-events publiceren atomair naar de persoonlijke inbox;
+  stopcommando's blijven bij uitgeschakelde gewone meldingen beschikbaar.
+
+- Gesloten HA/HTTPS- en ORS-adapters met bestaande vault/approvals, bronverificatie
+  en begrensde caches. Handmatige ritkosten; ontbrekende Hi-/verkeersbron zichtbaar.
+- Opt-in beeldcontext met previewrevision, PNG-limieten, dagquota en bestaande
+  AI-router. Geen beelden opslaan, geen tools uit beelden, geen modelvervanging.
+
+- Gesloten Windows-hostbediening met eigenaarallowlist, policyfingerprint en
+  bestaande approvals; CPU/RAM, optionele NVML-sensoren en Downloads-events.
+- Android-apphandoffs en opt-in achtergrondsync. Meldingsaantallen zonder inhoud,
+  batterij/laatst bekende locatie onder afzonderlijke grants/retentie; SQLite v12.
+  Oproepen/verzending via externe apps worden nooit als voltooid voorgesteld.
+
+- Opt-in incrementele Nederlandse STT op Windows en Android met korte overlap,
+  sequentiële inference, verwerking van het laatste audiodeel en begrensde
+  voorlopige herkenning. Alleen afgeronde uitspraken gaan naar chat/tools.
+
+- Brongebonden dagelijkse/terugkomstbriefings, weer-/nieuwscache en lokale lijsten,
+  abonnementen, gelegenheden, routines en sollicitatie-opvolging. Hergebruik van
+  scheduler/reminders/reply-watches met bronrevisies, annulering en idempotentie.
+  Geen fictief bel-, verkeers- of bankresultaat bij ontbrekende koppelingen.
+
+- Acht gedeelde modi, opt-in Windows-/Android-aanwezigheid, persistente eenmalige
+  terugkomstevents en lokale/no-history privémodus. Geen impliciete telemetriegrant.
+
+- Opt-in episodisch zoeken in eerdere gebruikersuitspraken met SQLite FTS5,
+  bronvergeten, apparaatscope, privacyfilters en migratiebackup; geen extra LLM.
+
 - Persoonlijke butlerstijl met u/uw, optioneel meneer in ieder antwoord,
   situationele terugkomst en initiatief zonder fictieve achtergrondbewaking.
 

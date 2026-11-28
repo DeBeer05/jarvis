@@ -1,19 +1,19 @@
 """Authenticated UI/API. Reading third-party content never invokes a tool."""
 import asyncio
-import json
-from datetime import datetime, UTC
+import httpx
+from datetime import datetime
 from pathlib import Path
 from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request, Query
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import Field, SecretStr
 
 from server.api.routes import require_client_access
-from server.automation.models import Input, REGISTRY, CalendarRead, CalendarChange, Identifier
+from server.automation.models import Input, REGISTRY, CalendarRead, CalendarChange
 from server.automation.engine import AUTOMATION_SCOPES, EmailPriorityClassifier, ManualMessagingProvider
-from server.automation.store import fingerprint, encode
+from server.automation.store import encode
 from server.security.gate import require_permission
 from server.security.types import AuthError
 from server.ai.policy import RequestPolicy, use_policy
@@ -40,8 +40,10 @@ class Submit(Input):
     input: dict
     idempotency_key: UUID
     due: datetime | None = None
-    repeat: Literal["once","daily","weekly"] = "once"
+    repeat: Literal["once","daily","weekly","monthly","yearly"] = "once"
     timezone: str = Field(default="Europe/Amsterdam",max_length=80)
+    priority:int=Field(default=1,ge=0,le=3)
+    deadline:datetime|None=None
 
 
 class Decision(Input):
@@ -64,7 +66,7 @@ class OAuth(Input):
 
 class Rules(Input):
     calendar_buffer_minutes:int=Field(default=15,ge=0,le=240)
-    disabled_tools:list[str]=Field(default_factory=list,max_length=30)
+    disabled_tools:list[str]=Field(default_factory=list,max_length=64)
     important_senders:list[str]=Field(default_factory=list,max_length=50)
     urgent_terms:list[str]=Field(default_factory=lambda:["deadline vandaag","dringend","urgent"],max_length=50)
 
@@ -90,6 +92,97 @@ class Policy(Input):
 def engine(request): return request.app.state.automation
 
 
+class SafetyState(Input):
+    active:bool
+
+
+@router.get(BASE+'/safety')
+def safety_state(request:Request):
+    e=engine(request);e.permissions.check(request.state.principal.device_id,'automation:read')
+    state=e.safety.state(request.state.principal.device_id);state.pop('user_id',None)
+    return state
+
+
+@router.post(BASE+'/safety')
+async def safety_change(request:Request,body:SafetyState):
+    e=engine(request)
+    await asyncio.to_thread(request.app.state.security.store.rate,'safety:'+request.state.principal.device_id,10)
+    return await e.safety.set(request.state.principal,body.active)
+
+
+@router.get(BASE+'/health')
+def task_health(request:Request):
+    e=engine(request);e.permissions.check(request.state.principal.device_id,'automation:read')
+    state=e.safety.state(request.state.principal.device_id)
+    with e.store.db() as db:
+        counts={r[0]:r[1] for r in db.execute('SELECT j.status,count(*) FROM automation_jobs j JOIN auth_devices d ON d.id=j.device_id WHERE d.user_id=? GROUP BY j.status',(state['user_id'],))}
+        overdue=db.execute("SELECT count(*) FROM automation_jobs j JOIN auth_devices d ON d.id=j.device_id WHERE d.user_id=? AND j.status='queued' AND j.due<?",(state['user_id'],e.store.clock()-60)).fetchone()[0]
+    return {'stopped':state['stopped'],'counts':counts,'overdue':overdue,'scheduler_enabled':request.app.state.settings.automations_enabled,'read_retry_limit':5,'uncertain_writes_replayed':False,'automatic_resume':False}
+
+
+@router.get(BASE+'/windows')
+def windows_capabilities(request:Request):return engine(request).windows.capabilities()
+
+
+@router.get(BASE+'/windows/policy',dependencies=[Depends(require_permission('admin:account'))])
+def windows_current_policy(request:Request):return engine(request).windows.policy().model_dump(mode='json')
+
+
+@router.put(BASE+'/windows',dependencies=[Depends(require_permission('admin:account'))])
+async def windows_policy(request:Request,body:dict):
+    from server.automation.windows import HostPolicy
+    policy=HostPolicy.model_validate(body)
+    e=engine(request);e.store.set_preference('windows_host',policy.model_dump(mode='json'))
+    e.store.set_preference('windows_watch_owner',request.state.principal.device_id)
+    e.audit.record('windows_host_policy_updated',device=request.state.principal.device_id)
+    return await asyncio.to_thread(e.windows.capabilities)
+
+
+@router.get(BASE+'/external')
+def external_capabilities(request:Request):return engine(request).external.capabilities()
+
+
+@router.get(BASE+'/external/home-assistant',dependencies=[Depends(require_permission('admin:account'))])
+def home_policy(request:Request):return engine(request).external.home_policy().model_dump(mode='json')
+
+
+@router.put(BASE+'/external/home-assistant',dependencies=[Depends(require_permission('admin:account'))])
+def save_home_policy(request:Request,body:dict):
+    from server.automation.external import HomePolicy
+    policy=HomePolicy.model_validate(body)
+    e=engine(request);e.store.set_preference('home_assistant',policy.model_dump(mode='json'))
+    e.audit.record('home_assistant_policy_updated',device=request.state.principal.device_id)
+    return e.external.capabilities()
+
+
+@router.post(BASE+'/trip-cost')
+def trip_cost(request:Request,body:dict):return engine(request).external.cost(body)
+
+
+class RouteCities(Input):
+    origin:str=Field(min_length=2,max_length=100)
+    destination:str=Field(min_length=2,max_length=100)
+
+
+@router.post(BASE+'/route-cities')
+async def city_route(request:Request,body:RouteCities):
+    e=engine(request);n=request.app.state.natural;principal=request.state.principal
+    def guard():
+        n.settings.get(principal);e.permissions.check(principal.device_id,'automation:read');e.permissions.check_tool(principal.device_id,'RouteRead')
+        if 'RouteRead' in e.store.preference('disabled_tools',[]):raise ValueError('Routelezen is uitgeschakeld')
+        if n.presence.snapshot(principal)['mode']=='private':raise AuthError('route_privacy','In privémodus worden geen plaatsen naar de routeprovider verstuurd.',403)
+    guard()
+    await asyncio.to_thread(request.app.state.security.store.rate,'route:'+principal.device_id,10)
+    configured=await asyncio.to_thread(e.external.capabilities)
+    if not configured['routes']['configured']:raise AuthError('route_not_configured','Stel eerst uw routeprovider in; er zijn geen plaatsnamen verstuurd.',409)
+    try:
+        origin,destination=await asyncio.gather(n.briefings.sources.location(body.origin),n.briefings.sources.location(body.destination))
+        guard()
+        result=await e.external.route({'coordinates':[[origin['longitude'],origin['latitude']],[destination['longitude'],destination['latitude']]]},guard)
+    except (ValueError,httpx.HTTPError):raise AuthError('route_unavailable','De plaatsen of route konden niet eenduidig worden opgehaald. Er is geen reistijd verzonnen.',503) from None
+    return {**result,'origin':origin['name'],'destination':destination['name'],'live_traffic':False}
+
+
 @router.get("/automations")
 def page(): return FileResponse(STATIC/"automations.html")
 
@@ -100,6 +193,9 @@ async def dashboard(request:Request,offset:int=Query(default=0,ge=0,le=5000)):
     with e.store.db() as db:
         notifications=[dict(x) for x in db.execute("SELECT * FROM automation_notifications WHERE at<=? ORDER BY at DESC LIMIT 50",(e.store.clock(),))]
         events=[dict(x) for x in db.execute("SELECT * FROM automation_events ORDER BY id DESC LIMIT 100")]
+    from server.natural.presence import allowed_notification
+    mode=request.app.state.natural.presence.snapshot(request.state.principal)['mode']
+    notifications=[item for item in notifications if allowed_notification(mode,item['category'])]
     return {"items":[e.store.public(x) for x in e.store.items(offset)],"offset":offset,"next_offset":offset+20,"notifications":notifications,"history":events,"tools":list(REGISTRY),"notification_policy":e.store.preference("notifications",Policy().model_dump(mode="json")),"external_push_available":False,"scheduler_enabled":request.app.state.settings.automations_enabled}
 
 
@@ -109,7 +205,8 @@ async def submit(request:Request,body:Submit):
     from server.automation.models import valid_zone
     valid_zone(body.timezone)
     if body.due is not None and body.due.tzinfo is None: raise ValueError("Tijdzone vereist")
-    row=e.submit(request.state.principal.device_id,body.tool,body.input,str(body.idempotency_key),body.due.timestamp() if body.due else None,body.repeat,body.timezone)
+    if body.deadline is not None and body.deadline.tzinfo is None:raise ValueError('Tijdzone vereist voor deadline')
+    row=e.submit(request.state.principal.device_id,body.tool,body.input,str(body.idempotency_key),body.due.timestamp() if body.due else None,body.repeat,body.timezone,priority=body.priority,deadline=body.deadline.timestamp() if body.deadline else None)
     return e.store.public(row)
 
 
@@ -124,7 +221,7 @@ async def delete_job(request:Request,identifier:UUID):
     e=engine(request)
     with e.store.db(True) as db:
         row=db.execute("SELECT status,parent_id FROM automation_jobs WHERE id=?",(str(identifier),)).fetchone()
-        if not row or row[0] not in ("completed","cancelled","denied","failed","paused"): raise ValueError("Annuleer eerst; onzekere acties blijven bewaard voor controle")
+        if not row or row[0] not in ("completed","cancelled","denied","failed","paused","expired","advisory"): raise ValueError("Annuleer eerst; onzekere acties blijven bewaard voor controle")
         if row[1]:
             parent=db.execute("SELECT status FROM automation_jobs WHERE id=?",(row[1],)).fetchone()
             if parent and parent[0] in ("waiting","queued","paused"):raise ValueError("Annuleer eerst de bovenliggende workflow")
@@ -137,6 +234,12 @@ async def delete_job(request:Request,identifier:UUID):
 @router.post(BASE+"/jobs/{identifier}/challenge")
 async def challenge(request:Request,identifier:UUID):
     return engine(request).approvals.challenge(str(identifier),request.state.principal)
+
+
+@router.post(BASE+'/jobs/{identifier}/undo')
+async def undo(request:Request,identifier:UUID):
+    e=engine(request)
+    return e.store.public(await e.undo.propose(request.state.principal,str(identifier)))
 
 
 @router.post(BASE+"/jobs/{identifier}/decision")

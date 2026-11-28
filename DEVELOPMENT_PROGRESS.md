@@ -1,6 +1,162 @@
 # Ontwikkelvoortgang
 
+## 28 november 2026 — hybride vervolgopdracht in uitvoering
+
+Nieuwe opdracht verleent expliciet Oracle-installatie/gateway en een mini-pc-pakket;
+de oudere fasegrenzen hieronder blijven historische context. Mini-pc ontbreekt:
+geen persoonlijke migratie/cutover uitgevoerd. Geen nieuwe betaalde resources.
+
+- Bevestigingen wachten direct op geverifieerde uitvoering; korte CalendarUpdate-
+  vraag en succesmelding. Publieke weer/nieuws/NDW-reads zonder model; nieuwe
+  onderwerpen verwijderen oude ja-bindingen. Expiratie/wijziging sluit voorstellen.
+- Ontbrekende leesrechten worden vóór het opslaan van vervolgcontext gecontroleerd:
+  een duidelijke weigering, geen bron- of modelaanroep. Tien gerichte gesprekstests
+  slagen, inclusief deze weigering en de bestaande onderwerpwisselingen.
+- Oracle ARM64: 2 CPU/12 GB; Ollama v0.40.19 met localhostbinding, beperkte resources,
+  systemd-herstart; vier modellen werkelijk gemeten. Qwen2.5:3B blijft standaard;
+  redeneernauwkeurigheid van kleine CPU-modellen blijft een aangetoonde beperking.
+- Caddy met geldig openbaar HTTPS-certificaat; beperkte SSH-linkgebruiker, uitsluitend
+  twee loopbackforwards. AI/databasepoorten niet publiek. Persoonlijke DB lokaal.
+- Echte HTTPS/SSH/Oracle-proef met wegwerpaccount: TLS/CSRF/cookies/login/401/SSE
+  geverifieerd. Eerste antwoord 62,74 s met volle context, 14,45 s met compacte
+  stockcontext. Zie docs/HYBRID_BENCHMARKS.md voor omvang/beperkingen.
+- SQLite v15: apparaat-heartbeats, gebonden opdrachtleases, eenmalige start,
+  onzekere uitkomsten bij verlopen gestarte leases. Windows-worker hergebruikt de
+  gesloten hostadapter en lokale receipts; ontvangst blijft expliciete owner-opt-in.
+- Trage spraakaanvragen geven na 1,25 s een korte voortgangszin, zonder
+  succesclaim; berichttekst en annulering blijven afzonderlijk geverifieerd.
+- Windows-paneel voor toegestane programma's/mappen en verbindingsstatus; Android
+  Oracle-keuze en bijgewerkt instellingencontract. Geen nieuwe Android-grants.
+- Mini-PC-builder en lifecycle-scripts toegevoegd, inclusief DPAPI-machineopslag,
+  back-ups, herstel dat oude sessies/taakapprovals intrekt en taken pauzeert,
+  versioned updates met rollback, Nederlandse installatiegids en CI-artifact.
+- Geïsoleerde Windows PowerShell 5.1-installatie: dependencies, venv, schema,
+  DPAPI, readiness en gecontroleerd stoppen daadwerkelijk geslaagd. SYSTEM-taak,
+  fysieke mini-pc en accounts zijn hiermee nog niet bewezen. Testvariant die de
+  administratorcheck zou overslaan is door automatische review geblokkeerd;
+  die wijziging is niet uitgevoerd en controles blijven behouden. Ook een
+  voorstel voor automatische OpenSSH-/Microsoft-runtimeinstallatie werd geblokkeerd
+  zonder nadere reden; officiële handmatige stappen staan in INSTALLATIE.md.
+
+Tussenstand controles: 698 servertests + 1 Windows-skip; gerichte vervolgproeven
+42 context/spraak, 35 hybride tests en 15 aanvullende cache/queue/package-proeven
+zijn groen. CI-installatiepakket en Windows-build slagen. CI vond drie focus-/leesvraagregressies;
+98 gerichte tests slagen na het herstel. De actuele volledige CI-uitkomsten en geteste artifacts staan bij
+https://github.com/DeBeer05/jarvis/pull/33. Linux/ARM, Windows-client en de
+geïsoleerde package-installatie hebben inmiddels echte geslaagde runs.
+Windows 153 tests groen. Android unit/lint/debug/release gebouwd; nog niet als
+nieuwe APK op fysieke hardware geverifieerd. Menselijke luisteracceptatie blijft open.
+Backend op de ontwikkeldesktop gecontroleerd herstart op 8765: schema v15,
+quick_check ok en automatische pre-v15-snapshot geverifieerd. Originele stem,
+accountinstellingen en grants behouden. Gemeten backend-idle-RSS circa 70,6 MiB.
+De herhaalde echte compacte HTTPS-proef varieerde van 14,45 tot 19,95 s; geen
+algemene subsecond-claim voor vrije modelgesprekken. De twee bestaande
+maildigest-eigenaarsdiffs blijven onveranderd en ongecommit.
+
+
 ## Huidige opdracht
+
+### Acht productfases persoonlijke butler — 27 november 2026
+
+Finale lokale verificatie: **670 servertests passed, 1 POSIX-skip**, **150 Windows-
+clienttests passed**, Android 11 unit tests/lint/debug/release groen; contract,
+Ruff/mypy, beide pip-checks, structuur, whitespace en gitleaks groen. De vier
+browserregressies zijn hersteld en de volledige reeks opnieuw uitgevoerd.
+Bronstart vanuit een andere werkmap mist niet langer providers.speech_format;
+directe offscreen-startsmoke toont acht pagina's zonder netwerk/microfoon/helper.
+CI-Windows-build en bundle-smokes op 806d421 geslaagd. De workflow bewaart voortaan
+het geteste portable archief als artifact; actuele definitieve checks staan in PR33.
+Lokale PyInstaller-append blijft door PermissionError geblokkeerd; geen security-
+aanpassing. Bestaande snelkoppeling verwijst naar de geteste bronclient, originele
+shortcut is lokaal bewaard. Er is na de gebruikers-Escape geen vensterbediening
+meer uitgevoerd; echte zicht-/spraakacceptatie blijft open.
+Backend gecontroleerd herstart op loopback:8765; SQLite v14, integriteit en pre-v14-
+backup geverifieerd. Alleen expliciet opgegeven gewone briefingvoorkeuren lokaal
+toegepast: twee dagelijkse inboxjobs geverifieerd, bestaande stem ongewijzigd,
+geen calls/nieuwe grants/accounttest. APK gereed, geen aangesloten adb-apparaat.
+Alle acht technische fases zijn verwerkt; externe/OS-consentgrenzen staan in de
+praktische handleiding. Geen Oracle-/mini-pc-cutover. Eigenaarmaildiffs blijven apart.
+
+Fase 8 geïmplementeerd: native ButlerPanel + getypeerde formulieren, Android Butler/
+Beeldcontext/Apparaat, echte previewwiring, aparte OS-/apparaatconsents, schema-
+gedreven autonomie met advies/profielregels en expliciete vraagplicht, prioriteit/
+deadline/undo, taak-health/inboxgeschiedenis en eigenaarformulieren HA/Windows.
+Native-queryallowlist uitgebreid met uitsluitend de benodigde begrensde routes.
+Geen keys in clients of automatische grants. De bestaande topnavigatie blijft.
+Windows 148 passed + finale query/core/windowreeks 41 passed. Android 11 unit/lint/
+debug/release groen. Brede serverreeks 665 passed/1 POSIX-skip/4 JS-harnessfouten;
+veroorzaakt door overbodige DOMContentLoaded-afhankelijkheid in reeds deferred
+script, hersteld. Alle 12 web-/interfacechecks daarna groen; 20 eerdere API/
+presence/stopchecks groen. Definitieve CI wordt na push gecontroleerd.
+Lokale exe-verpakking tweemaal PermissionError bij PyInstaller append; geen
+beveiligingsinstelling aangepast. Bestaande Python-client blijft beschikbaar.
+APK gebouwd; adb ziet op dit moment geen aangesloten apparaat. Niet geïnstalleerd.
+Lokale activatie/briefingconfiguratie en uiteindelijke CI-status volgen hieronder.
+
+Fase 7 technisch gereed: SQLite v14, persistente eigenaarnoodstop/epochs,
+taakprioriteiten/deadlines, advies/vragen/toestaan/blokkeren per functie,
+begrensde leesretries en aparte hostgrants voor media/programmas. Geen nieuwe
+runtimegrants. Herstel maakt verse CalendarDelete-/afsluitannuleringvoorstellen,
+met event-ID/etagcontrole; geen blinde externe undo. Audit/inbox atomair gekoppeld,
+stop-event op beide clients en annulering van lopende audio/beeldvragen.
+Brede serverreeks: 662 passed, 1 POSIX-skip, 1 fout in overbodige handoffmelding;
+die fout hersteld en alle 14 betrokken finale tests passed. 17 policy/geheugentests
+en 60 chatregressies passed; Windows 143 passed; Android unit/lint/beide builds
+groen. Ruff/mypy/pip/repository groen. Alle 12 CI-checks op 8507202 groen.
+Volgende: fase 8 UI, finale volledige regressie, builds en lokale activatie.
+
+Fase 6 technisch gereed: HA REST/HTTPS met allowlist/aliassen en echte status-
+verificatie; ORS/geocodering/handmatige ritkosten via bestaande registry/vault.
+Geen geverifieerde publieke Creality Hi-status-API, live verkeer/pompprijzen of
+voertuigtelemetrie. Beeldcontext: expliciete opt-ins/previewrevision, gevalideerde
+PNG, dagbudget, geen beeldopslag/tools; SQLite v13. Bestaande AI-router en Qt/
+Android-componenten hergebruikt, geen modeldownload of nieuwe dependencies.
+654 servertests/1 skip; laatste gerichte reeks 33 passed. Windows 142 passed +
+3 finale previewtests; Android 11 tests/lint/debug/release groen. Niet live;
+credentials, menselijke beeld-/apparaatacceptatie en fase-8-wiring nog apart.
+Fase-5-head 1ce31cb alle 12 CI-checks groen. Volgende: betrouwbare autonomie.
+
+Fase 5 technisch gereed: gesloten Windows-hostacties en Downloads-events,
+CPU/RAM en optionele bestaande NVIDIA NVML-sensoren; Android getypeerde
+apphandoffs, opt-in WorkManager, meldingsaantallen en batterij/laatst bekende
+locatie met afzonderlijke toestemmingen. SQLite v12/backup, bronrevisies,
+approvals/policyfingerprint/eenmaligheid en onzeker resultaat blijven leidend.
+642 servertests passed/1 POSIX-skip; na laatste SDK/expiry/parent-stopwijzigingen
+13 gerichte tests passed. Android 11 unit tests, lint/debug/release en kwaliteit
+groen. Geen echte oproep/bericht of automatische grant; nog niet live.
+Fase-4-head 096b87a alle 12 CI-checks groen. Volgende fase: externe integraties.
+
+Fase 4 technisch gereed: opt-in incrementele STT op beide clients met 500 ms
+overlap, één request tegelijk, laatste audiodeel en uitsluitend finale uitvoering.
+Voorlopige requests verlopen na acht seconden; late/cancelled tekst blijft weg.
+Bestaande ElevenLabs/zinsstreaming/echo/leases hergebruikt, geen modeldownload.
+140 clienttests, 28 gerichte server/ElevenLabs-tests, Android-tests/lint/beide builds,
+Ruff/mypy, contract en dependency-/repositorychecks geslaagd. Nog niet live;
+menselijke luisteracceptatie apart. Volgende fase: Windows-/Android-integratie.
+
+Fase 3: brongebonden briefings, begrensd openbaar weer/nieuws, lokale lijsten,
+gelegenheden/routines en sollicitatie-opvolging via bestaande engine; SQLite v11.
+Brede regressie 629 passed/1 skip; laatste gerichte automation/briefingtests
+37 passed, kalender/briefingreeks 60 passed. Kwaliteit/contract/dependencies groen.
+Ochtend/avond voorlopig in JARVIS op verzoek; bellen/verkeer/bank niet beschikbaar.
+Persoonlijke configuratie blijft buiten Git. Backend nog niet herstart voor deze
+uitbreiding; apparaatacceptatie en fase-8-formulieren volgen. Volgende fase: spraak.
+
+Fase 1 checkpoint 25410ad. Fase 2 voegt gedeelde modi, opt-in aanwezigheid,
+persistente terugkomst en lokale/no-history privémodus toe. Windows WTS/idle/
+procesclassificatie en Android foreground lock/idle; achtergrond volgt fase 5.
+617 servertests/1 skip, 136 clienttests, Android-tests/lint/debug/release groen;
+echte apparaatacceptatie apart. Nieuwe parameters, routes en SQLite v10 behouden
+8765 en bestaande rechten. Verdere voortgang staat in IMPLEMENTATION_PLAN.md.
+
+Nieuwe vervolgopdracht implementeert de productfases uit IMPLEMENTATION_PLAN.md.
+AGENTS verduidelijkt scope zonder nieuwe grants of Oracle/productiemigratie.
+Branch feature/personal-butler bouwt op ea09cb6/PR 32 omdat develop deze basis
+mist; bestaande maildiffs blijven apart. Fase 1 gebruikt bestaande managers en
+voegt opt-in episodische retrieval toe: FTS5, privacy-/apparaatisolatie,
+bronvergeten en migratie v9 met automatische backup. Geen embeddings/modelcall.
+Gerichte regressies en Ruff/mypy geslaagd; volledige regressie wordt gevolgd.
+Fasevolgorde en externe afhankelijkheden blijven expliciet in het plan.
 
 ### Blijvende persoonlijke butlerstijl — 27 november 2026
 

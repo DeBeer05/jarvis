@@ -32,7 +32,7 @@ def test_start_and_end_keep_their_own_dayparts():
 def test_complete_spoken_outing_goes_directly_to_exact_preview_then_one_approval(tools_chat):
     app,c,router=tools_chat
     answer=call(c,'Ik wil graag een uitje met Sam toevoegen voor 26 november 2030 om 2 uur smiddags tot 5 uur smiddags.').json()
-    assert 'Voorstel-ID' in answer['message'],answer
+    assert 'wijzigingsvoorstel' in answer['message'],answer
     assert not router.planning_calls
     jobs=app.state.automation.store.items()
     assert len(jobs)==1 and jobs[0]['status']=='approval'
@@ -40,9 +40,12 @@ def test_complete_spoken_outing_goes_directly_to_exact_preview_then_one_approval
     assert payload['summary']=='Uitje met Sam'
     assert payload['start']=='2030-11-26T14:00:00+01:00'
     assert payload['end']=='2030-11-26T17:00:00+01:00'
+    writes=[]
+    async def create(*args):writes.append(True);return {'id':'mock-calendar-event'}
+    app.state.automation.integrations.change=create
     accepted=call(c,'Ja.',answer['conversation_id']).json()
-    assert 'ochtends' not in accepted['message'] and 'goedgekeurd' in accepted['message']
-    assert app.state.automation.store.get(jobs[0]['id'])['status']=='queued'
+    assert 'ochtends' not in accepted['message'] and 'aangemaakt' in accepted['message']
+    assert app.state.automation.store.get(jobs[0]['id'])['status']=='completed' and len(writes)==1
     assert len(app.state.automation.store.items())==1 and not router.planning_calls
 
 
@@ -51,7 +54,7 @@ def test_one_daypart_followup_then_preview_without_model_or_writes(tools_chat):
     first=call(c,'Plan een uitje met Sam op 26 november 2030 van 2 tot 5').json()
     assert 'ochtends' in first['message']
     second=call(c,'Schmiddags.',first['conversation_id']).json()
-    assert 'Voorstel-ID' in second['message'],second
+    assert 'wijzigingsvoorstel' in second['message'],second
     assert not router.planning_calls
     rejected=call(c,'Nee.',first['conversation_id']).json()
     assert 'geweigerd' in rejected['message']
@@ -112,7 +115,7 @@ def test_real_voice_sse_keeps_overview_text_and_only_announces_it(tools_chat):
 def test_spoken_put_outing_in_my_calendar_uses_default_without_planner(tools_chat):
     app,c,router=tools_chat
     result=call(c,'Ik wil dat je voor 26 november om twee uur smiddag een uitje met Sam in mijn agenda zet.').json()
-    assert 'Voorstel-ID' in result['message'],result
+    assert 'wijzigingsvoorstel' in result['message'],result
     rows=app.state.automation.store.items()
     assert len(rows)==1 and rows[0]['status']=='approval'
     payload=json.loads(rows[0]['payload'])
@@ -134,7 +137,7 @@ def test_switch_to_activity_ideas_then_new_agenda_command_keeps_tasks_separate(t
     assert 'Voorlopige uitjesplanning' in ideas['message']
     assert not app.state.automation.store.items()
     new=call(c,'Ik wil dat je voor 26 november om twee uur smiddag een uitje met Sam in mijn agenda zet.',old['conversation_id']).json()
-    assert 'Voorstel-ID' in new['message'],new
+    assert 'wijzigingsvoorstel' in new['message'],new
     payload=json.loads(app.state.automation.store.items()[0]['payload'])
     assert payload['summary']=='Uitje met Sam' and datetime.fromisoformat(payload['start']).hour==14
     assert not router.planning_calls

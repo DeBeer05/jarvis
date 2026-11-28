@@ -5,7 +5,7 @@ import uuid
 from contextlib import contextmanager
 from pathlib import Path
 
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 15
 
 
 class Database:
@@ -92,6 +92,43 @@ class Database:
                 connection.execute('CREATE INDEX voice_usage_owner_time ON voice_usage(user_id,created)')
                 connection.execute('INSERT INTO schema_migrations(version) VALUES (8)')
                 connection.execute('PRAGMA user_version=8')
+            if version < 9:
+                from server.natural.episodes import migrate
+                migrate(connection)
+                connection.execute('INSERT INTO schema_migrations(version) VALUES (9)')
+                connection.execute('PRAGMA user_version=9')
+            if version < 10:
+                from server.natural.events import migrate as migrate_events
+                from server.natural.presence import migrate as migrate_presence
+                migrate_events(connection)
+                migrate_presence(connection)
+                connection.execute('INSERT INTO schema_migrations(version) VALUES (10)')
+                connection.execute('PRAGMA user_version=10')
+            if version < 11:
+                from server.natural.life_items import migrate
+                migrate(connection)
+                connection.execute('INSERT INTO schema_migrations(version) VALUES (11)')
+                connection.execute('PRAGMA user_version=11')
+            if version < 12:
+                from server.natural.device_status import migrate
+                migrate(connection)
+                connection.execute('INSERT INTO schema_migrations(version) VALUES (12)')
+                connection.execute('PRAGMA user_version=12')
+            if version < 13:
+                from server.natural.vision import migrate
+                migrate(connection)
+                connection.execute('INSERT INTO schema_migrations(version) VALUES (13)')
+                connection.execute('PRAGMA user_version=13')
+            if version < 14:
+                from server.automation.control import migrate
+                migrate(connection)
+                connection.execute('INSERT INTO schema_migrations(version) VALUES (14)')
+                connection.execute('PRAGMA user_version=14')
+            if version < 15:
+                from server.natural.device_broker import migrate
+                migrate(connection)
+                connection.execute('INSERT INTO schema_migrations(version) VALUES (15)')
+                connection.execute('PRAGMA user_version=15')
             # A process restart must never present an unfinished answer as complete.
             connection.execute("UPDATE chat_turns SET status='interrupted', error_code='server_restarted' WHERE status='running'")
         self.initialized = True

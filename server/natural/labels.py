@@ -154,5 +154,11 @@ VALUES.update({"classic_butler":"Classic Butler","modern_butler":"Modern Butler"
 
 VALUES.update({"daily":"Dagelijks gesprek","technical":"Technische uitleg","briefing":"Korte briefing"})
 VALUES["always"]="Ieder antwoord"
+VALUES['advise']='Alleen adviseren'
+LABELS.update({'incremental_stt':'Tijdens spreken alvast herkennen (extra korte STT-verzoeken)','briefings':'Briefings','morning_channel':'Ochtendbriefing ontvangen via','evening_channel':'Avondbriefing ontvangen via','location':'Plaats voor weer en routevertrek','DesktopControl':'Windows: eenmalig gecontroleerd voorstel','DesktopMedia':'Volume en media binnen hostvrijgave','DesktopPrograms':'Toegestane programma’s binnen hostvrijgave','DesktopRead':'Windows-status en bestanden lezen','HomeRead':'Home Assistant-status lezen','HomeControl':'Home Assistant bedienen','RouteRead':'Route opvragen','MobileHandoff':'Opdracht in telefoonapp klaarzetten','PersonalBriefing':'Persoonlijke briefing','MemorySave':'Voorkeuren en feiten onthouden','MemoryUpdate':'Bestaande herinneringen aanpassen'})
+VALUES.update({'inbox':'In JARVIS','call':'Telefonisch (oproepdienst ontbreekt)'})
+LABELS["episodes"]="Eerdere gesprekken gericht terugvinden"
+LABELS.update({'presence':'Aanwezigheid en modi','presence_allowed':'Aanwezigheidsstatus delen op dit apparaat','application_allowed':'Werk-/gameherkenning op dit apparaat'})
+VALUES.update({'normal':'Normaal','work':'Werk','gaming':'Gaming','away':'Afwezig','sleeping':'Slapen','travelling':'Onderweg','private':'Privé','emergency':'Noodgeval'})
 
 VALUES.update({"together":"Samen plannen","surprise":"Verrassingsmodus","budget":"Budgetmodus","relaxed":"Ontspannen planning","detailed":"Gedetailleerde planning","unknown":"Nog onbekend","car":"Auto","train":"Trein","bike":"Fiets","walk":"Lopen","any":"Geen voorkeur","inside":"Binnen","outside":"Buiten","suggest":"Voorstellen doen","choose":"Zelf een voorstel kiezen","essential":"Alleen noodzakelijke vragen","draft_only":"Alleen concept voorbereiden","propose_message":"Verzendvoorstel voorbereiden"})

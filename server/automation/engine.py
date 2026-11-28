@@ -5,9 +5,9 @@ import json
 from datetime import datetime, UTC
 from typing import Protocol
 
-from server.automation.models import REGISTRY, validate, next_occurrence, UrgentEvent
+from server.automation.models import REGISTRY, validate, next_occurrence, UrgentEvent,SIDE_EFFECT_TOOLS
 from server.automation.store import Store, encode, fingerprint
-from server.automation.google import IntegrationManager, WRITE_GUARD
+from server.automation.google import IntegrationManager, WRITE_GUARD,REQUEST_GUARD
 from server.security.types import AuthError, digest, token
 
 AUTOMATION_SCOPES = frozenset({"automation:read", "automation:write", "automation:approve", "integrations:manage"})
@@ -22,12 +22,13 @@ class PermissionManager:
 
     def check_tool(self,device,tool):
         # Preferences only restrict authority; they never create a permission.
+        if getattr(self,'control',None):self.control.check(device)
         with self.store.db() as db:
             row=db.execute("SELECT s.payload FROM natural_settings s JOIN auth_devices d ON d.user_id=s.user_id WHERE d.id=? AND s.scope='user' AND s.device_id=''",(device,)).fetchone()
         if not row:return
         autonomy=json.loads(row["payload"])["autonomy"]
-        reads={"CalendarList","CalendarRead","EmailSearch","EmailRead","ReminderList","WorkflowStatus","CalendarSummary","EmailCheck","WaitForReply"}
-        if autonomy["actions"].get(tool)=="block" or autonomy["profile"]=="read_propose" and tool not in reads:
+        reads={"DeviceQuery","CalendarList","CalendarRead","EmailSearch","EmailRead","ReminderList","WorkflowStatus","CalendarSummary","EmailCheck","WaitForReply","PersonalBriefing","DesktopRead","HomeRead","RouteRead",'WeatherRead','NewsRead','TrafficRead'}
+        if autonomy["actions"].get(tool)=="block" or autonomy["profile"]=="read_propose" and tool not in reads and autonomy['actions'].get(tool)!='advise':
             raise AuthError("permission_denied","Deze actie is geblokkeerd door je instellingen voor zelfstandigheid.",403)
 
 
@@ -161,7 +162,7 @@ class FollowUpManager:
 
     async def check(self):
         e=self.engine
-        with e.store.db() as db: rows=db.execute("SELECT * FROM automation_followups WHERE status='waiting' AND due<=? LIMIT 3",(e.store.clock(),)).fetchall()
+        with e.store.db() as db: rows=db.execute("SELECT f.* FROM automation_followups f LEFT JOIN automation_jobs j ON j.id=f.id WHERE f.status='waiting' AND (j.id IS NULL OR j.status='waiting') AND f.due<=? AND (j.deadline IS NULL OR j.deadline>?) AND (j.parent_id IS NULL OR EXISTS(SELECT 1 FROM automation_jobs p WHERE p.id=j.parent_id AND p.status='waiting')) ORDER BY coalesce(j.priority,1) DESC,f.due LIMIT 3",(e.store.clock(),e.store.clock())).fetchall()
         for row in rows:
             automatic=False
             try:
@@ -189,13 +190,31 @@ class FollowUpManager:
             except Exception:
                 e.audit.record("followup_read_unavailable",device=row["device_id"])
                 continue
+            with e.store.db() as db:
+                live=db.execute("SELECT status FROM automation_followups WHERE id=?",(row['id'],)).fetchone()
+            if not live or live['status']!='waiting':continue
+            try:
+                source_job=e.store.get(row['id'])
+                source_payload=json.loads(source_job['payload'])
+            except ValueError:source_payload={}
+            try:
+                e.permissions.check(row['device_id'],'automation:read')
+                e.permissions.check(row['device_id'],'automation:write')
+                e.permissions.check_tool(row['device_id'],'WaitForReply')
+                e.permissions.check_tool(row['device_id'],'EmailRead')
+                if source_payload.get('source_id'):e.life.guard_reminder(row['device_id'],source_payload)
+            except (ValueError,AuthError):
+                with e.store.db(True) as db:db.execute("UPDATE automation_followups SET status='blocked' WHERE id=? AND status='waiting'",(row['id'],))
+                continue
             new=[m for m in data.get("messages",[]) if m["id"] not in json.loads(row["baseline"]) and "SENT" not in m.get("labelIds",[]) and "DRAFT" not in m.get("labelIds",[])]
+            if new and getattr(e,'life',None):e.life.reply_detected(row['device_id'],row['thread_id'])
             # Replies never imply permission to change an event. The owner reviews them.
-            e.notifications.send("important","Er is een antwoord om te beoordelen." if new else "Nog geen antwoord op je verzoek.","followup:"+row["id"],device=row["device_id"],proactive=True)
             interval=self.options(row["device_id"])["followup_hours"]*3600 if automatic else 86400
+            notice_key='followup:'+row['id']+(':reply' if new else ':reminder:'+str(int(e.store.clock()//interval)))
+            e.notifications.send("important","Er is een antwoord om te beoordelen." if new else "Nog geen antwoord op je verzoek.",notice_key,device=row["device_id"],proactive=True)
             with e.store.db(True) as db:
                 db.execute("UPDATE automation_followups SET status=?,due=? WHERE id=?",("reply_review" if new else "waiting",e.store.clock()+interval,row["id"]))
-                db.execute("UPDATE automation_jobs SET status=?,result=? WHERE id=? AND tool='WaitForReply' AND status='waiting'",("completed" if new else "blocked",encode({"reply_requires_review":bool(new),"accepted":False}),row["id"]))
+                db.execute("UPDATE automation_jobs SET status=?,result=? WHERE id=? AND tool='WaitForReply' AND status='waiting'",("completed" if new else "waiting",encode({"reply_requires_review":bool(new),"accepted":False}),row["id"]))
                 e.store.event(db,"followup_reply" if new else "followup_reminder",device=row["device_id"])
 
 
@@ -208,7 +227,7 @@ class WorkflowManager:
             steps=json.loads(row["payload"])["steps"]
             with e.store.db() as db: children=db.execute("SELECT * FROM automation_jobs WHERE parent_id=? ORDER BY step",(row["id"],)).fetchall()
             if children and children[-1]["status"] not in ("completed",):
-                if children[-1]["status"] in ("denied","cancelled","uncertain","failed"):
+                if children[-1]["status"] in ("denied","cancelled","uncertain","failed","advisory","expired"):
                     with e.store.db(True) as db: db.execute("UPDATE automation_jobs SET status='blocked' WHERE id=?",(row["id"],))
                 continue
             index=len(children)
@@ -216,7 +235,7 @@ class WorkflowManager:
                 with e.store.db(True) as db: db.execute("UPDATE automation_jobs SET status='completed' WHERE id=?",(row["id"],))
             else:
                 step=steps[index]
-                try:e.submit(row["device_id"],step["tool"],step["input"],row["id"]+":"+str(index),parent=row["id"],step=index)
+                try:e.submit(row["device_id"],step["tool"],step["input"],row["id"]+":"+str(index),parent=row["id"],step=index,priority=row['priority'],deadline=row['deadline'])
                 except (AuthError,ValueError):
                     with e.store.db(True) as db:
                         db.execute("UPDATE automation_jobs SET status='blocked' WHERE id=?",(row["id"],))
@@ -226,7 +245,7 @@ class WorkflowManager:
 class TriggerManager:
     def __init__(self, engine): self.engine=engine
     def due(self):
-        with self.engine.store.db() as db: return [dict(r) for r in db.execute("SELECT * FROM automation_jobs WHERE status='queued' AND due<=? ORDER BY CASE WHEN tool IN ('ReminderCreate','NotificationSend') THEN 0 ELSE 1 END,due LIMIT 10",(self.engine.store.clock(),))]
+        with self.engine.store.db() as db: return [dict(r) for r in db.execute("SELECT j.* FROM automation_jobs j LEFT JOIN auth_devices d ON d.id=j.device_id LEFT JOIN automation_control c ON c.user_id=d.user_id WHERE j.status='queued' AND j.due<=? AND coalesce(c.stopped,0)=0 AND (j.parent_id IS NULL OR EXISTS(SELECT 1 FROM automation_jobs p WHERE p.id=j.parent_id AND p.status='waiting')) ORDER BY j.priority DESC,CASE WHEN j.tool IN ('ReminderCreate','NotificationSend') THEN 0 ELSE 1 END,j.due LIMIT 10",(self.engine.store.clock(),))]
 
 
 class ActionExecutor:
@@ -252,6 +271,7 @@ class ActionExecutor:
                 if priority["priority"] in ("urgent","important"):e.notifications.send("important","Er is een mogelijk belangrijk bericht. Controleer je inbox.","mail:"+message["id"],row["id"],proactive=True)
             return {"checked":len(data.get("messages",[])),"urgency_verified":False}
         if tool=="WaitForReply":
+            if p.get('source_id'):e.life.guard_reminder(row['device_id'],p)
             e.permissions.check(row["device_id"],"automation:read")
             e.permissions.check_tool(row["device_id"],"EmailRead")
             if "EmailRead" in e.store.preference("disabled_tools",[]):raise ValueError("Lezen is uitgeschakeld")
@@ -263,8 +283,9 @@ class ActionExecutor:
                 or "SENT" in m.get("labelIds",[]) or "DRAFT" in m.get("labelIds",[])
                 or not str(m.get("internalDate","")).isdigit() or int(m["internalDate"])<=since]
             with e.store.db(True) as db:
-                db.execute("INSERT OR IGNORE INTO automation_followups VALUES (?,?,?,?,?,?)",(row["id"],p["thread_id"],encode(baseline),datetime.fromisoformat(p["due"]).timestamp(),"waiting",row["device_id"]))
+                db.execute("INSERT INTO automation_followups VALUES (?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET status='waiting',due=excluded.due WHERE automation_followups.status='blocked'",(row["id"],p["thread_id"],encode(baseline),datetime.fromisoformat(p["due"]).timestamp(),"waiting",row["device_id"]))
             return {"waiting_for_reply":True}
+        if tool in ('DeviceCommand','DeviceQuery'):return e.devices.enqueue(row,p,WRITE_GUARD.get())
         if tool=="CalendarRead": return await e.integrations.events(p)
         if tool=="CalendarList": return await e.integrations.calendar_list()
         if tool.startswith("Calendar"):
@@ -276,7 +297,39 @@ class ActionExecutor:
         if tool=="EmailRead": return await e.integrations.mail_read(p["message_id"],p["include_body"])
         if tool=="EmailDraft": return await e.integrations.draft(p)
         if tool=="EmailSend": return await e.integrations.send(p)
-        if tool=="ReminderCreate": return e.notifications.send("important",p["text"],row["key"]+":"+str(row["due"]),row["id"])
+        if tool=="PersonalBriefing":return await e.briefings.execute(row,p)
+        if tool in ('WeatherRead','NewsRead','TrafficRead'):
+            e.briefings.guard(row['device_id'],tool)
+            _,config=e.briefings.device(row['device_id'])
+            if config['ai']['offline']:raise ValueError('Publieke bron is offline niet beschikbaar')
+            result=await e.briefings.sources.weather(config['briefings']['location'],'Europe/Amsterdam') if tool=='WeatherRead' else await e.briefings.sources.traffic(config['briefings']['location']) if tool=='TrafficRead' else await e.briefings.sources.news()
+            e.briefings.guard(row['device_id'],tool)
+            return result
+        if tool=='MobileHandoff':return await asyncio.to_thread(e.handoffs.publish,row,p,WRITE_GUARD.get() or (lambda:None))
+        if tool in ('HomeRead','HomeControl','RouteRead'):
+            write_guard=WRITE_GUARD.get()
+            def guard():
+                if write_guard:write_guard()
+                e.permissions.check(row['device_id'],'automation:read')
+            guard()
+            if tool=='HomeRead':return await e.external.home_state(p['entity_id'],guard)
+            if tool=='HomeControl':return await e.external.home_control(p,guard)
+            return await e.external.route(p,guard)
+        if tool in ('DesktopRead','DesktopControl','DesktopMedia','DesktopPrograms'):
+            write_guard=WRITE_GUARD.get();request_guard=REQUEST_GUARD.get()
+            def guard():
+                if write_guard:write_guard()
+                if request_guard:request_guard()
+                e.permissions.check(row['device_id'],'automation:read')
+            guard()
+            if tool in ('DesktopMedia','DesktopPrograms'):
+                policy=e.windows.policy()
+                if not (policy.media_allowed if tool=='DesktopMedia' else policy.programs_allowed):raise ValueError('Deze lokale functie is niet door de eigenaar vrijgegeven')
+            result=await asyncio.to_thread(e.windows.read if tool=='DesktopRead' else e.windows.control,p,guard)
+            guard();return result
+        if tool=="ReminderCreate":
+            if p.get('source_id'):e.life.guard_reminder(row['device_id'],p)
+            return e.notifications.send("important",p["text"],row["key"]+":"+str(row["due"]),row["id"])
         if tool=="ReminderList": return {"items":[e.store.public(x) for x in e.store.items() if x["tool"]=="ReminderCreate"]}
         if tool=="ReminderCancel":
             if e.store.get(p["id"])["tool"]!="ReminderCreate":raise ValueError("Geen herinnering")
@@ -311,6 +364,7 @@ class TaskScheduler:
 
 class AutomationEngine:
     def __init__(self, database, security, *, clock=None, integrations=None):
+        self.security=security
         self.store=Store(database,**({"clock":clock} if clock else {}))
         self.permissions=PermissionManager(self.store); self.audit=AuditLogger(self.store)
         self.integrations=integrations or IntegrationManager(self.store,security,security.settings.port)
@@ -319,21 +373,39 @@ class AutomationEngine:
         self.approvals=ApprovalManager(self); self.notifications=NotificationManager(self.store)
         self.workflows=WorkflowManager(self); self.followups=FollowUpManager(self)
         self.triggers=TriggerManager(self); self.executor=ActionExecutor(self); self.scheduler=TaskScheduler(self)
-        self.lock=asyncio.Lock()
+        # Row claims are atomic. Bound concurrent I/O without making a confirmed
+        # action wait for a whole unrelated scheduler batch on the 8-GB hub.
+        self.lock=asyncio.Semaphore(3)
+        from server.automation.windows import WindowsHost
+        self.windows=WindowsHost(self.store)
+        from server.automation.external import ExternalAdapters
+        self.external=ExternalAdapters(self)
+        from server.automation.control import ControlPlane
+        self.safety=ControlPlane(self);self.permissions.control=self.safety
+        from server.automation.undo import UndoManager
+        self.undo=UndoManager(self)
 
-    def submit(self, device, tool, payload, key, due=None, repeat="once", timezone="Europe/Amsterdam", parent=None, step=0):
-        self.permissions.check(device,"automation:write")
+    def submit(self, device, tool, payload, key, due=None, repeat="once", timezone="Europe/Amsterdam", parent=None, step=0,*,priority=1,deadline=None):
+        if repeat not in ('once','daily','weekly','monthly','yearly'):raise ValueError('Onbekende herhaling')
+        self.permissions.check(device,"automation:read" if tool=="DeviceQuery" else "automation:write")
         self.permissions.check_tool(device,tool)
         if tool in self.store.preference("disabled_tools",[]): raise ValueError("Deze actie is uitgeschakeld door de eigenaar")
+        if type(priority) is not int or not 0<=priority<=3:raise ValueError('Ongeldige taakprioriteit')
+        if deadline is not None and deadline<=self.store.clock():raise ValueError('Taakdeadline is verstreken')
+        if tool in ('DesktopControl','DesktopMedia','DesktopPrograms') and not payload.get('policy_hash'):payload={**payload,'policy_hash':self.windows.signature()}
+        if tool=='HomeControl' and not payload.get('policy_hash'):payload={**payload,'policy_hash':self.external.signature()}
         payload=validate(tool,payload)
-        if repeat!="once" and REGISTRY[tool][1]: raise ValueError("Externe wijzigingen mogen niet terugkerend worden goedgekeurd")
+        level=self.safety.directive(device,tool);approval=REGISTRY[tool][1] or level=='ask'
+        if repeat!="once" and approval: raise ValueError("Goedkeuring geldt uitsluitend voor één uitvoering")
         if tool=="ReminderCreate":
             due=datetime.fromisoformat(payload["at"]).timestamp(); repeat=payload["repeat"]; timezone=payload["timezone"]
-        return self.store.create(device,tool,payload,key,due if due is not None else self.store.clock(),repeat,timezone,REGISTRY[tool][1],parent,step)
+        if repeat!='once' and approval:raise ValueError('Goedkeuring geldt uitsluitend voor één uitvoering')
+        return self.store.create(device,tool,payload,key,due if due is not None else self.store.clock(),repeat,timezone,approval,parent,step,priority=priority,deadline=deadline,advisory=level=='advise')
 
     def control(self, identifier, status, device, *, expected_status=None):
         self.permissions.check(device,"automation:write")
         if status not in ("paused","queued","cancelled"): raise ValueError("Invalid state")
+        if status=='queued':self.safety.check(device)
         with self.store.db(True) as db:
             row=db.execute("SELECT * FROM automation_jobs WHERE id=?",(identifier,)).fetchone()
             if not row or row["status"] not in ("paused","queued","waiting","approval","blocked"): raise ValueError("Taak kan niet gewijzigd worden")
@@ -341,12 +413,24 @@ class AutomationEngine:
             if status=="queued" and row["status"]!="paused": raise ValueError("Alleen gepauzeerde taken hervatten")
             if row["status"]=="approval" and status!="cancelled": raise ValueError("Voorstel vereist goedkeuring")
             db.execute("UPDATE automation_jobs SET status=?,approval_hash=NULL WHERE id=?",(status,identifier))
-            if status=="cancelled": db.execute("UPDATE automation_jobs SET status='cancelled',approval_hash=NULL WHERE parent_id=? AND status IN ('queued','approval','paused')",(identifier,))
+            if row['tool']=='WaitForReply':
+                db.execute('UPDATE automation_followups SET status=? WHERE id=?',('waiting' if status=='queued' else status,identifier))
+            if status=="cancelled":
+                db.execute("UPDATE automation_jobs SET status='cancelled',approval_hash=NULL WHERE parent_id=? AND status IN ('queued','approval','paused','waiting','blocked')",(identifier,))
+                db.execute("UPDATE automation_followups SET status='cancelled' WHERE id IN (SELECT id FROM automation_jobs WHERE parent_id=?)",(identifier,))
             self.store.event(db,status,identifier,device)
 
     async def tick(self,*,job_id=None):
         async with self.lock:
+            with self.store.db(True) as db:
+                expired=db.execute("SELECT id,device_id FROM automation_jobs WHERE deadline<=? AND status IN ('queued','approval','waiting','blocked','paused') LIMIT 100",(self.store.clock(),)).fetchall()
+                for item in expired:
+                    db.execute("UPDATE automation_jobs SET status='expired',approval_hash=NULL WHERE id=?",(item['id'],))
+                    db.execute("UPDATE automation_followups SET status='expired' WHERE id=?",(item['id'],))
+                    self.store.event(db,'deadline_expired',item['id'],item['device_id'])
             if job_id is None:
+                if getattr(self,'desktop_monitor',None):await asyncio.to_thread(self.desktop_monitor)
+                if getattr(self,'briefings',None):self.briefings.schedule_events()
                 self.followups.schedule_automatic()
                 self.workflows.advance()
                 due=self.triggers.due()
@@ -355,18 +439,23 @@ class AutomationEngine:
                     due=[dict(row) for row in db.execute("SELECT * FROM automation_jobs WHERE id=? AND status='queued' AND due<=?",(job_id,self.store.clock()))]
             for row in due:
                 if row["parent_id"] and self.store.get(row["parent_id"])["status"]!="waiting": continue
+                level=self.safety.directive(row['device_id'],row['tool'])
+                if level=='advise' or level=='ask' and not row['approval_required']:
+                    with self.store.db(True) as db:db.execute("UPDATE automation_jobs SET status=?,approval_required=?,approval_hash=NULL,approved_device=NULL WHERE id=? AND status='queued'",('advisory' if level=='advise' else 'approval',int(level=='ask'),row['id']))
+                    continue
                 if row["tool"] in self.store.preference("disabled_tools",[]):
                     with self.store.db(True) as db:db.execute("UPDATE automation_jobs SET status='blocked' WHERE id=? AND status='queued'",(row["id"],))
                     continue
-                if REGISTRY[row["tool"]][1]:
+                if row['approval_required'] or REGISTRY[row["tool"]][1]:
                     try:
-                        if not row["approved_device"] or row["approval_expires"]<=self.store.clock(): raise ValueError("Approval expired")
+                        if not row["approved_device"] or not row['approval_expires'] or row["approval_expires"]<=self.store.clock(): raise ValueError("Approval expired")
                         self.permissions.check(row["approved_device"],"automation:approve")
                     except (AuthError,ValueError):
                         with self.store.db(True) as db: db.execute("UPDATE automation_jobs SET status='approval',approval_hash=NULL,approved_device=NULL WHERE id=? AND status='queued'",(row["id"],))
                         continue
                 try:
-                    self.permissions.check(row["device_id"],"automation:write")
+                    epoch=self.safety.check(row['device_id'])['epoch']
+                    self.permissions.check(row["device_id"],"automation:read" if row["tool"]=="DeviceQuery" else "automation:write")
                     self.permissions.check_tool(row["device_id"],row["tool"])
                 except AuthError:
                     with self.store.db(True) as db: db.execute("UPDATE automation_jobs SET status='blocked' WHERE id=? AND status='queued'",(row["id"],))
@@ -376,23 +465,29 @@ class AutomationEngine:
                     self.store.event(db,"started",row["id"],row["device_id"])
                 try:
                     def guard():
-                        self.permissions.check(row["device_id"],"automation:write")
+                        self.safety.check(row['device_id'],epoch)
+                        level=self.safety.directive(row['device_id'],row['tool'])
+                        if level=='advise' or level=='ask' and not row['approval_required']:raise ValueError('Bevoegdheden zijn tijdens de uitvoering beperkt')
+                        self.permissions.check(row["device_id"],"automation:read" if row["tool"]=="DeviceQuery" else "automation:write")
                         self.permissions.check_tool(row["device_id"],row["tool"])
                         if row["tool"] in self.store.preference("disabled_tools",[]): raise ValueError("Actie uitgeschakeld")
                         current=self.store.get(row["id"])
                         if current["status"]!="running" or current["payload"]!=row["payload"]: raise ValueError("Actie gewijzigd of gestopt")
                         if row["parent_id"] and self.store.get(row["parent_id"])["status"]!="waiting": raise ValueError("Workflow gepauzeerd of geannuleerd")
-                        if REGISTRY[row["tool"]][1]:
-                            if current["approval_expires"]<=self.store.clock(): raise ValueError("Goedkeuring verlopen")
+                        if current['deadline'] is not None and current['deadline']<=self.store.clock():raise ValueError('Taakdeadline verstreken')
+                        if current['approval_required'] or REGISTRY[row["tool"]][1]:
+                            if not current['approval_expires'] or current["approval_expires"]<=self.store.clock(): raise ValueError("Goedkeuring verlopen")
                             self.permissions.check(current["approved_device"],"automation:approve")
                     context=WRITE_GUARD.set(guard)
                     try:
                         async with asyncio.timeout(90): result=await self.executor.execute(row)
                     finally: WRITE_GUARD.reset(context)
+                    guard()
                     # Never persist email bodies or event descriptions in execution history.
                     safe_result={"available":True} if row["tool"] in ("EmailRead","EmailSearch","CalendarRead","CalendarList") else result
-                    status="waiting" if row["tool"] in ("WorkflowCreate","WaitForReply") else "completed"
+                    status="waiting" if row["tool"] in ("WorkflowCreate","WaitForReply","MobileHandoff","DeviceCommand","DeviceQuery") else "completed"
                     with self.store.db(True) as db:
+                        if db.execute('SELECT status FROM automation_jobs WHERE id=?',(row['id'],)).fetchone()[0]!='running':continue
                         if row["repeat"]!="once":
                             due=next_occurrence(row["due"],row["repeat"],row["timezone"],self.store.clock()); status="queued"
                             db.execute("UPDATE automation_jobs SET due=? WHERE id=?",(due,row["id"]))
@@ -400,17 +495,19 @@ class AutomationEngine:
                         self.store.event(db,"completed",row["id"],row["device_id"])
                 except asyncio.CancelledError:
                     with self.store.db(True) as db:
-                        external=row['tool'] in ('EmailDraft','EmailSend','CalendarCreate','CalendarUpdate','CalendarDelete')
+                        external=row['tool'] in SIDE_EFFECT_TOOLS
                         db.execute("UPDATE automation_jobs SET status=?,updated=? WHERE id=? AND status='running'",('uncertain' if external else 'queued',self.store.clock(),row['id']))
                     raise
                 except Exception:
                     with self.store.db(True) as db:
-                        external=row["tool"] in ("EmailDraft","EmailSend","CalendarCreate","CalendarUpdate","CalendarDelete")
-                        retry=not external and row["tool"] in ("CalendarRead","EmailSearch","EmailRead","EmailCheck","CalendarSummary") and row["attempts"]<5
-                        db.execute("UPDATE automation_jobs SET status=?,result=?,attempts=attempts+1,due=? WHERE id=?",("uncertain" if external else "queued" if retry else "failed",encode({"error":"Uitvoering niet bevestigd; controleer integratie of provider vóór een nieuwe actie."}),self.store.clock()+min(3600,30*2**row["attempts"]) if retry else row["due"],row["id"]))
+                        external=row["tool"] in SIDE_EFFECT_TOOLS
+                        expired=row['deadline'] is not None and row['deadline']<=self.store.clock()
+                        retry=not external and not expired and row["tool"] in ("CalendarRead","EmailSearch","EmailRead","EmailCheck","CalendarSummary",'HomeRead','RouteRead','DesktopRead') and row["attempts"]<5
+                        db.execute("UPDATE automation_jobs SET status=?,result=?,attempts=attempts+1,due=? WHERE id=? AND status='running'",("uncertain" if external else 'expired' if expired else "queued" if retry else "failed",encode({"error":"Uitvoering niet bevestigd; controleer integratie of provider vóór een nieuwe actie."}),self.store.clock()+min(3600,30*2**row["attempts"]) if retry else row["due"],row["id"]))
                         self.store.event(db,"execution_unconfirmed",row["id"],row["device_id"])
             if job_id is None:await self.followups.check()
 
     async def close(self):
         await self.scheduler.stop()
+        await self.external.close()
         await self.integrations.http.aclose()

@@ -32,7 +32,7 @@ class SpeechBridge:
     @staticmethod
     def command():
         root=Path(__file__).resolve().parents[1]
-        executable=root/".local/voice-venv/Scripts/python.exe"
+        executable=Path(os.environ.get("JARVIS_VOICE_PYTHON") or root/".local/voice-venv/Scripts/python.exe")
         if not executable.is_file():executable=root/".local/voice-venv/bin/python"
         if not executable.is_file():
             raise AuthError("speech_unavailable","De spraakruntime is niet geinstalleerd op de server.",503)
@@ -73,7 +73,7 @@ class SpeechBridge:
 
 
 async def audio_preferences(request):
-    document=await asyncio.to_thread(request.app.state.natural.settings.get,request.state.principal)
+    document=await asyncio.to_thread(request.app.state.natural.settings.runtime,request.state.principal)
     voice=document["settings"]["voice"]
     return {"model":voice["whisper_model"],"device":voice["processing"],"provider":voice["tts_provider"],
             "voice":voice["voice"],"speaker":voice["speaker"],"speed":voice["speed"],"unload_after_seconds":voice["unload_after_seconds"],
@@ -82,10 +82,13 @@ async def audio_preferences(request):
 
 async def inference_call(request,operation,payload):
     """Disconnect/revocation cancels only the inference owned by this request."""
+    safety=request.app.state.automation.safety
+    epoch=safety.state(request.state.principal.device_id)['epoch']
     work=asyncio.create_task(request.app.state.speech.request(operation,payload))
     async def watch():
         while True:
             if await request.is_disconnected():return "disconnected"
+            if safety.state(request.state.principal.device_id)['epoch']!=epoch:return 'stopped'
             if not await asyncio.to_thread(request.app.state.security.store.live,request.state.principal):return "revoked"
             await asyncio.sleep(.2)
     monitor=asyncio.create_task(watch())
@@ -115,7 +118,9 @@ async def transcribe(request: Request):
     except (ValueError, EOFError, wave.Error):
         raise AuthError("invalid_audio", "Gebruik mono PCM16 WAV op 16 kHz, maximaal 60 seconden.", 422) from None
     principal = request.state.principal
-    await asyncio.to_thread(request.app.state.security.store.rate, "mobile-stt:" + principal.device_id, 12)
+    # Incremental capture reuses this route. Bound requests as well as audio;
+    # the existing single inference slot still prevents parallel model loads.
+    await asyncio.to_thread(request.app.state.security.store.rate, "mobile-stt:" + principal.device_id, 30)
     result = await inference_call(request,"stt", {**await audio_preferences(request), "audio": base64.b64encode(raw).decode()})
     # Reject results if authorization was revoked during inference.
     await asyncio.to_thread(request.app.state.security.store.own_device, principal)
@@ -140,10 +145,11 @@ async def synthesize(request: Request, body: Speak):
     preferences=await audio_preferences(request)
     if body.speed is not None:preferences["speed"]=body.speed
     from copy import deepcopy
-    config=deepcopy((await asyncio.to_thread(request.app.state.natural.settings.get,principal))["settings"])
+    config=deepcopy((await asyncio.to_thread(request.app.state.natural.settings.runtime,principal))["settings"])
     if body.conversation_id:
         await asyncio.to_thread(request.app.state.natural.authorize_conversation,principal,body.conversation_id)
         config=request.app.state.natural.responses.apply(principal,body.conversation_id,config)
+    if config.get('presence',{}).get('mode')=='private':config['voice']['mode']='offline'
     if body.speed is not None:config["voice"]["speed"]=body.speed
     from providers.speech_format import format_speech
     result=await request.app.state.natural.tts.synthesize(request,format_speech(body.text,config["general"]["timezone"]),config,body.utterance_id)

@@ -27,8 +27,13 @@ class Notifications(private val context: Context) {
             "urgent" -> "Urgent"; "appointments" -> "Afspraken"; "important" -> "Belangrijk"; else -> "Nieuws"
         }, if (category == "urgent") NotificationManager.IMPORTANCE_HIGH else NotificationManager.IMPORTANCE_DEFAULT).apply { lockscreenVisibility = Notification.VISIBILITY_PRIVATE }) }
     }
+    fun canShow(category:String):Boolean {
+        if(category !in categories || (Build.VERSION.SDK_INT>=33 && context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED))return false
+        val manager=context.getSystemService(NotificationManager::class.java)
+        return manager.areNotificationsEnabled() && manager.getNotificationChannel(category)?.importance!=NotificationManager.IMPORTANCE_NONE
+    }
     fun show(category: String, screen: String = "Meldingen") {
-        if (category !in categories || (Build.VERSION.SDK_INT >= 33 && context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)) return
+        if (!canShow(category)) return
         val intent = PendingIntent.getActivity(context, screen.hashCode(), Intent(context, MainActivity::class.java).putExtra("screen", screen), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         val notification = Notification.Builder(context, category).setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle("JARVIS").setContentText("Er staat een melding voor je klaar.")

@@ -64,7 +64,7 @@ class SecurityGate:
             return await self.app(scope, receive, send)
         try:
             address = scope.get("client")
-            trusted_https = self.service.settings.profile == 'oracle-production' and scope.get('jarvis.trusted_https') is True
+            trusted_https = bool(self.service.settings.public_origin) and scope.get('jarvis.trusted_https') is True
             if not trusted_https and (not address or not ipaddress.ip_address(address[0]).is_loopback):
                 raise AuthError("access_denied", "Toegang geweigerd.", 403)
             values = dict(scope.get("headers", []))
@@ -82,7 +82,7 @@ class SecurityGate:
                 elif path.endswith("/rules"): required = "admin:account"
                 elif "/integrations" in path: required = "integrations:manage"
                 elif path.endswith(("/challenge", "/decision")): required = "automation:approve"
-                elif method in ("GET", "HEAD") or path.endswith(("/calendar/search", "/email/search", "/reschedule", "/summarize", "/email-priority")): required = "automation:read"
+                elif method in ("GET", "HEAD") or path.endswith(("/calendar/search", "/email/search", "/reschedule", "/summarize", "/email-priority",'/route-cities','/trip-cost')): required = "automation:read"
                 else: required = "automation:write"
             elif path == "/api/v1/mobile/speech/transcribe":
                 required = "chat:write"

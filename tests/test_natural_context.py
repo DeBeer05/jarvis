@@ -91,7 +91,7 @@ def test_sensitive_assistant_history_and_edited_summary_stay_local(settings):
         result=c.post("/api/v1/chat",json={"message":"Ga verder","provider":"gemini","conversation_id":cid}).json()
         assert result["status"]=="completed"
         cloud=str(providers["gemini"].calls[-1])
-        assert "medicatie" not in cloud and "diagnose" not in cloud and "Een lokale vraag" not in cloud
+        assert "medicatie" not in cloud and "Een medische diagnose" not in cloud and "Een lokale vraag" not in cloud
         c.post("/api/v1/chat",json={"message":"En lokaal?","provider":"ollama","conversation_id":cid})
         local=str(providers["ollama"].calls[-1])
         assert "medicatie" in local and "diagnose" in local

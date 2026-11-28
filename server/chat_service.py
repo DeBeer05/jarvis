@@ -30,6 +30,8 @@ class Generation:
     message: str
     history: list = field(default_factory=list)
     cancel: asyncio.Event = field(default_factory=asyncio.Event)
+    finished: asyncio.Event = field(default_factory=asyncio.Event)
+    timings:dict=field(default_factory=dict)
     text: str = ""
     provider: str | None = None
     model: str | None = None
@@ -61,6 +63,7 @@ class Generation:
 
 
 class ChatService:
+    progress_seconds=1.25
     def __init__(self, settings: Settings, store: ChatStore, router: AIRouter):
         self.settings, self.store, self.router = settings, store, router
         self.active: dict[str, Generation] = {}
@@ -74,6 +77,12 @@ class ChatService:
             raise ChatError("invalid_message", "Het bericht is leeg of te lang.", 422)
         if len(message) + len(self.settings.system_prompt) > self.settings.max_context_chars:
             raise ChatError("invalid_message", "Dit bericht past niet binnen het ingestelde contextbudget.", 422)
+        previous=next((old for old in self.active.values() if conversation_id and old.conversation_id==conversation_id),None)
+        if previous and principal and previous.principal and principal.session_id==previous.principal.session_id and principal.device_id==previous.principal.device_id and request_id!=previous.request_id:
+            previous.cancel.set()
+            if not previous.started:self.expire(previous)
+            try:await asyncio.wait_for(previous.finished.wait(),2)
+            except TimeoutError:raise ChatError("conversation_busy","De vorige opdracht wordt afgerond. Probeert u het zo nogmaals, meneer.",409) from None
         if len(self.active) >= self.settings.max_concurrent_ai:
             raise ChatError("busy", "JARVIS verwerkt al het maximale aantal antwoorden. Wacht even.", 429)
         if conversation_id and any(run.conversation_id == conversation_id for run in self.active.values()):
@@ -93,7 +102,7 @@ class ChatService:
         self.admissions.append(tick)
         try:
             if self.natural and principal:
-                document=await asyncio.to_thread(self.natural.settings.get,principal)
+                document=await asyncio.to_thread(self.natural.settings.runtime,principal)
                 run.persist_history=document["settings"]["memory"]["history"]
             if self.natural and principal and conversation_id:
                 await asyncio.to_thread(self.natural.authorize_conversation,principal,conversation_id)
@@ -104,7 +113,9 @@ class ChatService:
             raise
         try:
             if self.natural and principal:
+                context_started=time.perf_counter()
                 run.natural_context,run.context_messages,run.context_metrics=await asyncio.to_thread(self.natural.prepare,run)
+                run.timings["context_ms"]=(time.perf_counter()-context_started)*1000
                 run.ai_policy=run.natural_context["policy"]
                 await self.natural.phase(run,State.THINKING)
         except BaseException:
@@ -123,6 +134,7 @@ class ChatService:
         if not run.started:
             run.status = "cancelled"
             self.active.pop(run.request_id, None)
+            run.finished.set()
             task = asyncio.create_task(asyncio.to_thread(self.store.finish, run.request_id, "", None, None, "cancelled", "request_expired"))
             self.persistence_tasks.add(task)
             task.add_done_callback(self.persistence_tasks.discard)
@@ -148,6 +160,7 @@ class ChatService:
     async def events(self, run: Generation):
         run.started = True
         pending = None
+        intent_started=time.perf_counter()
         memory_command=bool(self.natural and run.natural_context and self.natural.is_command(run))
         planning_route=bool(self.natural and run.natural_context and run.natural_context.get('planning'))
         cancellation = asyncio.create_task(run.cancel.wait())
@@ -163,7 +176,10 @@ class ChatService:
                 tool_route=False
             else:
                 tool_route=bool(self.automation_chat and self.automation_chat.candidate(run))
+                if not tool_route and run.principal and hasattr(self.automation_chat,'suspend_read_question'):
+                    self.automation_chat.suspend_read_question(run)
                 source = self.automation_chat.stream(run) if tool_route else self.router.stream(self.context(run), run.mode)
+            run.timings["intent_ms"]=(time.perf_counter()-intent_started)*1000
             if self.natural and run.channel=="voice" and run.natural_context and not planning_route:
                 source=self.natural.responses.stream(run,source,tool=tool_route)
             async with aclosing(source) as stream:
@@ -171,6 +187,16 @@ class ChatService:
                     async with asyncio.timeout(run.ai_policy.timeout_seconds if run.ai_policy else self.settings.ai_timeout_seconds):
                         while True:
                             pending = asyncio.create_task(next_with_policy(stream,run.ai_policy))
+                            if run.channel=='voice' and self.natural and run.natural_context and not run.text and not run.speech_message:
+                                ready,_=await asyncio.wait((pending,cancellation),timeout=self.progress_seconds,return_when=asyncio.FIRST_COMPLETED)
+                                if not ready and not run.cancel.is_set():
+                                    if run.session_epoch is not None:
+                                        await asyncio.to_thread(self.natural.check_audio,run)
+                                        await self.natural.phase(run,State.ASSISTANT_SPEAKING)
+                                    from server.natural.presence import address
+                                    notice=address('Een ogenblik',run.natural_context['settings'])
+                                    run.speech_message+=notice+' '
+                                    yield {'type':'speech','text':notice+' '}
                             done, _ = await asyncio.wait((pending, cancellation), return_when=asyncio.FIRST_COMPLETED)
                             if cancellation in done:
                                 run.status = "cancelled"
@@ -281,6 +307,7 @@ class ChatService:
                 except Exception:logger.debug("diagnostics_unavailable")
         finally:
             self.active.pop(run.request_id,None)
+            run.finished.set()
 
     def cancel(self, request_id: str) -> bool:
         run = self.active.get(request_id)

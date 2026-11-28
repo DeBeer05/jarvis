@@ -146,3 +146,9 @@ android/local.properties
 android/**/google-services.json
 *.jks
 *.keystore
+
+# Public installer template only; machine connection keys remain private.
+!deploy/minipc/.env.example
+**/private.key
+**/oracle-link
+**/oracle-link.pub

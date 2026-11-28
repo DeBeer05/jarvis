@@ -13,7 +13,7 @@ logger = logging.getLogger("jarvis.server")
 
 
 def require_client_access(request:Request)->None:
-    if request.app.state.settings.profile=='oracle-production' and request.scope.get('jarvis.trusted_https') is True:return
+    if bool(request.app.state.settings.public_origin) and request.scope.get('jarvis.trusted_https') is True:return
     require_loopback(request)
 
 

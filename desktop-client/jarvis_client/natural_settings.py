@@ -80,9 +80,20 @@ class NaturalSettingsPanel(QWidget):
         self.make_contacts()
         self.make_memory()
         self.make_diagnostics()
+        from jarvis_client.butler_panel import ButlerPanel
+        from jarvis_client.screen_context import ScreenPanel
+        self.butler_panel=ButlerPanel(window);self.tabs.addTab(self.butler_panel,'Persoonlijke butler')
+        self.screen_panel=ScreenPanel(window);self.tabs.addTab(self.screen_panel,'Beeldcontext')
+        from jarvis_client.presence import PresencePanel
+        if hasattr(window,'presence'):
+            self.presence_panel=PresencePanel(window)
+            self.tabs.addTab(self.presence_panel,'Aanwezigheid op dit apparaat')
         self.clear()
 
     def clear(self):
+        if hasattr(self,'butler_panel'):self.butler_panel.clear()
+        if hasattr(self,'screen_panel'):self.screen_panel.clear()
+        if hasattr(self,'presence_panel'):self.presence_panel.clear()
         self.document=self.draft=self.schema=None;self.category=None;self.controls={};self.dirty=False
         self.keys=[];self.search.clear();self.memory_search.clear()
         self.categories.clear();self.memory_list.clear();self.memory_items=[];self.summary_list.clear();self.summary_text.clear();self.summary_items=[]
@@ -195,7 +206,7 @@ class NaturalSettingsPanel(QWidget):
                 check=QCheckBox(title);check.setChecked(index in value);check.toggled.connect(self.changed);row.addWidget(check);checks.append(check)
             return control,lambda:[i for i,c in enumerate(checks) if c.isChecked()]
         if kind=="object":
-            if field.get('additionalProperties',{}).get('type')=='string':
+            if field.get('additionalProperties',{}).get('type')=='string' and not field.get('additionalProperties',{}).get('enum'):
                 control=QPlainTextEdit('\n'.join(name+': '+preference for name,preference in value.items()));control.setPlaceholderText('Sam: houdt van wandelen');control.setMaximumHeight(125);control.textChanged.connect(self.changed)
                 def preferences():
                     result={}
@@ -210,12 +221,12 @@ class NaturalSettingsPanel(QWidget):
             # Registered tools are supplied by the server schema, never executable code.
             names=self.schema.get("actions",list(value))
             for name in names:
-                combo=QComboBox()
-                for action in ("ask","allow","block"):
+                combo=QComboBox();combo.addItem('Volgens profiel en vaste veiligheidsregels','inherit')
+                for action in ("ask","advise","allow","block"):
                     if action=="allow" and name in self.schema.get("mandatory_approval",[]):continue
-                    combo.addItem(VALUES[action],action)
-                combo.setCurrentIndex(combo.findData(value.get(name,"ask")));combo.currentIndexChanged.connect(self.changed);form.addRow(label(name),combo);inputs[name]=combo
-            return control,lambda:{k:c.currentData() for k,c in inputs.items() if k in value or c.currentData()!="ask"}
+                    combo.addItem(self.schema.get('values',{}).get(action,VALUES.get(action,action)),action)
+                combo.setCurrentIndex(combo.findData(value.get(name,"inherit")));combo.currentIndexChanged.connect(self.changed);form.addRow(label(LABELS.get(name,name)),combo);inputs[name]=combo
+            return control,lambda:{k:c.currentData() for k,c in inputs.items() if c.currentData()!='inherit'}
         multiline=kind=="array" or field.get("maxLength",0)>300
         if multiline:
             control=QPlainTextEdit("\n".join(value) if kind=="array" else value);control.setMaximumHeight(125);control.textChanged.connect(self.changed)
