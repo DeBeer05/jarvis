@@ -115,6 +115,12 @@ def create_app(
     app.include_router(mobile_router)
     app.include_router(automation_router)
     app.include_router(natural_router)
+    from server.progress_routes import router as progress_router
+    app.include_router(progress_router)
+    from server.speech_stream import router as speech_stream_router
+    app.include_router(speech_stream_router)
+    from server.realtime import router as realtime_router
+    app.include_router(realtime_router)
 
     @app.exception_handler(ValueError)
     async def invalid_automation(request: Request, error: ValueError):

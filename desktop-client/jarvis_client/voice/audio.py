@@ -50,6 +50,7 @@ class AudioInputManager:
 
         detector = VoiceActivityDetector(settings.sensitivity, settings.silence_seconds, settings.max_seconds, timeout)
         self.transcription=None
+        self.last_voice_at=0.
         audio = bytearray()
         try:
             device = None if settings.input_device == -1 else settings.input_device
@@ -71,6 +72,7 @@ class AudioInputManager:
                     audio.extend(samples.tobytes())
                     rms = float(np.sqrt(np.mean((samples.astype(np.float32) / 32768) ** 2)))
                     outcome = detector.feed(rms, len(samples) / 16000)
+                    if rms>=detector.threshold:self.last_voice_at=time.perf_counter()
                     if turns:
                         if rms>=detector.threshold:turns.voiced()
                         if detector.speech>=.21:
@@ -160,3 +162,28 @@ class AudioOutputManager:
         finally:
             with self.lock:
                 self.stream = None
+
+    def play_pcm(self,chunks,rate,settings,valid=lambda:True,on_started=lambda:None):
+        if not 8000<=rate<=48000:raise AudioError('Ongeldige samplerate.')
+        with self.playback_lock:
+            self.cancelled.clear();carry=bytearray();started=False
+            try:
+                device=None if settings.output_device==-1 else settings.output_device
+                with sd.RawOutputStream(device=device,samplerate=rate,channels=1,dtype='int16') as stream:
+                    with self.lock:self.stream=stream
+                    for part in chunks:
+                        if self.cancelled.is_set() or not valid():break
+                        carry.extend(part)
+                        while len(carry)>=2:
+                            while self.paused.is_set() and valid() and not self.cancelled.is_set():time.sleep(.01)
+                            if not valid() or self.cancelled.is_set():return
+                            size=min(len(carry)//2*2,max(2,rate//50*2))
+                            block=bytes(carry[:size]);del carry[:size]
+                            samples=np.frombuffer(block,dtype=np.int16).astype(np.float32)*settings.output_gain
+                            pcm=np.clip(samples,-32768,32767).astype(np.int16).tobytes()
+                            if self.reference:self.reference.feed(pcm,rate)
+                            stream.write(pcm)
+                            if not started:started=True;on_started()
+                    if valid() and not self.cancelled.is_set() and carry:raise AudioError('Onvolledige PCM-audio.')
+            finally:
+                with self.lock:self.stream=None

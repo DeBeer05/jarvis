@@ -70,6 +70,52 @@ class TTSRouter:
         if (mode=='fast' or (mode in ('automatic','offline') and config['ai']['performance']=='saving')) and any(caps['voices'].values()):return 'piper'
         return 'supertonic' if caps.get('supertonic_voices',{}).get(voice['supertonic_voice'],False) else 'piper'
 
+    async def stream_pcm(self,request,text,config,utterance=None):
+        """Yield actual PCM immediately; never switch voice after the first byte."""
+        import base64,io,wave
+        from contextlib import aclosing
+        from server.natural.memory import SENSITIVE
+        self.validate_text(text)
+        voice=dict(config['voice']);caps=voice_capabilities()
+        caps['elevenlabs_ready']=bool(self.natural and self.natural.chat.settings.elevenlabs_api_key)
+        provider=self.select(config,caps)
+        key=(request.state.principal.session_id,request.state.principal.device_id,utterance) if utterance else None
+        pin=self.pins.get(key) if key else None
+        if pin and time.monotonic()-pin['at']>=180:pin=None
+        if pin:voice=pin['voice'];provider=pin['provider']
+        private=config['ai']['offline'] or config['voice']['mode'] in ('offline','local') or voice['elevenlabs_sensitive_local'] and SENSITIVE.search(text)
+        if provider=='elevenlabs' and private:
+            if pin and pin['success']:raise AuthError('tts_private','Gevoelige vervolgtekst vereist een nieuw lokaal antwoord.',409)
+            provider='piper'
+        if voice['mode']=='budget':voice['elevenlabs_model']='eleven_flash_v2_5'
+        fallback_local=False
+        if provider=='elevenlabs':
+            pin=pin or {'voice':voice,'provider':provider,'success':False,'at':time.monotonic()}
+            if key:
+                if len(self.pins)>=100:self.pins.pop(next(iter(self.pins)))
+                self.pins[key]=pin
+            delivered=False
+            try:
+                async with aclosing(getattr(self.providers['elevenlabs'],'stream_pcm')(request,text,voice,config)) as source:
+                    async for part in source:
+                        if part:
+                            delivered=True;pin['success']=True;pin['at']=time.monotonic()
+                            yield 24000,part
+                return
+            except AuthError as error:
+                if delivered or pin['success'] or not voice['fallback'] or error.code not in ('speech_unavailable','tts_not_configured','tts_budget','tts_quota','tts_authentication'):raise
+                pin['provider']='piper'
+                fallback_local=True
+        # The existing local helper remains the local/fallback authority.
+        if private or fallback_local:
+            from copy import deepcopy
+            config=deepcopy(config);config['voice'].update(mode='manual',tts_provider='piper')
+        result=await self.synthesize(request,text,config,utterance)
+        with wave.open(io.BytesIO(base64.b64decode(result['audio'],validate=True))) as source:
+            rate=source.getframerate()
+            if source.getnchannels()!=1 or source.getsampwidth()!=2:raise AuthError('speech_unavailable','Ongeldig lokaal audioformaat.',503)
+            while part:=source.readframes(max(1,rate//25)):yield rate,part
+
     async def synthesize(self,request,text,config,utterance=None):
         from server.natural.memory import SENSITIVE
         self.validate_text(text)

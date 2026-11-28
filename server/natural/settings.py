@@ -7,6 +7,7 @@ from server.natural.store import Conflict, encode
 
 SCHEMA_VERSION=1
 CATEGORIES={
+    'progress':'Tussenzinnen en lokale audiocache',
     "routing":"Apparaatroutering",
     'vision':'Schermcontext en beeldanalyse',
     "planning":"Uitjes en planning",

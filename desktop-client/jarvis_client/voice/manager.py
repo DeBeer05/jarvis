@@ -5,6 +5,7 @@ import re
 from copy import deepcopy
 from dataclasses import replace
 from uuid import uuid4
+from typing import Any
 from providers.speech_format import speech_chunks
 
 from PySide6.QtCore import QObject, QTimer, Signal, Slot
@@ -14,6 +15,7 @@ from jarvis_client.voice.processing import AudioCache, InterruptionController, S
 from jarvis_client.voice.worker import InferenceWorker
 from jarvis_client.voice.echo import EchoReference, resembles_output
 from jarvis_client.voice.turns import AdaptiveTurn
+from jarvis_client.voice.progress import ProgressClip
 
 
 class VoiceConversationManager(QObject):
@@ -60,6 +62,7 @@ class VoiceConversationManager(QObject):
         self.stream_audio=True
         self.prefetch_active=False
         self.response_started = self.first_token = self.first_audio = 0.
+        self.utterance_ended=0.;self.progress_text=''
         self.measurements = {}
         self.scheduled = QTimer(self)
         self.scheduled.setSingleShot(True)
@@ -69,6 +72,8 @@ class VoiceConversationManager(QObject):
     def configure_natural(self,settings):
         # Snapshot for the next turn; never open a microphone or alter local consent.
         self.options=deepcopy(settings)
+        if hasattr(self.worker,'warm_progress') and settings.get('progress',{}).get('local_cache',True):
+            self.worker.warm_progress(lambda:self.authorized and not self.recording and not self.responding and not self.closed)
         if self.session_active and not settings["conversations"]["enabled"]:
             self.end_session("uitgeschakeld")
 
@@ -209,6 +214,7 @@ class VoiceConversationManager(QObject):
                     return
                 self.delivered.emit((generation, "transcribing", None))
                 result = (getattr(capture_input,"transcription",None) or self.worker.transcribe(audio, settings, lambda: self.interruptions.valid(generation))) if audio else {"text": "", "seconds": 0}
+                result['utterance_ended']=getattr(capture_input,'last_voice_at',0.)
                 self.delivered.emit((generation, "captured", (result, wake_gate)))
             except Exception as error:
                 self.delivered.emit((generation, "error", str(error)))
@@ -269,6 +275,7 @@ class VoiceConversationManager(QObject):
         elif kind == "captured":
             self.recording = False
             result, wake_gate = payload
+            self.utterance_ended=result.get('utterance_ended',0.)
             self.measurements = {"stt_seconds": round(result["seconds"], 3), "device": result.get("device", "cpu"), "cpu_fallback": result.get("cpu_fallback", False)}
             text = result["text"].strip()
             if wake_gate:
@@ -298,10 +305,12 @@ class VoiceConversationManager(QObject):
                 self.armed = self.continuous()
                 if self.wake_enabled or self.continuous():
                     self.scheduled.start(150)
-        elif kind == "playing":
+        elif kind in ('playing','playing_progress'):
             if not self.first_audio:
                 self.first_audio = time.perf_counter()
                 self.measurements["first_audio_seconds"] = round(self.first_audio - self.response_started, 3)
+            metric='progress_audio_seconds' if kind=='playing_progress' else 'content_audio_seconds'
+            if metric not in self.measurements:self.measurements[metric]=round(time.perf_counter()-self.response_started,3)
             self.set_state("JARVIS spreekt")
             self.start_barge_capture(generation)
             if self.barge_active:self.set_state("JARVIS spreekt · luistert naar onderbreking")
@@ -340,6 +349,7 @@ class VoiceConversationManager(QObject):
             self.responding = False
             self.last_activity=time.monotonic()
             self.measurements["total_seconds"] = round(time.perf_counter() - self.response_started, 3)
+            if 'content_audio_seconds' in self.measurements:self.measurements['final_audio_seconds']=self.measurements['total_seconds']
             self.metrics.emit(dict(self.measurements))
             self.set_state("Klaar om te luisteren")
             self.playback_finished.emit()
@@ -375,7 +385,8 @@ class VoiceConversationManager(QObject):
         self.responding = True
         self.stream_audio=not self.options or not self.options["conversations"]["enabled"] or self.options["voice"].get("streaming",True)
         self.sentence, self.answer_text = SentenceBuffer(), ""
-        self.response_started = time.perf_counter()
+        self.response_started = self.utterance_ended or time.perf_counter()
+        self.utterance_ended=0.;self.progress_text=''
         self.first_token = self.first_audio = 0.
         self.set_state("JARVIS denkt…")
         generation, settings, pending = self.interruptions.generation, self.effective_settings(), self.pending
@@ -385,10 +396,13 @@ class VoiceConversationManager(QObject):
         # queue or another inference engine. Keep STT priority when barge-in is on.
         prefetch=not (self.options and self.options.get('listening',{}).get('barge_in',False))
         self.prefetch_active=prefetch
-        prepared:queue.Queue[tuple[str,bytes|str|None]]=queue.Queue(maxsize=1)
+        prepared:queue.Queue[tuple[str,Any]]=queue.Queue(maxsize=1)
         capacity=threading.Semaphore(1)
 
         def synthesize(text):
+            if isinstance(text,ProgressClip):
+                if self.answer_text or not hasattr(worker,'progress_audio'):return None,True
+                return worker.progress_audio(text,lambda:valid() and not self.answer_text),True
             key = text, settings.provider, settings.voice, settings.speaker, settings.speed, settings.models
             with self.cache_lock:
                 audio = self.cache.get(key) if settings.cache and not getattr(worker,"centralized",False) else None
@@ -396,7 +410,7 @@ class VoiceConversationManager(QObject):
                 audio, _ = worker.synthesize(text, settings, valid)
                 if settings.cache and valid() and not getattr(worker,"centralized",False):
                     with self.cache_lock:self.cache.put(key, audio)
-            return audio
+            return audio,False
 
         def prepare():
             while valid():
@@ -404,7 +418,9 @@ class VoiceConversationManager(QObject):
                 try:text=pending.get(timeout=.1)
                 except queue.Empty:capacity.release();continue
                 try:packet=('audio',synthesize(text)) if text is not None else ('done',None)
-                except Exception as error:packet=('error',str(error))
+                except Exception as error:
+                    if isinstance(text,ProgressClip):capacity.release();continue
+                    packet=('error',str(error))
                 if valid():prepared.put_nowait(packet)
                 if packet[0]!='audio':return
 
@@ -421,17 +437,33 @@ class VoiceConversationManager(QObject):
                         try:text=pending.get(timeout=.1)
                         except queue.Empty:continue
                         finished=text is None
-                        audio=None if finished else synthesize(text)
+                        try:audio=None if finished else synthesize(text)
+                        except Exception:
+                            if isinstance(text,ProgressClip):continue
+                            raise
                     if finished:
                         self.delivered.emit((generation, "drained", None));return
                     if valid():
-                        self.output.play(audio, settings, valid, lambda: self.delivered.emit((generation, "playing", None)))
+                        audio,is_progress=audio
+                        if audio is not None:
+                            active=lambda:valid() and (not is_progress or not self.answer_text)
+                            started=lambda:self.delivered.emit((generation, 'playing_progress' if is_progress else 'playing', None))
+                            if hasattr(audio,'play'):audio.play(self.output,settings,active,started)
+                            else:self.output.play(audio,settings,active,started)
                 except Exception as error:
                     self.delivered.emit((generation, "error", str(error)))
                     return
 
         if prefetch:self._thread(prepare)
         self._thread(consume)
+
+    def progress(self,event):
+        if not self.responding or self.answer_text:return
+        if self.options and not self.options.get('progress',{}).get('enabled',True):return
+        try:
+            clip=ProgressClip.parse(event);self.progress_text=clip.text
+            self.pending.put_nowait(clip)
+        except (ValueError,queue.Full):return
 
     def delta(self, text, *, ready=False):
         if not self.responding:

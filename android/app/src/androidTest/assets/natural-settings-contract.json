@@ -2,6 +2,7 @@
   "schema": {
     "schema_version": 1,
     "categories": {
+      "progress": "Tussenzinnen en lokale audiocache",
       "routing": "Apparaatroutering",
       "vision": "Schermcontext en beeldanalyse",
       "planning": "Uitjes en planning",
@@ -1356,6 +1357,42 @@
           "title": "Privacy",
           "type": "object"
         },
+        "ProgressAudio": {
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "default": true,
+              "title": "Vooraf opgenomen tussenzinnen",
+              "type": "boolean"
+            },
+            "delay_ms": {
+              "default": 500,
+              "maximum": 5000,
+              "minimum": 300,
+              "title": "Wachtdrempel (ms)",
+              "type": "integer"
+            },
+            "minimum_interval_seconds": {
+              "default": 45,
+              "maximum": 600,
+              "minimum": 10,
+              "title": "Minimumtijd tussen tussenzinnen",
+              "type": "integer"
+            },
+            "honorific": {
+              "default": false,
+              "title": "Aanspreekvorm in tussenzinnen",
+              "type": "boolean"
+            },
+            "local_cache": {
+              "default": true,
+              "title": "Audiocache op dit apparaat gebruiken",
+              "type": "boolean"
+            }
+          },
+          "title": "ProgressAudio",
+          "type": "object"
+        },
         "ResponseSettings": {
           "additionalProperties": false,
           "properties": {
@@ -1892,6 +1929,9 @@
       },
       "additionalProperties": false,
       "properties": {
+        "progress": {
+          "$ref": "#/$defs/ProgressAudio"
+        },
         "routing": {
           "$ref": "#/$defs/RoutingSettings"
         },
@@ -2096,6 +2136,13 @@
   "document": {
     "revision": 0,
     "settings": {
+      "progress": {
+        "enabled": true,
+        "delay_ms": 500,
+        "minimum_interval_seconds": 45,
+        "honorific": false,
+        "local_cache": true
+      },
       "routing": {
         "windows_device": ""
       },

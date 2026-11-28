@@ -6,7 +6,7 @@ from pathlib import Path
 
 destination = Path(sys.argv[1]).resolve() / "third-party-licenses"
 destination.mkdir(parents=True, exist_ok=True)
-names = ("PySide6-Essentials", "shiboken6", "httpx", "httpcore", "anyio", "idna", "certifi", "h11", "typing_extensions", "numpy", "sounddevice", "cffi", "pycparser", "pydantic", "pydantic_core", "annotated-types", "typing-inspection")
+names = ("PySide6-Essentials", "shiboken6", "httpx", "httpcore", "anyio", "idna", "certifi", "h11", "typing_extensions", "numpy", "sounddevice", "cffi", "pycparser", "pydantic", "pydantic_core", "annotated-types", "typing-inspection","websockets")
 if "--voice" in sys.argv:
     names = (package.metadata["Name"] for package in importlib.metadata.distributions())
 for name in names:

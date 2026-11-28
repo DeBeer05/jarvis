@@ -23,6 +23,17 @@ hybride implementatie/PR33. Twee bestaande maildigest-eigenaarsdiffs blijven int
    Audiostreaming/clientinstrumentatie volgen in fase 3; doelwaarden niet geclaimd.
 3. [ ] Realtime/tussenzinnen: 100 unieke Nederlandse zinnen, vooraf genereren,
    stemgebonden cache, clients, prioriteit/annulering, afzonderlijke audiometingen.
+   Techniek geïmplementeerd: beschermde PCM-streaming, herbruikbare STT-WebSocket,
+   begrensde buffers, stop/revocation, stemgebonden cache en honderd unieke zinnen.
+   Windows/Android spelen inhoudelijke PCM vóór voltooiing van de synthese af;
+   voortgangsaudio krijgt afzonderlijke timings en wijkt voor inhoudelijk antwoord.
+   De geselecteerde premiumstem vraagt 2.630 tekens versus bestaande daglimiet
+   2.000: vraag over eenmalig maximaal 3.000 bestaande credits staat nog open.
+   Geen premiumbatch uitgevoerd of limiet verhoogd. Technische mocks zijn geen
+   bewijs voor honderd werkelijk opgenomen bestanden of fysieke luisterlatency.
+   Controles tot nu: 48 gerichte servertests, 155 clienttests; Android unit/lint/
+   debug/release gebouwd. Laatste kleine cachewijzigingen worden opnieuw getest.
+   Eén noodzakelijke kleine dependency: websockets 17.4, uitsluitend geïsoleerd.
 4. [ ] Persoonlijkheid: korte gedeelde butlerstijl zonder interne uitvoerdetails.
 5. [ ] Infrastructuur: Oracle-backend, back-up/restore/rollback, systemd, TLS;
    mini-pc-gatewaypakket, optionele beschikbare Windows-compute.

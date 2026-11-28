@@ -19,7 +19,7 @@ def test_diagnostics_are_numeric_bounded_and_never_export_memory_or_prompt(natur
     assert snapshot["latency"]["stt_ms"]==19 and snapshot["memory_counts"]["active"]==1
     assert "Privé project lantaarn" not in json.dumps(snapshot)
     assert snapshot["contains_conversation_content"] is False and snapshot["resources"]["resident_bytes"]>0
-    assert snapshot["resources"]["gpu_percent"] is None and snapshot["websocket"]=="not_configured"
+    assert snapshot["resources"]["gpu_percent"] is None and snapshot["websocket"]=="authenticated_realtime"
     assert c.get("/api/v1/natural/diagnostics").json()["resources"]["cpu_one_core_percent"] is not None
 
 

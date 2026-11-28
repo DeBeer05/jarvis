@@ -116,7 +116,7 @@ class DiagnosticsManager:
         capabilities=voice_capabilities()
         return {"schema_version":1,"sampled_at":now,"enabled":config["diagnostics"]["enabled"],"server":"online","database":"read_write_ok",
                 "active_provider":latest["provider"] if latest and latest["provider"] in ("gemini","groq","ollama","oracle","local","jarvis") else None,
-                "voice":{"capabilities":capabilities,"inference_busy":inference_busy},"websocket":"not_configured","microphone":"device_local",
+                "voice":{"capabilities":capabilities,"inference_busy":inference_busy},"websocket":"authenticated_realtime","microphone":"device_local",
                 "sessions":sessions,"memory_counts":counts,"latency":latency,"distributions":distributions(events),"events":events,
                 "measurement_notes":{"native_first_audio_ms":"includes progress audio","native_content_audio_ms":"first substantive audio; excludes progress","native_final_audio_ms":"last substantive playback completed","tails":"nearest rank; inspect count; missing is not zero"},
                 "resources":self.resources(helper) if config["diagnostics"]["enabled"] and config["diagnostics"]["resources"] else None,

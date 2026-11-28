@@ -34,6 +34,8 @@ class NaturalService:
         self.memory=MemoryManager(self.store)
         from server.natural.tts import TTSRouter
         self.tts=TTSRouter(self)
+        from server.natural.progress_audio import ProgressAudio
+        self.progress_audio=ProgressAudio(self)
         self.responses=IntelligentResponseManager(self)
         from server.natural.contacts import ContactManager
         self.contacts=ContactManager(self.store)

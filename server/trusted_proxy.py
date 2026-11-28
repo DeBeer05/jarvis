@@ -7,7 +7,7 @@ from starlette.responses import JSONResponse
 class TrustedHTTPSProxy:
     def __init__(self,app,origin):self.app=app;self.origin=urlsplit(origin)
     async def __call__(self,scope,receive,send):
-        if scope['type']!='http':return await self.app(scope,receive,send)
+        if scope['type'] not in ('http','websocket'):return await self.app(scope,receive,send)
         raw_headers=scope.get('headers',[])
         headers=dict(raw_headers)
         if b'x-forwarded-proto' not in headers:return await self.app(scope,receive,send)
@@ -19,6 +19,7 @@ class TrustedHTTPSProxy:
             address=str(ipaddress.ip_address(headers[b'x-forwarded-for'].decode('ascii')))
             if scope['path']=='/internal' or scope['path'].startswith('/internal/'):raise ValueError()
         except (ValueError,KeyError,UnicodeError,TypeError):
+            if scope['type']=='websocket':return await send({'type':'websocket.close','code':4403})
             return await JSONResponse({'error':{'code':'untrusted_proxy','message':'Gebruik de beveiligde JARVIS-hostnaam.'}},status_code=403)(scope,receive,send)
-        scope={**scope,'scheme':'https','client':(address,0),'jarvis.trusted_https':True}
+        scope={**scope,'scheme':'wss' if scope['type']=='websocket' else 'https','client':(address,0),'jarvis.trusted_https':True}
         return await self.app(scope,receive,send)

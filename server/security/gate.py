@@ -86,7 +86,7 @@ class SecurityGate:
                 else: required = "automation:write"
             elif path == "/api/v1/mobile/speech/transcribe":
                 required = "chat:write"
-            elif path == "/api/v1/mobile/speech/synthesize":
+            elif path in ("/api/v1/mobile/speech/synthesize",'/api/v1/mobile/speech/stream'):
                 required = "chat:read"
             elif path == "/api/v1/mobile/push":
                 required = "status:read"
