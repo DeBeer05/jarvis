@@ -1,6 +1,7 @@
 ﻿param([string]$InstallRoot="$env:ProgramData\JARVIS",[string]$HostName,[string]$AdminKey,[string]$HostPublicKey,[string]$GatewayHost)
 . "$PSScriptRoot\Common.ps1"
 Require-Admin
+if(-not(Get-Command ssh.exe -ErrorAction SilentlyContinue)){throw 'De Windows OpenSSH-client ontbreekt. Volg het onderdeel Windows-onderdelen in INSTALLATIE.md.'}
 $InstallRoot=Assert-Root $InstallRoot
 if(Test-Path "$PSScriptRoot\oracle-connection.json"){
  $site=Get-Content "$PSScriptRoot\oracle-connection.json" -Raw|ConvertFrom-Json

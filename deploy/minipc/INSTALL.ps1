@@ -38,6 +38,7 @@ try{
   if(-not(Test-Path -LiteralPath $voicePython)){Invoke-Python $runtimePython @('-m','venv',"$InstallRoot\voice-venv")}
   Invoke-Python $voicePython @('-m','pip','install','-r','requirements-voice-server.txt')
   Invoke-Python $voicePython @('-m','pip','check')
+  Invoke-Python $voicePython @('-c','import ctranslate2; import piper')
   Invoke-Python $runtimePython @('scripts/download-voice-models.py','--accept-downloads','--directory',"$InstallRoot\models")
   Invoke-Python $runtimePython @('scripts/download-voice-models.py','--accept-downloads','--ronnie-only','--directory',"$InstallRoot\models")
  }

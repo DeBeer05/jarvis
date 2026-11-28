@@ -30,6 +30,30 @@ opnieuw gestart. Alleen lokale poort 8765 wordt gebruikt. De installatie wijzigt
 geen Windows-firewallregels. Persoonlijke bestanden, logs en machine-DPAPI-sleutels
 zijn alleen toegankelijk voor SYSTEM en lokale administrators.
 
+## Windows-onderdelen die kunnen ontbreken
+
+De geautomatiseerde installatie van deze Windows-onderdelen kon niet worden
+opgenomen: automatische veiligheidsreview blokkeerde die uitbreiding zonder
+nadere reden. Op systemen waar ze aanwezig zijn, is deze stap niet nodig.
+
+Voor Oracle heeft u uitsluitend de OpenSSH-client nodig. Als CONNECT meldt dat
+de client ontbreekt: open PowerShell als administrator en voer zelf uit:
+
+```powershell
+Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0
+```
+
+Dit installeert de client. Installeer hiervoor geen SSH-server en open geen poort.
+De [officiële Microsoft-instructie](https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse)
+beschrijft dezelfde clientinstallatie.
+
+Als het importeren of starten van de lokale spraakruntime een ontbrekende
+Microsoft-DLL meldt, open de [officiële Visual C++-downloadpagina](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist),
+kies de nieuwste ondersteunde **X64**-download, open het gedownloade installatiebestand
+en kies Installeren of Herstellen. Volg een eventuele herstartmelding. Gebruik
+geen DLL-downloadsites. Het pakket controleert de echte spraakimports en presenteert
+een ontbrekende runtime niet als geslaagde spraakinstallatie.
+
 ## Oracle en veilige toegang buitenshuis
 
 Op Oracle moeten `deploy/oracle/install-inference.sh` en `install-gateway.sh`

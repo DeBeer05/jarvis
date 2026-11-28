@@ -31,7 +31,9 @@ geen persoonlijke migratie/cutover uitgevoerd. Geen nieuwe betaalde resources.
   DPAPI, readiness en gecontroleerd stoppen daadwerkelijk geslaagd. SYSTEM-taak,
   fysieke mini-pc en accounts zijn hiermee nog niet bewezen. Testvariant die de
   administratorcheck zou overslaan is door automatische review geblokkeerd;
-  die wijziging is niet uitgevoerd en controles blijven behouden.
+  die wijziging is niet uitgevoerd en controles blijven behouden. Ook een
+  voorstel voor automatische OpenSSH-/Microsoft-runtimeinstallatie werd geblokkeerd
+  zonder nadere reden; officiële handmatige stappen staan in INSTALLATIE.md.
 
 Tussenstand controles: 698 servertests + 1 Windows-skip; gerichte vervolgproeven
 42 context/spraak, 35 hybride tests en 15 aanvullende cache/queue/package-proeven
