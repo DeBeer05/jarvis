@@ -41,6 +41,11 @@ class TTSRouter:
             self.usage=VoiceUsage(natural.store)
             self.providers['elevenlabs']=ElevenLabs(natural.chat.settings,self.usage)
 
+    async def close(self):
+        for provider in self.providers.values():
+            close=getattr(provider,'close',None)
+            if close:await close()
+
     def validate_text(self,text):
         from server.natural.memory import SECRET
         if SECRET.search(text) or re.search(r'\b(?:sk_[A-Za-z0-9]{16,}|eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)|\b(?:api[- _]?key|authenticatietoken|wachtwoord|password)\s*(?:is|:|=)',text,re.I):

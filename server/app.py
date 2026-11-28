@@ -79,7 +79,7 @@ def create_app(
             await chat.shutdown()
             await chat.router.close()
             await app.state.natural.briefings.close()
-            await app.state.natural.tts.providers['elevenlabs'].close()
+            await app.state.natural.tts.close()
             app.state.natural.context.private.clear()
             if hasattr(app.state.speech,"close"):await app.state.speech.close()
             database.close()
